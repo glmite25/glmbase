@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardMembersTable from "./DashboardMembersTable";
 import ChurchUnitDistribution from "./ChurchUnitDistribution";
-import { Shield, Users, UserCog } from "lucide-react";
+import SupabaseConnectionTest from "./SupabaseConnectionTest";
+import { Shield, Users, UserCog, Database } from "lucide-react";
 
 const SuperUserSection = () => {
   const navigate = useNavigate();
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -36,6 +37,8 @@ const SuperUserSection = () => {
         </Card>
 
         <ChurchUnitDistribution />
+
+        <SupabaseConnectionTest />
       </div>
 
       <Card className="mb-8">

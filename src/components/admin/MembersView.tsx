@@ -79,27 +79,47 @@ export default function MembersView() {
 
   const fetchPastors = async () => {
     try {
+      console.log('MembersView: Fetching pastors from Supabase...');
+
+      // Test Supabase connection first
+      const { data: testData, error: testError } = await supabase
+        .from('members')
+        .select('count()')
+        .limit(1);
+
+      if (testError) {
+        console.error('MembersView: Supabase connection test failed:', testError);
+        throw new Error(`Supabase connection error: ${testError.message}`);
+      }
+
+      console.log('MembersView: Supabase connection test successful');
+
       // Fetch pastors from Supabase
       const { data, error } = await supabase
         .from('members')
         .select('id, fullName, churchUnit, auxanoGroup')
         .eq('category', 'Pastors');
 
-      if (error) throw error;
+      if (error) {
+        console.error('MembersView: Error fetching pastors data:', error);
+        throw error;
+      }
 
-      if (data) {
+      console.log('MembersView: Pastors data received:', data);
+
+      if (data && data.length > 0) {
         setPastors(data);
       } else {
         // If no pastors found, set empty array
-        console.log('No pastors found in database');
+        console.log('MembersView: No pastors found in database');
         setPastors([]);
       }
     } catch (error: any) {
-      console.error('Error fetching pastors:', error);
+      console.error('MembersView: Error fetching pastors:', error);
       toast({
         variant: "destructive",
         title: "Error fetching pastors",
-        description: error.message,
+        description: error.message || "Failed to fetch pastors. Please try again later.",
       });
 
       // Set empty array in case of error

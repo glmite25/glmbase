@@ -37,6 +37,20 @@ const PastorsPage = () => {
   const fetchPastors = async () => {
     try {
       setLoading(true);
+      console.log('PastorsPage: Fetching pastors from Supabase...');
+
+      // Test Supabase connection first
+      const { data: testData, error: testError } = await supabase
+        .from('members')
+        .select('count()')
+        .limit(1);
+
+      if (testError) {
+        console.error('PastorsPage: Supabase connection test failed:', testError);
+        throw new Error(`Supabase connection error: ${testError.message}`);
+      }
+
+      console.log('PastorsPage: Supabase connection test successful');
 
       // Fetch all pastors (members with category 'Pastors')
       const { data: pastorsData, error: pastorsError } = await supabase
@@ -44,33 +58,60 @@ const PastorsPage = () => {
         .select('*')
         .eq('category', 'Pastors');
 
-      if (pastorsError) throw pastorsError;
+      if (pastorsError) {
+        console.error('PastorsPage: Error fetching pastors data:', pastorsError);
+        throw pastorsError;
+      }
+
+      console.log('PastorsPage: Pastors data received:', pastorsData);
+
+      if (!pastorsData || pastorsData.length === 0) {
+        console.log('PastorsPage: No pastors found in database');
+        setPastors([]);
+        return;
+      }
 
       // For each pastor, count how many members are assigned to them
+      console.log('PastorsPage: Counting members assigned to each pastor...');
       const pastorsWithCounts = await Promise.all(
         pastorsData.map(async (pastor) => {
-          const { count, error: countError } = await supabase
-            .from('members')
-            .select('*', { count: 'exact', head: true })
-            .eq('assignedTo', pastor.id);
+          try {
+            const { count, error: countError } = await supabase
+              .from('members')
+              .select('*', { count: 'exact', head: true })
+              .eq('assignedTo', pastor.id);
 
-          if (countError) throw countError;
+            if (countError) {
+              console.error(`PastorsPage: Error counting members for pastor ${pastor.id}:`, countError);
+              throw countError;
+            }
 
-          return {
-            ...pastor,
-            memberCount: count || 0
-          };
+            return {
+              ...pastor,
+              memberCount: count || 0
+            };
+          } catch (countingError) {
+            console.error(`PastorsPage: Error processing pastor ${pastor.id}:`, countingError);
+            // Return the pastor with 0 members instead of failing completely
+            return {
+              ...pastor,
+              memberCount: 0
+            };
+          }
         })
       );
 
+      console.log('PastorsPage: Successfully processed all pastors with member counts');
       setPastors(pastorsWithCounts);
     } catch (error: any) {
-      console.error('Error fetching pastors:', error);
+      console.error('PastorsPage: Error fetching pastors:', error);
       toast({
         variant: "destructive",
         title: "Error fetching pastors",
-        description: error.message
+        description: error.message || "Failed to fetch pastors. Please try again later."
       });
+      // Set empty array in case of error
+      setPastors([]);
     } finally {
       setLoading(false);
     }

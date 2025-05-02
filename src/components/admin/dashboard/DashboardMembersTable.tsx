@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -36,26 +36,26 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
   const [pastors, setPastors] = useState<{ id: string; fullName: string }[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   useEffect(() => {
     fetchMembers();
     fetchPastors();
   }, [category]);
-  
+
   const fetchMembers = async () => {
     setLoading(true);
     try {
       let query = supabase.from('members').select('*');
-      
+
       // Filter by category if not 'All'
       if (category !== 'All') {
         query = query.eq('category', category);
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) throw error;
-      
+
       if (data && data.length > 0) {
         // Transform the data to match the Member interface
         const formattedMembers: Member[] = data.map(member => ({
@@ -72,7 +72,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
           notes: member.notes || undefined,
           isActive: member.isActive !== false, // Default to true if not specified
         }));
-        
+
         setMembers(formattedMembers);
       } else {
         setMembers([]);
@@ -89,34 +89,58 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       setLoading(false);
     }
   };
-  
+
   const fetchPastors = async () => {
     try {
+      console.log('Fetching pastors from Supabase...');
+
+      // Test Supabase connection first
+      const { data: testData, error: testError } = await supabase
+        .from('members')
+        .select('count()')
+        .limit(1);
+
+      if (testError) {
+        console.error('Supabase connection test failed:', testError);
+        throw new Error(`Supabase connection error: ${testError.message}`);
+      }
+
+      console.log('Supabase connection test successful');
+
+      // Now fetch pastors
       const { data, error } = await supabase
         .from('members')
         .select('id, fullName')
         .eq('category', 'Pastors');
-      
+
       if (error) throw error;
-      
+
+      console.log('Pastors data received:', data);
+
       if (data && data.length > 0) {
         setPastors(data);
       } else {
+        console.log('No pastors found in database');
         setPastors([]);
       }
     } catch (error: any) {
       console.error('Error fetching pastors:', error);
+      toast({
+        variant: "destructive",
+        title: "Error fetching pastors",
+        description: error.message || "Failed to fetch pastors. Please try again later.",
+      });
       setPastors([]);
     }
   };
-  
+
   useEffect(() => {
     // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const filtered = members.filter(
-        member => 
-          member.fullName.toLowerCase().includes(term) || 
+        member =>
+          member.fullName.toLowerCase().includes(term) ||
           member.email.toLowerCase().includes(term) ||
           (member.phone && member.phone.includes(term))
       );
@@ -125,7 +149,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       setFilteredMembers(members);
     }
   }, [members, searchTerm]);
-  
+
   const getCategoryBadgeColor = (category: MemberCategory) => {
     switch(category) {
       case 'Sons':
@@ -140,13 +164,13 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         return "bg-gray-100 text-gray-800";
     }
   };
-  
+
   const getAssignedToName = (assignedToId: string | undefined) => {
     if (!assignedToId) return "None";
     const assignedPastor = pastors.find(p => p.id === assignedToId);
     return assignedPastor ? assignedPastor.fullName : "Unknown";
   };
-  
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -159,14 +183,14 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button 
+        <Button
           className="flex items-center gap-2"
           onClick={() => navigate("/admin/members")}
         >
           View All
         </Button>
       </div>
-      
+
       <div className="border rounded-md">
         <Table>
           <TableHeader>
