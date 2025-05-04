@@ -115,20 +115,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
     try {
       console.log('Fetching pastors from Supabase...');
 
-      // Test Supabase connection first
-      const { data: testData, error: testError } = await supabase
-        .from('members')
-        .select('count()')
-        .limit(1);
-
-      if (testError) {
-        console.error('Supabase connection test failed:', testError);
-        throw new Error(`Supabase connection error: ${testError.message}`);
-      }
-
-      console.log('Supabase connection test successful');
-
-      // Now fetch pastors
+      // Directly fetch pastors without the problematic test query
       const { data, error } = await supabase
         .from('members')
         .select('id, fullname')

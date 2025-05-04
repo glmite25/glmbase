@@ -39,19 +39,6 @@ const PastorsPage = () => {
       setLoading(true);
       console.log('PastorsPage: Fetching pastors from Supabase...');
 
-      // Test Supabase connection first
-      const { data: testData, error: testError } = await supabase
-        .from('members')
-        .select('count()')
-        .limit(1);
-
-      if (testError) {
-        console.error('PastorsPage: Supabase connection test failed:', testError);
-        throw new Error(`Supabase connection error: ${testError.message}`);
-      }
-
-      console.log('PastorsPage: Supabase connection test successful');
-
       // Fetch all pastors (members with category 'Pastors')
       const { data: pastorsData, error: pastorsError } = await supabase
         .from('members')
@@ -76,9 +63,9 @@ const PastorsPage = () => {
       const pastorsWithCounts = await Promise.all(
         pastorsData.map(async (pastor) => {
           try {
-            const { count, error: countError } = await supabase
+            const { data, error: countError } = await supabase
               .from('members')
-              .select('*', { count: 'exact', head: true })
+              .select('id')
               .eq('assignedto', pastor.id);
 
             if (countError) {
@@ -88,7 +75,7 @@ const PastorsPage = () => {
 
             return {
               ...pastor,
-              memberCount: count || 0
+              memberCount: data?.length || 0
             };
           } catch (countingError) {
             console.error(`PastorsPage: Error processing pastor ${pastor.id}:`, countingError);

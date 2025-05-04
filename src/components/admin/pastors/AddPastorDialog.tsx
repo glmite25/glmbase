@@ -78,30 +78,25 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
   // Check if the user exists when email field changes
   const checkUserExists = async (email: string) => {
     if (!email || !email.includes('@')) return;
-    
+
     try {
-      // First check if the user exists in auth
+      // First check if the user exists in auth or profiles
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
-        .eq('email', email.toLowerCase())
-        .single();
+        .eq('email', email.toLowerCase());
 
-      if (userError) {
-        setUserFound(false);
-        setFoundUserName("");
-        return;
-      }
+      // If no user found in profiles, we'll create one later
+      const userExists = !userError && userData && userData.length > 0;
 
       // Check if the user is already a pastor
       const { data: pastorData, error: pastorError } = await supabase
         .from('members')
         .select('id')
         .eq('email', email.toLowerCase())
-        .eq('category', 'Pastors')
-        .single();
+        .eq('category', 'Pastors');
 
-      if (!pastorError && pastorData) {
+      if (!pastorError && pastorData && pastorData.length > 0) {
         toast({
           variant: "destructive",
           title: "User is already a pastor",
@@ -112,9 +107,21 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
         return;
       }
 
-      // User exists and is not already a pastor
+      // User is not already a pastor, so we can proceed
       setUserFound(true);
-      setFoundUserName(userData.full_name || email);
+
+      // If user exists in profiles, use their name, otherwise use email
+      if (userExists) {
+        setFoundUserName(userData[0].full_name || email);
+      } else {
+        // Extract name from email for new users
+        const nameFromEmail = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ');
+        const formattedName = nameFromEmail
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        setFoundUserName(`New user: ${formattedName}`);
+      }
     } catch (error) {
       console.error("Error checking user:", error);
       setUserFound(false);
@@ -127,35 +134,86 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
       toast({
         variant: "destructive",
         title: "User not found",
-        description: "Please enter a valid email address for an existing user.",
+        description: "Please enter a valid email address.",
       });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Get user details from profiles
+      // Check if user exists in profiles
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
-        .eq('email', values.email.toLowerCase())
-        .single();
+        .eq('email', values.email.toLowerCase());
 
-      if (userError) throw userError;
+      let fullName = '';
+      let userId = '';
+
+      // If user doesn't exist in profiles, create a new user
+      if (userError || !userData || userData.length === 0) {
+        // Extract name from email
+        const nameFromEmail = values.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ');
+        fullName = nameFromEmail
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+
+        // Generate a random password for the new user
+        const randomPassword = Math.random().toString(36).slice(-10);
+
+        // Create user in auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: values.email,
+          password: randomPassword,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+        if (authError) throw authError;
+
+        if (!authData.user) {
+          throw new Error("Failed to create user account");
+        }
+
+        userId = authData.user.id;
+
+        // Create profile record
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: values.email.toLowerCase(),
+            full_name: fullName,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          // Continue anyway as we have the user ID
+        }
+      } else {
+        // Use existing user data
+        fullName = userData[0].full_name || values.email;
+        userId = userData[0].id;
+      }
 
       // Create a new member record with category "Pastors"
       const { data, error } = await supabase
         .from('members')
         .insert([
           {
-            fullName: userData.full_name,
-            email: userData.email,
+            fullname: fullName,
+            email: values.email.toLowerCase(),
             category: "Pastors",
             title: values.title || null,
-            churchUnit: values.churchUnit || null,
-            auxanoGroup: values.auxanoGroup || null,
-            joinDate: new Date().toISOString().split('T')[0],
-            isActive: true,
+            churchunit: values.churchUnit || null,
+            auxanogroup: values.auxanoGroup || null,
+            joindate: new Date().toISOString().split('T')[0],
+            isactive: true,
+            userid: userId,
           }
         ])
         .select();
@@ -164,7 +222,7 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
 
       toast({
         title: "Pastor added successfully",
-        description: `${userData.full_name} has been added as a pastor.`,
+        description: `${fullName} has been added as a pastor.`,
       });
 
       onPastorAdded();
@@ -207,9 +265,9 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="pastor@example.com" 
-                      {...field} 
+                    <Input
+                      placeholder="pastor@example.com"
+                      {...field}
                       onChange={(e) => {
                         field.onChange(e);
                         checkUserExists(e.target.value);

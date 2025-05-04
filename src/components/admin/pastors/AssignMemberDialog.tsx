@@ -29,6 +29,8 @@ import { Loader2, UserPlus } from "lucide-react";
 // Define the form schema with validation
 const assignMemberSchema = z.object({
   memberId: z.string().min(1, { message: "Please select a member" }),
+  memberEmail: z.string().email({ message: "Please enter a valid email address" }).optional(),
+  useEmail: z.boolean().default(false),
 });
 
 type AssignMemberFormValues = z.infer<typeof assignMemberSchema>;
@@ -50,6 +52,8 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
     resolver: zodResolver(assignMemberSchema),
     defaultValues: {
       memberId: "",
+      memberEmail: "",
+      useEmail: false,
     },
   });
 
@@ -90,18 +94,74 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
   const onSubmit = async (values: AssignMemberFormValues) => {
     setIsSubmitting(true);
     try {
-      // Update the member to assign them to this pastor
-      const { error } = await supabase
-        .from('members')
-        .update({ assignedTo: pastorId })
-        .eq('id', values.memberId);
+      if (values.useEmail && values.memberEmail) {
+        // Using email to assign member
+        // First check if member exists
+        const { data: memberData, error: memberError } = await supabase
+          .from('members')
+          .select('id, fullname, email')
+          .eq('email', values.memberEmail.toLowerCase());
 
-      if (error) throw error;
+        if (memberError) throw memberError;
 
-      toast({
-        title: "Member assigned successfully",
-        description: `Member has been assigned to ${pastorName}.`,
-      });
+        if (!memberData || memberData.length === 0) {
+          // Member doesn't exist, create a new one
+          const nameFromEmail = values.memberEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ');
+          const fullName = nameFromEmail
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+          // Create new member
+          const { data: newMember, error: insertError } = await supabase
+            .from('members')
+            .insert([
+              {
+                fullname: fullName,
+                email: values.memberEmail.toLowerCase(),
+                category: 'Others', // Default category
+                assignedto: pastorId,
+                isactive: true,
+                joindate: new Date().toISOString().split('T')[0],
+              }
+            ])
+            .select();
+
+          if (insertError) throw insertError;
+
+          toast({
+            title: "New member created and assigned",
+            description: `${fullName} has been created and assigned to ${pastorName}.`,
+          });
+        } else {
+          // Member exists, update assignedto field
+          const { error: updateError } = await supabase
+            .from('members')
+            .update({ assignedto: pastorId })
+            .eq('email', values.memberEmail.toLowerCase());
+
+          if (updateError) throw updateError;
+
+          toast({
+            title: "Member assigned successfully",
+            description: `${memberData[0].fullname} has been assigned to ${pastorName}.`,
+          });
+        }
+      } else {
+        // Using dropdown selection
+        // Update the member to assign them to this pastor
+        const { error } = await supabase
+          .from('members')
+          .update({ assignedto: pastorId })
+          .eq('id', values.memberId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Member assigned successfully",
+          description: `Member has been assigned to ${pastorName}.`,
+        });
+      }
 
       onMemberAssigned();
       setOpen(false);
@@ -136,47 +196,85 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="memberId"
+              name="useEmail"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Select Member</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a member" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {isLoading ? (
-                        <div className="flex items-center justify-center p-2">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Loading...
-                        </div>
-                      ) : availableMembers.length === 0 ? (
-                        <div className="p-2 text-sm text-gray-500">
-                          No available members found
-                        </div>
-                      ) : (
-                        availableMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.fullName} ({member.email})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="h-4 w-4"
+                    />
+                  </FormControl>
+                  <FormLabel>Assign by email address</FormLabel>
                 </FormItem>
               )}
             />
 
+            {form.watch("useEmail") ? (
+              <FormField
+                control={form.control}
+                name="memberEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Member Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="member@example.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <FormField
+                control={form.control}
+                name="memberId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Member</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a member" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoading ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Loading...
+                          </div>
+                        ) : availableMembers.length === 0 ? (
+                          <div className="p-2 text-sm text-gray-500">
+                            No available members found
+                          </div>
+                        ) : (
+                          availableMembers.map((member) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.fullname || member.fullName} ({member.email})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <DialogFooter>
               <Button
                 type="submit"
-                disabled={isSubmitting || isLoading || availableMembers.length === 0}
+                disabled={isSubmitting || (isLoading && !form.watch("useEmail")) ||
+                  (!form.watch("useEmail") && availableMembers.length === 0)}
               >
                 {isSubmitting ? (
                   <>
