@@ -70,6 +70,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Check if there's a stored superuser status before anything else
+        const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+        console.log("Initial superuser check from localStorage:", storedSuperUserStatus);
+
         // Don't clear auth storage on startup to maintain user session
         // Check active session
         const { data: { session } } = await supabase.auth.getSession();
@@ -81,6 +85,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           await fetchProfile(session.user.id);
         } else {
+          // Even if no session, we might still have a superuser status in localStorage
+          if (storedSuperUserStatus) {
+            console.log("No session but superuser status found in localStorage");
+            setIsSuperUser(true);
+          }
           setIsLoading(false);
         }
       } catch (error) {
@@ -191,7 +200,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const isUserAdmin = roleData.some(r => r.role === 'admin');
 
       // Check for super admin status using our utility function
-      const userEmail = data.email?.toLowerCase() || '';
+      const userEmail = data.email?.toLowerCase() || userData?.user?.email?.toLowerCase() || '';
       console.log('Checking superuser status for email:', userEmail);
 
       // Use the utility function to check superuser status
@@ -201,8 +210,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Set to true to enable superadmin access for testing
       const forceSuperAdmin = false;
 
+      // Double-check localStorage directly as a fallback
+      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+
+      // Determine final superuser status
+      const finalSuperUserStatus = isSuperAdmin || forceSuperAdmin || storedSuperUserStatus;
+
       // If user is a superadmin or forced, ensure it's stored
-      if (isSuperAdmin || forceSuperAdmin) {
+      if (finalSuperUserStatus) {
         console.log('User is a superadmin!');
         setSuperUserStatus(true);
       }
@@ -211,14 +226,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: userEmail,
         isAdmin: isUserAdmin,
         isSuperAdmin,
+        storedSuperUserStatus,
         forceSuperAdmin,
-        finalIsSuperUser: isSuperAdmin || forceSuperAdmin,
-        finalIsAdmin: isUserAdmin || isSuperAdmin || forceSuperAdmin
+        finalIsSuperUser: finalSuperUserStatus,
+        finalIsAdmin: isUserAdmin || finalSuperUserStatus
       });
 
       // Set admin and superuser status
-      setIsAdmin(isUserAdmin || isSuperAdmin || forceSuperAdmin);
-      setIsSuperUser(isSuperAdmin || forceSuperAdmin);
+      setIsAdmin(isUserAdmin || finalSuperUserStatus);
+      setIsSuperUser(finalSuperUserStatus);
 
     } catch (error) {
       console.error('Error in fetchProfile:', error);
