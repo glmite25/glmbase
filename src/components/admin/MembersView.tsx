@@ -14,7 +14,7 @@ import { AddMemberDialog } from "./members/AddMemberDialog";
 import { EditMemberDialog } from "./members/EditMemberDialog";
 import { DeleteMemberDialog } from "./members/DeleteMemberDialog";
 import { MembersTable } from "./members/MembersTable";
-import { standardizeAllRecords } from "@/utils/standardizeFields";
+import { standardizeAllRecords, standardizeAllFields, prepareForDatabase } from "@/utils/standardizeFields";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 
 export default function MembersView() {
@@ -149,8 +149,9 @@ export default function MembersView() {
 
   const handleAddMember = async (newMember: Member) => {
     try {
-      // Standardize the church unit fields before inserting
-      const standardizedMember = standardizeAllFields({
+      // Prepare the member data for database insertion
+      // This converts camelCase properties to lowercase for the database
+      const dbMember = prepareForDatabase({
         fullName: newMember.fullName,
         email: newMember.email,
         phone: newMember.phone || null,
@@ -167,7 +168,7 @@ export default function MembersView() {
       // Insert the new member into the database
       const { data, error } = await supabase
         .from('members')
-        .insert([standardizedMember])
+        .insert([dbMember])
         .select();
 
       if (error) throw error;
@@ -198,8 +199,9 @@ export default function MembersView() {
     if (!selectedMember) return;
 
     try {
-      // Standardize the church unit fields before updating
-      const standardizedValues = standardizeAllFields({
+      // Prepare the member data for database update
+      // This converts camelCase properties to lowercase for the database
+      const dbValues = prepareForDatabase({
         fullName: values.fullName,
         email: values.email,
         phone: values.phone || null,
@@ -215,7 +217,7 @@ export default function MembersView() {
       // Update the member in the database
       const { error } = await supabase
         .from('members')
-        .update(standardizedValues)
+        .update(dbValues)
         .eq('id', selectedMember.id);
 
       if (error) throw error;
