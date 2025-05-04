@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/data-state";
+import { SyncProfilesButton } from "./SyncProfilesButton";
 
 interface DashboardMembersTableProps {
   category: MemberCategory | 'All';
@@ -178,12 +179,15 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button
-          className="flex items-center gap-2"
-          onClick={() => navigate("/admin/members")}
-        >
-          View All
-        </Button>
+        <div className="flex items-center gap-2">
+          <SyncProfilesButton onSyncComplete={fetchMembers} />
+          <Button
+            className="flex items-center gap-2"
+            onClick={() => navigate("/admin/members")}
+          >
+            View All
+          </Button>
+        </div>
       </div>
 
       {loading ? (

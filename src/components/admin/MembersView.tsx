@@ -16,6 +16,7 @@ import { DeleteMemberDialog } from "./members/DeleteMemberDialog";
 import { MembersTable } from "./members/MembersTable";
 import { standardizeAllRecords, standardizeAllFields, prepareForDatabase } from "@/utils/standardizeFields";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
+import { SyncProfilesButton } from "./dashboard/SyncProfilesButton";
 
 export default function MembersView() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -293,7 +294,10 @@ export default function MembersView() {
             <CardTitle>All Members</CardTitle>
             <CardDescription>Manage church members and their relationships</CardDescription>
           </div>
-          <AddMemberDialog onAddMember={handleAddMember} pastors={pastors} />
+          <div className="flex items-center gap-2">
+            <SyncProfilesButton onSyncComplete={fetchMembers} />
+            <AddMemberDialog onAddMember={handleAddMember} pastors={pastors} />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
