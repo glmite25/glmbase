@@ -61,7 +61,8 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         const term = searchTerm.toLowerCase();
 
         // Use ilike for case-insensitive search on multiple columns
-        query = query.or(`fullName.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
+        // Use lowercase column names to match the database
+        query = query.or(`fullname.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
       }
 
       // Execute the query
@@ -130,7 +131,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       // Now fetch pastors
       const { data, error } = await supabase
         .from('members')
-        .select('id, fullName')
+        .select('id, fullname')
         .eq('category', 'Pastors');
 
       if (error) throw error;

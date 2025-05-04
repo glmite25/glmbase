@@ -72,7 +72,7 @@ const PastorDetail = () => {
       const { data: membersData, error: membersError } = await supabase
         .from('members')
         .select('*')
-        .eq('assignedTo', pastorId);
+        .eq('assignedto', pastorId);
 
       if (membersError) throw membersError;
 
@@ -89,11 +89,18 @@ const PastorDetail = () => {
     }
   };
 
-  const filteredMembers = members.filter(member =>
-    member.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (member.category && member.category.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Make sure we handle both fullName and fullname properties
+  const filteredMembers = members.filter(member => {
+    const name = member.fullName || member.fullname || '';
+    const email = member.email || '';
+    const category = member.category || '';
+
+    const query = searchQuery.toLowerCase();
+
+    return name.toLowerCase().includes(query) ||
+           email.toLowerCase().includes(query) ||
+           category.toLowerCase().includes(query);
+  });
 
   const getInitials = (name: string) => {
     return name

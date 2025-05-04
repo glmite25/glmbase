@@ -79,7 +79,7 @@ const PastorsPage = () => {
             const { count, error: countError } = await supabase
               .from('members')
               .select('*', { count: 'exact', head: true })
-              .eq('assignedTo', pastor.id);
+              .eq('assignedto', pastor.id);
 
             if (countError) {
               console.error(`PastorsPage: Error counting members for pastor ${pastor.id}:`, countError);
@@ -117,12 +117,20 @@ const PastorsPage = () => {
     }
   };
 
-  const filteredPastors = pastors.filter(pastor =>
-    pastor.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pastor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (pastor.churchUnit && pastor.churchUnit.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (pastor.auxanoGroup && pastor.auxanoGroup.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Make sure we handle both fullName and fullname properties
+  const filteredPastors = pastors.filter(pastor => {
+    const name = pastor.fullName || pastor.fullname || '';
+    const email = pastor.email || '';
+    const churchUnit = pastor.churchUnit || pastor.churchunit || '';
+    const auxanoGroup = pastor.auxanoGroup || pastor.auxanogroup || '';
+
+    const query = searchQuery.toLowerCase();
+
+    return name.toLowerCase().includes(query) ||
+           email.toLowerCase().includes(query) ||
+           churchUnit.toLowerCase().includes(query) ||
+           auxanoGroup.toLowerCase().includes(query);
+  });
 
   const handleViewPastor = (pastorId: string) => {
     navigate(`/admin/pastors/${pastorId}`);

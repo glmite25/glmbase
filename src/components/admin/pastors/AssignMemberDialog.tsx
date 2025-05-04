@@ -60,9 +60,9 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
       // Get members who are not pastors and not assigned to any pastor
       const { data, error } = await supabase
         .from('members')
-        .select('id, fullName, email')
+        .select('id, fullname, email')
         .not('category', 'eq', 'Pastors')
-        .is('assignedTo', null);
+        .is('assignedto', null);
 
       if (error) throw error;
 
@@ -174,8 +174,8 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
             />
 
             <DialogFooter>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting || isLoading || availableMembers.length === 0}
               >
                 {isSubmitting ? (

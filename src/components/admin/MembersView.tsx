@@ -45,7 +45,8 @@ export default function MembersView() {
         const term = searchTerm.toLowerCase();
 
         // Use ilike for case-insensitive search on multiple columns
-        query = query.or(`fullName.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
+        // Try both fullName and fullname to handle case sensitivity in column names
+        query = query.or(`fullname.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
       }
 
       // Execute the query
@@ -102,15 +103,15 @@ export default function MembersView() {
       // Start building the query
       let query = supabase
         .from('members')
-        .select('id, fullName, churchUnit, churchUnits, auxanoGroup')
+        .select('id, fullname, churchunit, churchunits, auxanogroup')
         .eq('category', 'Pastors');
 
       // Apply search filter at the database level if searchTerm exists
       if (searchTerm && searchTerm.trim() !== '') {
         const term = searchTerm.toLowerCase();
 
-        // Use ilike for case-insensitive search on fullName
-        query = query.ilike('fullName', `%${term}%`);
+        // Use ilike for case-insensitive search on fullname (lowercase)
+        query = query.ilike('fullname', `%${term}%`);
       }
 
       // Execute the query
