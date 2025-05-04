@@ -23,6 +23,7 @@ import { Member, MemberCategory } from "@/types/member";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { LoadingState, ErrorState, EmptyState } from "@/components/ui/data-state";
 
 interface DashboardMembersTableProps {
   category: MemberCategory | 'All';
@@ -31,20 +32,23 @@ interface DashboardMembersTableProps {
 const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
-  const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [pastors, setPastors] = useState<{ id: string; fullName: string }[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Fetch data when category or searchTerm changes
   useEffect(() => {
     fetchMembers();
     fetchPastors();
-  }, [category]);
+  }, [category, searchTerm]);
 
   const fetchMembers = async () => {
     setLoading(true);
+    setError(null);
     try {
+      // Start building the query
       let query = supabase.from('members').select('*');
 
       // Filter by category if not 'All'
@@ -52,6 +56,15 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         query = query.eq('category', category);
       }
 
+      // Apply search filter at the database level if searchTerm exists
+      if (searchTerm && searchTerm.trim() !== '') {
+        const term = searchTerm.toLowerCase();
+
+        // Use ilike for case-insensitive search on multiple columns
+        query = query.or(`fullName.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
+      }
+
+      // Execute the query
       const { data, error } = await query;
 
       if (error) throw error;
@@ -67,7 +80,13 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
           category: member.category as any,
           joinDate: member.joinDate || new Date().toISOString().split('T')[0],
           assignedTo: member.assignedTo || undefined,
-          churchUnit: member.churchUnit || undefined,
+          // Standardize church unit fields
+          churchUnits: member.churchUnits || member.churchunits ||
+                      (member.churchUnit ? [member.churchUnit] :
+                      (member.churchunit ? [member.churchunit] : [])),
+          churchUnit: member.churchUnit || member.churchunit ||
+                     (member.churchUnits && member.churchUnits.length > 0 ? member.churchUnits[0] :
+                     (member.churchunits && member.churchunits.length > 0 ? member.churchunits[0] : undefined)),
           auxanoGroup: member.auxanoGroup || undefined,
           notes: member.notes || undefined,
           isActive: member.isActive !== false, // Default to true if not specified
@@ -79,6 +98,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       }
     } catch (error: any) {
       console.error('Error fetching members:', error);
+      setError(error.message || 'Failed to fetch members');
       toast({
         variant: "destructive",
         title: "Error fetching members",
@@ -125,6 +145,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       }
     } catch (error: any) {
       console.error('Error fetching pastors:', error);
+      setError(error.message || 'Failed to fetch pastors');
       toast({
         variant: "destructive",
         title: "Error fetching pastors",
@@ -134,21 +155,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
     }
   };
 
-  useEffect(() => {
-    // Filter by search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const filtered = members.filter(
-        member =>
-          member.fullName.toLowerCase().includes(term) ||
-          member.email.toLowerCase().includes(term) ||
-          (member.phone && member.phone.includes(term))
-      );
-      setFilteredMembers(filtered);
-    } else {
-      setFilteredMembers(members);
-    }
-  }, [members, searchTerm]);
+  // No need for client-side filtering anymore as we're doing it at the database level
 
   const getCategoryBadgeColor = (category: MemberCategory) => {
     switch(category) {
@@ -191,54 +198,63 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         </Button>
       </div>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Church Unit</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  Loading members...
-                </TableCell>
-              </TableRow>
-            ) : filteredMembers.length > 0 ? (
-              filteredMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.fullName}</TableCell>
-                  <TableCell>{member.email}</TableCell>
-                  <TableCell>
-                    <Badge className={getCategoryBadgeColor(member.category)}>
-                      {member.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{getAssignedToName(member.assignedTo)}</TableCell>
-                  <TableCell>{member.churchUnit || "Not Assigned"}</TableCell>
-                  <TableCell>
-                    <Badge className={member.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-                      {member.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
+      {loading ? (
+        <LoadingState message={`Loading ${category.toLowerCase() === 'all' ? 'members' : category.toLowerCase()}...`} />
+      ) : error ? (
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            fetchMembers();
+            fetchPastors();
+          }}
+        />
+      ) : (
+        <div className="border rounded-md">
+          {members.length === 0 ? (
+            <EmptyState
+              title={`No ${category.toLowerCase() === 'all' ? 'members' : category.toLowerCase()} found`}
+              message={searchTerm ? `No results match your search "${searchTerm}"` : `There are no ${category.toLowerCase() === 'all' ? 'members' : category.toLowerCase()} in the database.`}
+              action={{
+                label: "View All Members",
+                onClick: () => navigate("/admin/members")
+              }}
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Assigned To</TableHead>
+                  <TableHead>Church Unit</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                  No members found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">{member.fullName}</TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell>
+                      <Badge className={getCategoryBadgeColor(member.category)}>
+                        {member.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{getAssignedToName(member.assignedTo)}</TableCell>
+                    <TableCell>{member.churchUnit || "Not Assigned"}</TableCell>
+                    <TableCell>
+                      <Badge className={member.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                        {member.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
     </div>
   );
 };

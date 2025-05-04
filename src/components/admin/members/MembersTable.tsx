@@ -1,4 +1,3 @@
-
 import { Member } from "@/types/member";
 import {
   Table,
@@ -56,17 +55,9 @@ export function MembersTable({
                 {member.assignedTo ? getAssignedPastorName(member.assignedTo) : "Not Assigned"}
               </TableCell>
               <TableCell>
-                {/* Handle both camelCase and lowercase column names */}
-                {(member.churchUnits || member.churchunits) &&
-                 (member.churchUnits?.length > 0 || member.churchunits?.length > 0)
-                  ? (member.churchUnits || member.churchunits || []).map(unit => (
-                      <Badge key={unit} className="mr-1 mb-1 bg-blue-100 text-blue-800">
-                        {unit}
-                      </Badge>
-                    ))
-                  : (member.churchUnit || member.churchunit)
-                    ? <Badge className="bg-blue-100 text-blue-800">{member.churchUnit || member.churchunit}</Badge>
-                    : "Not Assigned"}
+                {member.churchUnit
+                  ? <Badge className="bg-blue-100 text-blue-800">{member.churchUnit}</Badge>
+                  : "Not Assigned"}
               </TableCell>
               <TableCell>
                 {member.auxanoGroup || "Not Assigned"}

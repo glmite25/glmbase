@@ -9,12 +9,13 @@ import PlaceholderCard from "./PlaceholderCard";
 import StatsCardGrid from "./StatsCardGrid";
 import SuperUserSection from "./SuperUserSection";
 import AdminSection from "./AdminSection";
+import { getSuperUserStatus } from "@/utils/superuser-fix";
 
 const DashboardContent = () => {
   const { isSuperUser } = useAuth();
 
-  // Additional check for superuser status from localStorage
-  const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+  // Additional check for superuser status using our utility function
+  const storedSuperUserStatus = getSuperUserStatus();
   const effectiveSuperUser = isSuperUser || storedSuperUserStatus;
 
   console.log('DashboardContent rendering with:', {
