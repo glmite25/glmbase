@@ -6,9 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserCog, Users, Building, UserPlus, Phone, MapPin, Activity } from "lucide-react";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
+import { getSuperUserStatus } from "@/utils/superuser-fix";
 
 const Profile = () => {
   const { user, profile, isLoading, isAdmin, isSuperUser } = useAuth();
+
+  // Additional check for superuser status using localStorage
+  const storedSuperUserStatus = getSuperUserStatus();
+  const effectiveSuperUser = isSuperUser || storedSuperUserStatus;
+
+  console.log('Profile rendering with:', {
+    email: user?.email,
+    isSuperUser,
+    storedSuperUserStatus,
+    effectiveSuperUser
+  });
 
   const getInitials = (name: string | null) => {
     if (!name) return "U";
@@ -67,7 +79,7 @@ const Profile = () => {
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-2xl">{profile?.full_name}</CardTitle>
                   {isAdmin && <Badge className="bg-church-red">Admin</Badge>}
-                  {isSuperUser && <Badge className="bg-yellow-500 text-black">Apostle</Badge>}
+                  {effectiveSuperUser && <Badge className="bg-yellow-500 text-black">Apostle</Badge>}
                 </div>
                 <CardDescription>{user.email}</CardDescription>
               </div>

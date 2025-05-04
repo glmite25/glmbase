@@ -36,63 +36,63 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
     };
 
     // Get total members count
-    const { count: totalMembers, error: membersError } = await supabase
+    const { data: allMembers, error: membersError } = await supabase
       .from('members')
-      .select('*', { count: 'exact', head: true });
+      .select('id');
 
     if (membersError) throw membersError;
-    metrics.totalMembers = totalMembers || 0;
+    metrics.totalMembers = allMembers?.length || 0;
 
     // Get active members (members with isActive = true)
-    const { count: activeMembers, error: activeError } = await supabase
+    const { data: activeMembers, error: activeError } = await supabase
       .from('members')
-      .select('*', { count: 'exact', head: true })
-      .eq('isActive', true);
+      .select('id')
+      .eq('isactive', true);
 
     if (activeError) throw activeError;
-    metrics.activeMembers = activeMembers || 0;
+    metrics.activeMembers = activeMembers?.length || 0;
 
     // Get new members (joined in the last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-    const { count: newMembers, error: newMembersError } = await supabase
+    const { data: newMembers, error: newMembersError } = await supabase
       .from('members')
-      .select('*', { count: 'exact', head: true })
-      .gte('joinDate', thirtyDaysAgoStr);
+      .select('id')
+      .gte('joindate', thirtyDaysAgoStr);
 
     if (newMembersError) throw newMembersError;
-    metrics.newMembers = newMembers || 0;
+    metrics.newMembers = newMembers?.length || 0;
 
     // Get registered users count
-    const { count: registeredUsers, error: usersError } = await supabase
+    const { data: registeredUsers, error: usersError } = await supabase
       .from('profiles')
-      .select('*', { count: 'exact', head: true });
+      .select('id');
 
     if (usersError) throw usersError;
-    metrics.registeredUsers = registeredUsers || 0;
+    metrics.registeredUsers = registeredUsers?.length || 0;
 
     // Get admin users count
-    const { count: adminUsers, error: adminError } = await supabase
+    const { data: adminUsers, error: adminError } = await supabase
       .from('user_roles')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('role', 'admin');
 
     if (adminError) throw adminError;
-    metrics.adminUsers = adminUsers || 0;
+    metrics.adminUsers = adminUsers?.length || 0;
 
     // Get super admin count (this is just for display, actual super admin is determined by email)
     metrics.superAdmins = 1; // Hardcoded as there's typically just one super admin
 
     // Get pastors count
-    const { count: pastors, error: pastorsError } = await supabase
+    const { data: pastors, error: pastorsError } = await supabase
       .from('members')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('category', 'Pastors');
 
     if (pastorsError) throw pastorsError;
-    metrics.pastors = pastors || 0;
+    metrics.pastors = pastors?.length || 0;
 
     // Get church units distribution
     const { data: unitsData, error: unitsError } = await supabase

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -35,16 +34,15 @@ export const useAuthentication = () => {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     clearErrors();
-
+    console.log("[signIn] Attempting login for:", email);
     try {
       // Clear any existing auth data first to ensure a fresh login
       clearAuthStorage();
-
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
+      console.log("[signIn] Supabase response:", { data, error });
       // Handle the email_not_confirmed error specifically
       if (error) {
         if (error.message === "Email not confirmed") {
@@ -53,28 +51,27 @@ export const useAuthentication = () => {
             title: "Email not confirmed",
             description: "Your email has not been confirmed yet. You can still use the app in development mode.",
           });
-
           // Try to sign in again without options for development purposes
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-
           if (!signInError) {
+            console.log("[signIn] Second attempt success, navigating to home");
             navigate("/");
             return;
           }
         }
-
         // Display specific error message
         setErrorMessage(error.message);
+        console.error("[signIn] Error:", error.message);
         throw error;
       }
-
       // Success - navigate to home
+      console.log("[signIn] Login successful, navigating to home");
       navigate("/");
     } catch (error: any) {
-      console.error("Authentication error:", error.message);
+      console.error("[signIn] Authentication error:", error.message);
       // Error already set in the flow above
     } finally {
       setIsLoading(false);

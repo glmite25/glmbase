@@ -1,7 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { checkSuperUserStatus, setSuperUserStatus, clearSuperUserStatus } from "@/utils/superuser-fix";
 
 export type UserRole = 'user' | 'admin' | 'superuser';
 
@@ -69,88 +69,71 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Don't clear auth storage on startup to maintain user session
-        // Check active session
+        const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+        if (storedSuperUserStatus) {
+          setIsSuperUser(true);
+        }
+        console.log("[AuthContext] Initial superuser check from localStorage:", storedSuperUserStatus);
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("Initial session check:", session ? "Session exists" : "No session");
-
+        console.log("[AuthContext] Initial session check:", session ? "Session exists" : "No session", session);
         setSession(session);
         setUser(session?.user ?? null);
-
         if (session?.user) {
           await fetchProfile(session.user.id);
         } else {
+          if (storedSuperUserStatus) {
+            console.log("[AuthContext] No session but superuser status found in localStorage");
+            setIsSuperUser(true);
+          }
           setIsLoading(false);
         }
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        console.error("[AuthContext] Error initializing auth:", error);
         setIsLoading(false);
       }
     };
-
-    // Initialize auth on component mount
     initializeAuth();
-
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session ? "Session exists" : "No session");
-
+      console.log("[AuthContext] Auth state changed:", event, session ? "Session exists" : "No session", session);
       setSession(session);
       setUser(session?.user ?? null);
-
       if (session?.user) {
         await fetchProfile(session.user.id);
       } else {
-        // Handle logout or session expiration
-        console.log("User logged out or session expired");
-
-        // Clear all state
+        console.log("[AuthContext] User logged out or session expired");
         setProfile(null);
         setIsAdmin(false);
         setIsSuperUser(false);
         setIsLoading(false);
-
-        // If this was a SIGNED_OUT event, make sure we clear any cached state
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          console.log(`${event} event detected, clearing state`);
-          localStorage.removeItem('glm-is-superuser');
+          console.log(`[AuthContext] ${event} event detected, clearing state`);
+          clearSuperUserStatus();
           clearAuthStorage();
         }
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user ID:', userId);
-
-      // Get user profile
+      console.log('[AuthContext] Fetching profile for user ID:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-
       if (error) {
-        console.error('Error fetching profile data:', error);
+        console.error('[AuthContext] Error fetching profile data:', error);
         throw error;
       }
-
-      console.log('Profile data retrieved:', data);
-
-      // Get user metadata from auth
+      console.log('[AuthContext] Profile data retrieved:', data);
       const { data: userData, error: userError } = await supabase.auth.getUser();
-
       if (userError) {
-        console.error('Error fetching user data:', userError);
+        console.error('[AuthContext] Error fetching user data:', userError);
       }
-
-      // Set the profile data with metadata from the current user session
-      // Use type assertion to handle the database fields
       const profileData: Profile = {
         id: data.id,
         email: data.email,
@@ -164,83 +147,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role: (data as any).role
       };
       setProfile(profileData);
-
-      // Check if the user has admin role
       let roleData = [];
       try {
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId);
-
         if (error) {
-          console.error('Error fetching role data:', error);
-          // Don't throw the error, just log it and continue with empty roleData
+          console.error('[AuthContext] Error fetching role data:', error);
         } else {
           roleData = data || [];
         }
       } catch (roleError) {
-        console.error('Exception fetching role data:', roleError);
-        // Continue with empty roleData
+        console.error('[AuthContext] Exception fetching role data:', roleError);
       }
-
-      console.log('Role data retrieved:', roleData);
-
-      // Check if user is admin or superuser
+      console.log('[AuthContext] Role data retrieved:', roleData);
       const isUserAdmin = roleData.some(r => r.role === 'admin');
-
-      // Check for super admin (ojidelawrence@gmail.com)
-      // Also add your current email for testing purposes
-      const userEmail = data.email?.toLowerCase() || '';
-      const superAdminEmails = [
-        'ojidelawrence@gmail.com'.toLowerCase(),
-        'clickcom007@yahoo.com'.toLowerCase() // Add your email here for testing
-      ];
-
-      console.log('Checking superuser status for email:', userEmail);
-      console.log('Comparing with superadmin emails:', superAdminEmails);
-
-      // Check if the user's email is in the list of superadmin emails
-      const isSuperAdmin = superAdminEmails.includes(userEmail);
-
-      if (isSuperAdmin) {
-        console.log('User is a superadmin based on email match!');
-        // Store superuser status in localStorage for persistence across reloads
-        localStorage.setItem('glm-is-superuser', 'true');
-      } else {
-        console.log('User is NOT a superadmin based on email comparison');
-        // Only remove if not a superadmin to avoid clearing during page refreshes
-        if (localStorage.getItem('glm-is-superuser') === 'true') {
-          localStorage.removeItem('glm-is-superuser');
-        }
-      }
-
-      // For testing purposes, you can force superadmin status
-      // Set to true to enable superadmin access for testing
+      const userEmail = data.email?.toLowerCase() || userData?.user?.email?.toLowerCase() || '';
+      console.log('[AuthContext] Checking superuser status for email:', userEmail);
+      const isSuperAdmin = checkSuperUserStatus(userEmail);
       const forceSuperAdmin = false;
-
-      console.log('User authorization determined:', {
+      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+      const finalSuperUserStatus = isSuperAdmin || forceSuperAdmin || storedSuperUserStatus;
+      if (finalSuperUserStatus) {
+        console.log('[AuthContext] User is a superadmin!');
+        setSuperUserStatus(true);
+      } else {
+        clearSuperUserStatus();
+      }
+      console.log('[AuthContext] User authorization determined:', {
         email: userEmail,
         isAdmin: isUserAdmin,
         isSuperAdmin,
+        storedSuperUserStatus,
         forceSuperAdmin,
-        finalIsSuperUser: isSuperAdmin || forceSuperAdmin,
-        finalIsAdmin: isUserAdmin || isSuperAdmin || forceSuperAdmin
+        finalIsSuperUser: finalSuperUserStatus,
+        finalIsAdmin: isUserAdmin || finalSuperUserStatus
       });
-
-      // Check both the email match and the stored superuser status
-      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
-      console.log('Stored superuser status:', storedSuperUserStatus);
-
-      // Set admin and superuser status
-      setIsAdmin(isUserAdmin || isSuperAdmin || forceSuperAdmin || storedSuperUserStatus);
-      setIsSuperUser(isSuperAdmin || forceSuperAdmin || storedSuperUserStatus);
-
+      setIsAdmin(isUserAdmin || finalSuperUserStatus);
+      setIsSuperUser(finalSuperUserStatus);
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
-      // Set default values even if there's an error
-      setIsAdmin(false);  // Don't grant admin access on error
-      setIsSuperUser(false);  // Don't grant superuser access on error
+      console.error('[AuthContext] Error in fetchProfile:', error);
+      setIsAdmin(false);
+      setIsSuperUser(false);
     } finally {
       setIsLoading(false);
     }

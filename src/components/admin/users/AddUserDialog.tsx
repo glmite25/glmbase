@@ -54,18 +54,20 @@ const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
 
   const handleAddUser = async (values: z.infer<typeof addUserSchema>) => {
     try {
-      // First, create the user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // First, create the user in Supabase Auth using signUp instead of admin.createUser
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
-        email_confirm: true,
-        user_metadata: { full_name: values.fullName },
+        options: {
+          data: { full_name: values.fullName },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (authError) throw authError;
 
       // If the user should be an admin, add them to the user_roles table
-      if (values.isAdmin) {
+      if (values.isAdmin && authData.user) {
         const { error: roleError } = await supabase
           .from("user_roles")
           .insert({ user_id: authData.user.id, role: "admin" });
@@ -73,10 +75,27 @@ const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
         if (roleError) throw roleError;
       }
 
+      // Create profile record if it doesn't exist
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            email: values.email.toLowerCase(),
+            full_name: values.fullName,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          // Continue anyway as the user was created
+        }
+      }
+
       toast({
         title: "User created successfully",
       });
-      
+
       setOpen(false);
       addForm.reset();
       onUserAdded(); // Refresh the user list
