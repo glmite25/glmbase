@@ -1,25 +1,32 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import DashboardHeader from "@/components/admin/dashboard/DashboardHeader";
 import DashboardContent from "@/components/admin/dashboard/DashboardContent";
-import { Menu } from "lucide-react";
+import { Menu, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
   const { user, isAdmin, isSuperUser, isLoading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [forceLoaded, setForceLoaded] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
   console.log('AdminDashboard rendering with:', {
     user: user ? 'User logged in' : 'No user',
     isAdmin,
     isSuperUser,
     isLoading,
+    loadingTimeout,
+    forceLoaded,
     email: user?.email,
     storedSuperUserStatus: localStorage.getItem('glm-is-superuser') === 'true'
   });
@@ -38,22 +45,54 @@ const AdminDashboard = () => {
     }
   }, [isMobile]);
 
+  // Add a timeout for loading state
+  useEffect(() => {
+    // Clear any existing timeout when component unmounts or dependencies change
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Set a timeout to show a message if loading takes too long
+  useEffect(() => {
+    if (isLoading && !loadingTimeout && !forceLoaded) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.warn('Auth loading timeout reached after 5 seconds');
+        setLoadingTimeout(true);
+      }, 5000);
+    } else if (!isLoading && loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isLoading, loadingTimeout, forceLoaded]);
+
   // Redirect if not logged in or not an admin/superuser
   useEffect(() => {
     const checkAuth = async () => {
-      // Wait a bit to ensure auth state is fully loaded
-      if (isLoading) {
+      // If we're still loading but not in a timeout state, just wait
+      if (isLoading && !loadingTimeout && !forceLoaded) {
         console.log('Still loading auth state...');
         return;
       }
 
-      if (!user) {
+      // If we're in a timeout state or forced loaded, check what we have
+      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+
+      if (!user && !storedSuperUserStatus) {
         console.log('No user found, redirecting to auth page');
         navigate("/auth");
         return;
       }
 
-      if (!isAdmin && !isSuperUser) {
+      if (!isAdmin && !isSuperUser && !storedSuperUserStatus) {
         console.log('User is not admin or superuser, redirecting to auth page');
         navigate("/auth");
         return;
@@ -63,12 +102,45 @@ const AdminDashboard = () => {
     };
 
     checkAuth();
-  }, [user, isAdmin, isSuperUser, isLoading, navigate]);
+  }, [user, isAdmin, isSuperUser, isLoading, loadingTimeout, forceLoaded, navigate]);
 
-  if (isLoading) {
+  // Force continue function for when loading gets stuck
+  const handleForceContinue = () => {
+    setForceLoaded(true);
+    toast({
+      title: "Continuing with limited functionality",
+      description: "Some features may not be available until authentication completes.",
+    });
+  };
+
+  // Show loading state
+  if ((isLoading && !forceLoaded) || (loadingTimeout && !forceLoaded)) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
+      <div className="flex flex-col min-h-screen items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          {loadingTimeout ? (
+            <>
+              <p className="text-lg font-medium">Still loading authentication state...</p>
+              <p className="text-sm text-gray-500 max-w-md">
+                This is taking longer than expected. There might be an issue with the authentication service.
+              </p>
+              <Button
+                onClick={handleForceContinue}
+                className="mt-4 flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Continue Anyway
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-center">
+                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+              </div>
+              <p>Loading authentication state...</p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
