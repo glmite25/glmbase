@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +71,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         // Check if there's a stored superuser status before anything else
         const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+        if (storedSuperUserStatus) {
+          setIsSuperUser(true);
+        }
         console.log("Initial superuser check from localStorage:", storedSuperUserStatus);
 
         // Don't clear auth storage on startup to maintain user session
@@ -216,10 +218,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Determine final superuser status
       const finalSuperUserStatus = isSuperAdmin || forceSuperAdmin || storedSuperUserStatus;
 
-      // If user is a superadmin or forced, ensure it's stored
+      // If user is a superadmin or forced, ensure it's stored; otherwise, clear it
       if (finalSuperUserStatus) {
         console.log('User is a superadmin!');
         setSuperUserStatus(true);
+      } else {
+        clearSuperUserStatus();
       }
 
       console.log('User authorization determined:', {
