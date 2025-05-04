@@ -108,7 +108,7 @@ const Header = () => {
               </div>
             ) : (
               <Button
-                className="bg-church-blue hover:bg-church-blue/90 text-white w-full"
+                className="bg-[#FF0000] hover:bg-[#FF0000]/90 text-white w-full"
                 onClick={() => {
                   navigate("/auth");
                   setIsMenuOpen(false);

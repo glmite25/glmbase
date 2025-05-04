@@ -68,13 +68,13 @@ const Footer = () => {
             <h3 className="font-serif text-xl font-bold mb-4 text-white">Service Times</h3>
             <ul className="space-y-2 text-gray-300">
               <li>
-                <span className="font-medium">Sunday:</span> 9:00 AM & 11:00 AM
+                <span className="font-medium">Sunday:</span> 8:00 AM 
               </li>
               <li>
-                <span className="font-medium">Wednesday:</span> 7:00 PM
+                <span className="font-medium">Wednesday:</span> 4:00 PM
               </li>
               <li>
-                <span className="font-medium">Friday:</span> 6:30 PM (Youth)
+                <span className="font-medium">First Saturday (TAKE-IT):</span> 8:00 AM
               </li>
             </ul>
           </div>
@@ -85,11 +85,11 @@ const Footer = () => {
             <ul className="space-y-3 text-gray-300">
               <li className="flex items-start">
                 <MapPin size={20} className="mr-2 mt-1 flex-shrink-0" />
-                <span>123 Church Street, City, State 12345</span>
+                <span>Upper Room, GLM Auditorium, Off Housing RD, Olora Layout, Adebayo, Ado Ekiti, Ekiti</span>
               </li>
               <li className="flex items-center">
                 <Phone size={20} className="mr-2 flex-shrink-0" />
-                <span>(123) 456-7890</span>
+                <span>09031996431, 07085430447</span>
               </li>
               <li className="flex items-center">
                 <Mail size={20} className="mr-2 flex-shrink-0" />
