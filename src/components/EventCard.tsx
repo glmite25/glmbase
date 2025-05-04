@@ -1,7 +1,5 @@
-
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface EventCardProps {
@@ -15,45 +13,51 @@ interface EventCardProps {
 
 const EventCard = ({ id, title, date, time, location, image }: EventCardProps) => {
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl border-0  rounded-2xl group bg-white">
+      {/* Image with gradient overlay */}
       {image && (
-        <div className="w-full h-48 overflow-hidden">
+        <div className="relative w-full h-56 p-2 overflow-hidden">
           <img 
             src={image} 
             alt={title} 
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            className="w-full h-full rounded-2xl object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          {/* <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70" /> */}
         </div>
       )}
       
-      <CardContent className="pt-6 pb-2">
-        <h3 className="font-serif text-xl font-semibold mb-3 text-gray-900">{title}</h3>
+      {/* Content with minimalist typography */}
+      <CardContent className="pt-6 pb-4 ">
+        <div className="mb-1 text-sm font-medium text-church-red uppercase tracking-widest">
+          Upcoming Event
+        </div>
+        <h3 className="text-2xl font-bold mb-4 leading-tight text-gray-900">{title}</h3>
         
-        <div className="space-y-2 text-gray-600">
-          <div className="flex items-center">
-            <CalendarDays size={16} className="mr-2 text-church-red" />
-            <span>{date}</span>
+        <div className="flex items-center justify-between gap-4  text-gray-700">
+          <div>
+            <p className="text-xs font-medium text-gray-500">Date</p>
+            <p className="font-medium text-sm">{date}</p>
           </div>
           
-          <div className="flex items-center">
-            <Clock size={16} className="mr-2 text-church-blue" />
-            <span>{time}</span>
+          <div>
+            <p className="text-xs font-medium text-gray-500">Time</p>
+            <p className="font-medium text-sm">{time}</p>
           </div>
           
-          <div className="flex items-center">
-            <MapPin size={16} className="mr-2 text-church-red" />
-            <span>{location}</span>
+          <div>
+            <p className="text-xs font-medium text-gray-500">Location</p>
+            <p className="font-medium text-sm">{location}</p>
           </div>
         </div>
       </CardContent>
       
-      <CardFooter className="pt-2 pb-6">
+      {/* Full-width button */}
+      <CardFooter className="p-0 pb-4">
         <Link to={`/events/${id}`} className="w-full">
           <Button 
-            variant="outline" 
-            className="w-full border-church-blue text-church-blue hover:bg-church-blue hover:text-white"
+            className=" mx-6 h-14 rounded-none bg-black text-white hover:bg-gray-800 text-base font-medium tracking-wide transition-colors duration-300"
           >
-            View Details
+            View Event Details
           </Button>
         </Link>
       </CardFooter>

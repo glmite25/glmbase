@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -8,16 +7,22 @@ import UserAvatar from "@/components/UserAvatar";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin, isSuperUser } = useAuth();
 
-  console.log('Header rendering with:', {
-    user: user ? 'User logged in' : 'No user',
-    isAdmin,
-    isSuperUser,
-    email: user?.email
-  });
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    // Add scroll listener on mount
+    window.addEventListener('scroll', handleScroll);
+    
+    // Clean up on unmount
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
     { name: "About", path: "/about" },
@@ -27,17 +32,19 @@ const Header = () => {
     { name: "Partnership", path: "/partnership" },
   ];
 
-
-
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
   return (
-    <header className="w-full sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black shadow-md py-2' : 'bg-transparent py-4'}`}>
+      <div className="container mx-auto px-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
-          <img src="/images/logo.png" alt="Gospel Labour Ministry" className="h-12" />
+          <img 
+            src="/images/logo 2.png" 
+            alt="Gospel Labour Ministry" 
+            className={`transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20'}`} 
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -49,7 +56,7 @@ const Header = () => {
               className={`hover-underline transition-colors py-2 ${
                 location.pathname === item.path
                   ? "text-church-red font-medium"
-                  : "text-gray-700"
+                  : "text-gray-50"
               }`}
             >
               {item.name}
@@ -59,7 +66,7 @@ const Header = () => {
             <UserAvatar />
           ) : (
             <Button
-              className="bg-church-blue hover:bg-church-blue/90 text-white"
+              className="bg-[#ff0000] rounded-none px-10 py-6 rounded hover:bg-[#ff0000]/90 text-white"
               onClick={() => navigate("/auth")}
             >
               Login
@@ -69,7 +76,7 @@ const Header = () => {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-gray-700 focus:outline-none"
+          className="md:hidden text-gray-50 focus:outline-none"
           onClick={toggleMenu}
           aria-label="Toggle menu"
         >

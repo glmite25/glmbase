@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,11 +17,24 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import AdminDashboard from "./pages/admin/Dashboard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 // Component to conditionally render the header
 const AppContent = () => {
   const location = useLocation();
+
+  // Initialize AOS when component mounts
+  useEffect(() => {
+    AOS.init({
+      duration: 1100,
+      easing: 'ease-in-out',
+      once: true,
+      mirror: true,
+      offset: 100
+    });
+  }, []);
 
   // Check if the current path is an admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -30,7 +42,7 @@ const AppContent = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Only render the Header when not on admin routes */}
-      {!isAdminRoute && <Header />}
+      {/* {!isAdminRoute && <Header />} */}
       <main className={`flex-grow ${isAdminRoute ? 'pt-0' : ''}`}>
         <Routes>
           <Route path="/" element={<Index />} />

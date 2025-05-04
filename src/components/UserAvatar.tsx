@@ -92,7 +92,7 @@ export const UserAvatar = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="h-9 w-9 cursor-pointer border-2 border-white hover:border-gray-200 transition-colors">
-          <AvatarFallback className="bg-church-blue text-white">
+          <AvatarFallback className="bg-blue-600 text-white">
             {getInitials(profile?.full_name)}
           </AvatarFallback>
         </Avatar>

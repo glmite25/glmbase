@@ -6,12 +6,12 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-gray-900 text-white pt-16 pb-8">
+    <footer className="bg-black text-white pt-16 pb-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Column 1: About */}
           <div>
-            <h3 className="font-serif text-xl font-bold mb-4 text-church-blue">Gospel Labour Ministry</h3>
+            <h3 className="font-serif text-xl font-bold mb-4 text-white">Gospel Labour Ministry</h3>
             <p className="text-gray-300 mb-4">
               Spreading God's love and message through community, worship, and service.
             </p>
@@ -33,7 +33,7 @@ const Footer = () => {
           
           {/* Column 2: Quick Links */}
           <div>
-            <h3 className="font-serif text-xl font-bold mb-4 text-church-red">Quick Links</h3>
+            <h3 className="font-serif text-xl font-bold mb-4 text-white">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/about" className="text-gray-300 hover:text-white transition-colors">
@@ -65,7 +65,7 @@ const Footer = () => {
           
           {/* Column 3: Service Times */}
           <div>
-            <h3 className="font-serif text-xl font-bold mb-4 text-church-yellow">Service Times</h3>
+            <h3 className="font-serif text-xl font-bold mb-4 text-white">Service Times</h3>
             <ul className="space-y-2 text-gray-300">
               <li>
                 <span className="font-medium">Sunday:</span> 9:00 AM & 11:00 AM
@@ -81,7 +81,7 @@ const Footer = () => {
           
           {/* Column 4: Contact */}
           <div>
-            <h3 className="font-serif text-xl font-bold mb-4 text-church-blue">Contact Us</h3>
+            <h3 className="font-serif text-xl font-bold mb-4 text-white">Contact Us</h3>
             <ul className="space-y-3 text-gray-300">
               <li className="flex items-start">
                 <MapPin size={20} className="mr-2 mt-1 flex-shrink-0" />
