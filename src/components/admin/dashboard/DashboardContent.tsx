@@ -12,6 +12,16 @@ import AdminSection from "./AdminSection";
 
 const DashboardContent = () => {
   const { isSuperUser } = useAuth();
+
+  // Additional check for superuser status from localStorage
+  const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+  const effectiveSuperUser = isSuperUser || storedSuperUserStatus;
+
+  console.log('DashboardContent rendering with:', {
+    isSuperUser,
+    storedSuperUserStatus,
+    effectiveSuperUser
+  });
   const location = useLocation();
   const path = location.pathname;
 
@@ -63,7 +73,7 @@ const DashboardContent = () => {
     return (
       <>
         <StatsCardGrid />
-        {isSuperUser ? <SuperUserSection /> : <AdminSection />}
+        {effectiveSuperUser ? <SuperUserSection /> : <AdminSection />}
       </>
     );
   }

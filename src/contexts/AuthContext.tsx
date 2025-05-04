@@ -190,13 +190,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const isUserAdmin = roleData.some(r => r.role === 'admin');
 
       // Check for super admin (ojidelawrence@gmail.com)
+      // Also add your current email for testing purposes
       const userEmail = data.email?.toLowerCase() || '';
-      const superAdminEmail = 'ojidelawrence@gmail.com'.toLowerCase();
+      const superAdminEmails = [
+        'ojidelawrence@gmail.com'.toLowerCase(),
+        'clickcom007@yahoo.com'.toLowerCase() // Add your email here for testing
+      ];
 
       console.log('Checking superuser status for email:', userEmail);
-      console.log('Comparing with superadmin email:', superAdminEmail);
+      console.log('Comparing with superadmin emails:', superAdminEmails);
 
-      const isSuperAdmin = userEmail === superAdminEmail;
+      // Check if the user's email is in the list of superadmin emails
+      const isSuperAdmin = superAdminEmails.includes(userEmail);
 
       if (isSuperAdmin) {
         console.log('User is a superadmin based on email match!');
@@ -204,10 +209,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('glm-is-superuser', 'true');
       } else {
         console.log('User is NOT a superadmin based on email comparison');
-        localStorage.removeItem('glm-is-superuser');
+        // Only remove if not a superadmin to avoid clearing during page refreshes
+        if (localStorage.getItem('glm-is-superuser') === 'true') {
+          localStorage.removeItem('glm-is-superuser');
+        }
       }
 
-      // Set forceSuperAdmin to false to disable admin access for non-admin users
+      // For testing purposes, you can force superadmin status
+      // Set to true to enable superadmin access for testing
       const forceSuperAdmin = false;
 
       console.log('User authorization determined:', {
@@ -220,11 +229,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       // Check both the email match and the stored superuser status
-    const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
-    console.log('Stored superuser status:', storedSuperUserStatus);
+      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+      console.log('Stored superuser status:', storedSuperUserStatus);
 
-    setIsAdmin(isUserAdmin || isSuperAdmin || forceSuperAdmin || storedSuperUserStatus);
-    setIsSuperUser(isSuperAdmin || forceSuperAdmin || storedSuperUserStatus);
+      // Set admin and superuser status
+      setIsAdmin(isUserAdmin || isSuperAdmin || forceSuperAdmin || storedSuperUserStatus);
+      setIsSuperUser(isSuperAdmin || forceSuperAdmin || storedSuperUserStatus);
 
     } catch (error) {
       console.error('Error in fetchProfile:', error);

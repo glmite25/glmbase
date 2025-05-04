@@ -20,7 +20,8 @@ const AdminDashboard = () => {
     isAdmin,
     isSuperUser,
     isLoading,
-    email: user?.email
+    email: user?.email,
+    storedSuperUserStatus: localStorage.getItem('glm-is-superuser') === 'true'
   });
 
   // Toggle sidebar
