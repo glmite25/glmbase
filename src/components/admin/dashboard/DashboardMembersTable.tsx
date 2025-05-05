@@ -73,25 +73,24 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
 
       if (data && data.length > 0) {
         // Transform the data to match the Member interface
+        // Use lowercase column names from database and map to camelCase for the UI
         const formattedMembers: Member[] = data.map(member => ({
           id: member.id,
-          fullName: member.fullName,
+          fullName: member.fullname || "", // Use lowercase column name from DB
           email: member.email,
           phone: member.phone || undefined,
           address: member.address || undefined,
           category: member.category as any,
-          joinDate: member.joinDate || new Date().toISOString().split('T')[0],
-          assignedTo: member.assignedTo || undefined,
-          // Standardize church unit fields
-          churchUnits: member.churchUnits || member.churchunits ||
-                      (member.churchUnit ? [member.churchUnit] :
-                      (member.churchunit ? [member.churchunit] : [])),
-          churchUnit: member.churchUnit || member.churchunit ||
-                     (member.churchUnits && member.churchUnits.length > 0 ? member.churchUnits[0] :
-                     (member.churchunits && member.churchunits.length > 0 ? member.churchunits[0] : undefined)),
-          auxanoGroup: member.auxanoGroup || undefined,
+          joinDate: member.joindate || new Date().toISOString().split('T')[0], // Use lowercase column name
+          assignedTo: member.assignedto || undefined, // Use lowercase column name
+          // Standardize church unit fields - use lowercase column names
+          churchUnits: member.churchunits ||
+                      (member.churchunit ? [member.churchunit] : []),
+          churchUnit: member.churchunit ||
+                     (member.churchunits && member.churchunits.length > 0 ? member.churchunits[0] : undefined),
+          auxanoGroup: member.auxanogroup || undefined, // Use lowercase column name
           notes: member.notes || undefined,
-          isActive: member.isActive !== false, // Default to true if not specified
+          isActive: member.isactive !== false, // Use lowercase column name
         }));
 
         setMembers(formattedMembers);
@@ -164,7 +163,8 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
   const getAssignedToName = (assignedToId: string | undefined) => {
     if (!assignedToId) return "None";
     const assignedPastor = pastors.find(p => p.id === assignedToId);
-    return assignedPastor ? assignedPastor.fullName : "Unknown";
+    // Use lowercase column name from database
+    return assignedPastor ? assignedPastor.fullname : "Unknown";
   };
 
   return (

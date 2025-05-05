@@ -94,18 +94,18 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
     if (pastorsError) throw pastorsError;
     metrics.pastors = pastors?.length || 0;
 
-    // Get church units distribution
+    // Get church units distribution - use lowercase column name
     const { data: unitsData, error: unitsError } = await supabase
       .from('members')
-      .select('churchUnit');
+      .select('churchunit');
 
     if (unitsError) throw unitsError;
 
     // Count members by church unit
     const churchUnits: {[key: string]: number} = {};
     unitsData.forEach(member => {
-      if (member.churchUnit) {
-        churchUnits[member.churchUnit] = (churchUnits[member.churchUnit] || 0) + 1;
+      if (member.churchunit) {
+        churchUnits[member.churchunit] = (churchUnits[member.churchunit] || 0) + 1;
       }
     });
     metrics.churchUnits = churchUnits;

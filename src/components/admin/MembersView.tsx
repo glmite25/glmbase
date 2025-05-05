@@ -283,7 +283,8 @@ export default function MembersView() {
 
   const getAssignedPastorName = (memberId: string) => {
     const pastor = pastors.find(p => p.id === memberId);
-    return pastor ? pastor.fullName : "Not Assigned";
+    // Use the standardized field name that's available after standardizeAllRecords
+    return pastor ? (pastor.fullName || pastor.fullname || "Unknown") : "Not Assigned";
   };
 
   return (
