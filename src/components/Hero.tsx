@@ -28,7 +28,7 @@ const Hero = ({
       </div>
       
       <div 
-        className="relative h-[500px] md:h-screen flex items-end justify-start mb-8 overflow-hidden"
+        className="relative h-screen md:h-screen flex items-end justify-start mb-8 overflow-hidden"
         style={{
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: 'cover',
@@ -39,11 +39,11 @@ const Hero = ({
           <div className="absolute inset-0 bg-black/50 z-10"></div>
         )}
         
-        <div className="container max-w-7xl w-full relative z-20 px-4 md:px-6 lg:px-0 pb-16 text-left">
+        <div className="container max-w-7xl w-full relative z-20 px-4 md:px-6 lg:px-6 pb-16 text-left">
             <p className="text-sm md:text-base text-[#ff0000]/70 uppercase tracking-wide mb-2">
             Empowering Lives Through Faith
             </p>
-          <h1 className="text-4xl md:text-5xl lg:text-8xl pr-28 font-bold text-white mb-4 drop-shadow-lg">
+          <h1 className="text-4xl md:text-5xl lg:text-8xl MD:pr-28 font-bold text-white mb-4 drop-shadow-lg">
             {title}
             {/* Welcome to Gospel Labour Ministry */}
           </h1>

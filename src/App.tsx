@@ -40,7 +40,7 @@ const AppContent = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen overflow-hidden">
       {/* Only render the Header when not on admin routes */}
       {/* {!isAdminRoute && <Header />} */}
       <main className={`flex-grow ${isAdminRoute ? 'pt-0' : ''}`}>

@@ -55,7 +55,7 @@ const EventCard = ({ id, title, date, time, location, image }: EventCardProps) =
       <CardFooter className="p-0 pb-4">
         <Link to={`/events/${id}`} className="w-full">
           <Button 
-            className=" mx-6 h-14 rounded-none bg-black text-white hover:bg-gray-800 text-base font-medium tracking-wide transition-colors duration-300"
+            className=" mx-6 h-14 rounded bg-black text-white hover:bg-gray-800 text-base font-medium tracking-wide transition-colors duration-300"
           >
             View Event Details
           </Button>
