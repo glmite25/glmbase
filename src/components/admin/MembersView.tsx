@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,7 +22,7 @@ import {
   PaginationOptions
 } from "@/hooks/useMembers";
 import { usePastors } from "@/hooks/usePastors";
-import { MemberFormValues } from "@/types/member";
+import { MemberFormValues, MemberCategory } from "@/types/member";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/react-query-config";
 
@@ -76,7 +75,7 @@ export default function MembersView() {
       auxanogroup: newMember.auxanoGroup || undefined,
       notes: newMember.notes || undefined,
       isactive: newMember.isActive,
-      joindate: newMember.joinDate || new Date().toISOString().split('T')[0],
+      joindate: "2025-05-06", // Always set to current date
     };
 
     createMemberMutation.mutate(memberData);
@@ -157,8 +156,8 @@ export default function MembersView() {
     email: member.email,
     phone: member.phone || undefined,
     address: member.address || undefined,
-    category: member.category,
-    joinDate: member.joindate,
+    category: member.category as MemberCategory, // Ensure correct type
+    joinDate: member.joindate, // Map DB field to camelCase
     assignedTo: member.assignedto || undefined,
     churchUnit: member.churchunit || undefined,
     churchUnits: member.churchunits || [],
@@ -192,7 +191,13 @@ export default function MembersView() {
           <LoadingState message="Loading members..." />
         ) : membersError ? (
           <ErrorState
-            message={(membersError as Error).message}
+            message={
+              typeof membersError === "string"
+                ? membersError
+                : (membersError && typeof (membersError as Error).message === "string" && (membersError as Error).message)
+                ? (membersError as Error).message
+                : "An error occurred while loading members."
+            }
             onRetry={() => {
               refetchMembers();
               refetchPastors();
@@ -248,8 +253,8 @@ export default function MembersView() {
             email: selectedMember.email,
             phone: selectedMember.phone || undefined,
             address: selectedMember.address || undefined,
-            category: selectedMember.category,
-            joinDate: selectedMember.joindate,
+            category: selectedMember.category as MemberCategory,
+            joinDate: selectedMember.joindate, // Map DB field to camelCase
             assignedTo: selectedMember.assignedto || undefined,
             churchUnit: selectedMember.churchunit || undefined,
             churchUnits: selectedMember.churchunits || [],
@@ -274,8 +279,8 @@ export default function MembersView() {
             email: selectedMember.email,
             phone: selectedMember.phone || undefined,
             address: selectedMember.address || undefined,
-            category: selectedMember.category,
-            joinDate: selectedMember.joindate,
+            category: selectedMember.category as MemberCategory,
+            joinDate: selectedMember.joindate, // Map DB field to camelCase
             assignedTo: selectedMember.assignedto || undefined,
             churchUnit: selectedMember.churchunit || undefined,
             churchUnits: selectedMember.churchunits || [],
