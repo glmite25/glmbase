@@ -9,6 +9,7 @@ import { Edit } from "lucide-react";
 import { type AdminUser } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 import { MultipleChurchUnitsSelect } from "../../admin/members/MultipleChurchUnitsSelect";
+import { addUserRoleSafe, removeUserRoleSafe } from "@/utils/roleManagement";
 
 import {
   Dialog,
@@ -167,21 +168,17 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
 
       // Handle admin role changes
       if (values.isAdmin && !isCurrentlyAdmin) {
-        // Add admin role
-        const { error: addRoleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id: user.id, role: "admin" });
-
-        if (addRoleError) throw addRoleError;
+        // Add admin role using our safe method
+        const result = await addUserRoleSafe(user.id, "admin");
+        if (!result.success) {
+          throw result.error || new Error("Failed to add admin role");
+        }
       } else if (!values.isAdmin && isCurrentlyAdmin) {
-        // Remove admin role
-        const { error: removeRoleError } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("role", "admin");
-
-        if (removeRoleError) throw removeRoleError;
+        // Remove admin role using our safe method
+        const result = await removeUserRoleSafe(user.id, "admin");
+        if (!result.success) {
+          throw result.error || new Error("Failed to remove admin role");
+        }
       }
 
       // If superuser, update user metadata and profile

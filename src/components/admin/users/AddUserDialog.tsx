@@ -7,6 +7,7 @@ import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { createUserProfile } from "@/utils/createUserProfile";
+import { addUserRoleSafe } from "@/utils/roleManagement";
 
 import {
   Dialog,
@@ -67,13 +68,12 @@ const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
 
       if (authError) throw authError;
 
-      // If the user should be an admin, add them to the user_roles table
+      // If the user should be an admin, add them to the user_roles table using our safe method
       if (values.isAdmin && authData.user) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id: authData.user.id, role: "admin" });
-
-        if (roleError) throw roleError;
+        const result = await addUserRoleSafe(authData.user.id, "admin");
+        if (!result.success) {
+          throw result.error || new Error("Failed to add admin role");
+        }
       }
 
       // Create profile record if it doesn't exist
@@ -100,6 +100,11 @@ const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
       setOpen(false);
       addForm.reset();
       onUserAdded(); // Refresh the user list
+
+      // Force a page refresh after a short delay to ensure everything is updated
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error: any) {
       console.error("Error creating user:", error);
 

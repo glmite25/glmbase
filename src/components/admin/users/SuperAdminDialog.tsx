@@ -91,7 +91,7 @@ const SuperAdminDialog = ({ onSuperAdminAdded }: SuperAdminDialogProps) => {
     setLoading(true);
     try {
       const result = await addSuperAdminByEmail(values.email);
-      
+
       if (result.success) {
         toast({
           title: "Super admin added",
@@ -99,9 +99,19 @@ const SuperAdminDialog = ({ onSuperAdminAdded }: SuperAdminDialogProps) => {
         });
         form.reset();
         await loadSuperAdmins();
+
+        // Close the dialog
+        setOpen(false);
+
+        // Call the callback to refresh the parent component
         if (onSuperAdminAdded) {
           onSuperAdminAdded();
         }
+
+        // Force a page refresh after a short delay to ensure everything is updated
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         toast({
           variant: "destructive",
@@ -128,16 +138,23 @@ const SuperAdminDialog = ({ onSuperAdminAdded }: SuperAdminDialogProps) => {
 
     try {
       const result = await removeSuperAdmin(userId);
-      
+
       if (result.success) {
         toast({
           title: "Super admin removed",
           description: result.message,
         });
         await loadSuperAdmins();
+
+        // Call the callback to refresh the parent component
         if (onSuperAdminAdded) {
           onSuperAdminAdded();
         }
+
+        // Force a page refresh after a short delay to ensure everything is updated
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         toast({
           variant: "destructive",

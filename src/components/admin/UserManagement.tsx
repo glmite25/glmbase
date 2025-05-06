@@ -32,19 +32,35 @@ export default function UserManagement() {
 
   const loadUsers = async () => {
     setLoading(true);
-    const { users: fetchedUsers, error } = await fetchUsers();
+    try {
+      console.log("Loading users...");
+      const { users: fetchedUsers, error } = await fetchUsers();
 
-    if (error) {
+      if (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching users",
+          description: error.message,
+        });
+        // Set empty array in case of error to avoid showing stale data
+        setUsers([]);
+      } else {
+        console.log(`Loaded ${fetchedUsers.length} users`);
+        setUsers(fetchedUsers);
+      }
+    } catch (error: any) {
+      console.error("Exception in loadUsers:", error);
       toast({
         variant: "destructive",
         title: "Error fetching users",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
       });
-    } else {
-      setUsers(fetchedUsers);
+      // Set empty array in case of error to avoid showing stale data
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleEditUser = (user: AdminUser) => {
