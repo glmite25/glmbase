@@ -75,7 +75,7 @@ The system supports various ministry units including:
 - 3H Security
 - Discipleship
 - Praise Feet
-- TOF (Tribe of Faith)
+- Cloven Tongues
 - Auxano Groups
 
 ## Contributing

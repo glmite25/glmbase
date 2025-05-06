@@ -5,6 +5,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import MembersView from "@/components/admin/MembersView";
 import PastorsPage from "@/components/admin/pastors/PastorsPage";
 import PastorDetail from "@/components/admin/pastors/PastorDetail";
+import UnitMembersView from "@/components/admin/units/UnitMembersView";
 import PlaceholderCard from "./PlaceholderCard";
 import StatsCardGrid from "./StatsCardGrid";
 import SuperUserSection from "./SuperUserSection";
@@ -43,14 +44,16 @@ const DashboardContent = () => {
     return <PlaceholderCard title="Settings" description="Manage church settings" />;
   } else if (path.startsWith("/admin/units/")) {
     // Extract the unit name from the path
-    const unitName = path.split("/").pop();
+    const unitId = path.split("/").pop();
 
     // Format the unit name for display
     const formatUnitName = (name: string) => {
       if (!name) return "";
 
       // Handle special formats
-      if (name.startsWith("3h")) {
+      if (name === "cloventongues") {
+        return "Cloven Tongues";
+      } else if (name.startsWith("3h")) {
         return name.replace("3h", "3H");
       }
 
@@ -61,14 +64,9 @@ const DashboardContent = () => {
         .join(" ");
     };
 
-    const displayName = formatUnitName(unitName || "");
+    const displayName = formatUnitName(unitId || "");
 
-    return (
-      <PlaceholderCard
-        title={`${displayName} Unit`}
-        description={`Manage ${displayName} unit members and activities`}
-      />
-    );
+    return <UnitMembersView unitId={unitId || ""} unitName={displayName} />;
   } else {
     // Default dashboard
     return (

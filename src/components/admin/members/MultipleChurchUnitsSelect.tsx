@@ -47,7 +47,7 @@ export function MultipleChurchUnitsSelect({
     { id: "3hsecurity", name: "3H Security" },
     { id: "discipleship", name: "Discipleship" },
     { id: "praisefeet", name: "Praise Feet" },
-    { id: "tof", name: "TOF" },
+    { id: "cloventongues", name: "Cloven Tongues" },
     { id: "auxano", name: "Auxano Group" },
   ];
 
@@ -55,7 +55,7 @@ export function MultipleChurchUnitsSelect({
     const newValues = selectedValues.includes(unitId)
       ? selectedValues.filter((id) => id !== unitId)
       : [...selectedValues, unitId];
-    
+
     setSelectedValues(newValues);
     onChange(newValues);
   };
