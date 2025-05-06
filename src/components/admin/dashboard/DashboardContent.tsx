@@ -12,6 +12,7 @@ const PastorsPage = lazy(() => import("@/components/admin/pastors/PastorsPage"))
 const PastorDetail = lazy(() => import("@/components/admin/pastors/PastorDetail"));
 const UnitMembersView = lazy(() => import("@/components/admin/units/UnitMembersView"));
 const UserProfileView = lazy(() => import("@/components/admin/profile/UserProfileView"));
+const UserMemberSyncPage = lazy(() => import("@/components/admin/UserMemberSyncPage"));
 const PlaceholderCard = lazy(() => import("./PlaceholderCard"));
 const StatsCardGrid = lazy(() => import("./StatsCardGrid"));
 const SuperUserSection = lazy(() => import("./SuperUserSection"));
@@ -68,6 +69,8 @@ const DashboardContent = () => {
       return <PlaceholderCard title="Settings" description="Manage church settings" />;
     } else if (path === "/admin/profile") {
       return <UserProfileView />;
+    } else if (path === "/admin/user-sync") {
+      return <UserMemberSyncPage />;
     } else if (path.startsWith("/admin/units/")) {
       // Extract the unit name from the path
       const unitId = path.split("/").pop();

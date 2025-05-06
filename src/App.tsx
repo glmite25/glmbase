@@ -72,6 +72,7 @@ const AppContent = () => {
             <Route path="/admin/users" element={<AdminDashboard />} />
             <Route path="/admin/system" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<AdminDashboard />} />
+            <Route path="/admin/user-sync" element={<AdminDashboard />} />
             {/* Church Units Routes */}
             <Route path="/admin/units/3hmedia" element={<AdminDashboard />} />
             <Route path="/admin/units/3hmusic" element={<AdminDashboard />} />

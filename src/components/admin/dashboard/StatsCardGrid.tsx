@@ -5,6 +5,10 @@ import StatsCard from "./StatsCard";
 import EnhancedStatsCard from "./EnhancedStatsCard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchDashboardMetrics, DashboardMetrics } from "./DashboardMetricsService";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { syncUsersToMembers } from "@/utils/syncUsersToMembers";
 import {
   Users,
   UserCog,
@@ -13,28 +17,67 @@ import {
   Building,
   UserPlus,
   CheckCircle,
-  User
+  User,
+  RefreshCw
 } from "lucide-react";
 
 const StatsCardGrid = () => {
   const { isSuperUser } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  const loadMetrics = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchDashboardMetrics();
+      setMetrics(data);
+    } catch (error) {
+      console.error("Error loading dashboard metrics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncUsers = async () => {
+    if (!isSuperUser) {
+      toast({
+        title: "Permission Denied",
+        description: "Only super admins can perform this action",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const result = await syncUsersToMembers();
+
+      toast({
+        title: result.success ? "Sync Completed" : "Sync Failed",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+
+      // Reload metrics to show updated counts
+      if (result.success) {
+        await loadMetrics();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Sync Failed",
+        description: `Error: ${error.message || "Unknown error"}`,
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
-    const loadMetrics = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchDashboardMetrics();
-        setMetrics(data);
-      } catch (error) {
-        console.error("Error loading dashboard metrics:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadMetrics();
 
     // Refresh metrics every 5 minutes
@@ -83,6 +126,37 @@ const StatsCardGrid = () => {
             trend="user accounts"
             icon={<User className="h-5 w-5 text-purple-600" />}
             loading={loading}
+            footer={
+              <div className="flex justify-between">
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="mt-2 text-xs p-0"
+                  onClick={() => navigate("/admin/user-sync")}
+                >
+                  Advanced Sync
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 text-xs"
+                  onClick={handleSyncUsers}
+                  disabled={syncing || loading}
+                >
+                  {syncing ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Sync to Members
+                    </>
+                  )}
+                </Button>
+              </div>
+            }
           />
           <EnhancedStatsCard
             title="Admin Users"

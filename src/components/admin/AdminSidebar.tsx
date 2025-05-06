@@ -19,7 +19,8 @@ import {
   Video,
   Speaker,
   UserCog,
-  User
+  User,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -81,6 +82,11 @@ const AdminSidebar = () => {
       name: "Pastors",
       path: "/admin/pastors",
       icon: <UserCog size={20} />
+    },
+    {
+      name: "User-Member Sync",
+      path: "/admin/user-sync",
+      icon: <RefreshCw size={20} />
     }
   ];
 
