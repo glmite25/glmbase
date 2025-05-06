@@ -6,6 +6,7 @@ import * as z from "zod";
 import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { createUserProfile } from "@/utils/createUserProfile";
 
 import {
   Dialog,
@@ -77,18 +78,18 @@ const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
 
       // Create profile record if it doesn't exist
       if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            email: values.email.toLowerCase(),
-            full_name: values.fullName,
-            updated_at: new Date().toISOString(),
-          });
+        // Use our utility function to create the profile
+        const profileResult = await createUserProfile(
+          authData.user.id,
+          values.email,
+          values.fullName
+        );
 
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
+        if (!profileResult.success) {
+          console.error("Error creating profile:", profileResult.message);
           // Continue anyway as the user was created
+        } else {
+          console.log("Profile created successfully");
         }
       }
 
@@ -100,10 +101,35 @@ const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
       addForm.reset();
       onUserAdded(); // Refresh the user list
     } catch (error: any) {
+      console.error("Error creating user:", error);
+
+      // Provide more specific error messages based on the error
+      let errorMsg = "Failed to create user. Please try again.";
+
+      if (error.message) {
+        if (error.message.includes("duplicate key")) {
+          errorMsg = "A user with this email already exists.";
+        } else if (error.message.includes("database")) {
+          errorMsg = "Database error. Please try again or contact support if the issue persists.";
+        } else {
+          errorMsg = error.message;
+        }
+      }
+
+      // If we have a Supabase error code, log it for debugging
+      if (error.code) {
+        console.error("Error code:", error.code);
+      }
+
+      // If we have detailed error information, log it
+      if (error.details) {
+        console.error("Error details:", error.details);
+      }
+
       toast({
         variant: "destructive",
         title: "Error creating user",
-        description: error.message,
+        description: errorMsg,
       });
     }
   };

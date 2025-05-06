@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { createUserProfile } from "@/utils/createUserProfile";
 
 export const useAuthentication = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +79,15 @@ export const useAuthentication = () => {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, churchUnit: string = "", assignedPastor: string = "") => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    churchUnit: string = "",
+    assignedPastor: string = "",
+    phone: string = "",
+    address: string = ""
+  ) => {
     setIsLoading(true);
     clearErrors();
 
@@ -88,18 +97,25 @@ export const useAuthentication = () => {
         passwordLength: password.length,
         fullName,
         churchUnit: churchUnit || "None",
-        assignedPastor: assignedPastor || "None"
+        assignedPastor: assignedPastor || "None",
+        phone: phone || "None",
+        address: address ? "Provided" : "None"
       });
+
+      // Normalize email to lowercase to prevent case-sensitivity issues
+      const normalizedEmail = email.toLowerCase();
 
       // Step 1: Create the user account
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           data: {
             full_name: fullName,
             church_unit: churchUnit || null,
             assigned_pastor: assignedPastor || null,
+            phone: phone || null,
+            address: address || null,
           },
           // Don't use emailRedirectTo in development to avoid confirmation issues
           ...(import.meta.env.PROD ? { emailRedirectTo: `${window.location.origin}/auth/callback` } : {})
@@ -136,22 +152,34 @@ export const useAuthentication = () => {
 
           // Create profile record if it doesn't exist
           try {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .upsert({
-                id: signInData.user.id,
-                email: email,
-                full_name: fullName,
-                updated_at: new Date().toISOString(),
-              });
+            // Ensure we have a valid user ID
+            if (!signInData.user || !signInData.user.id) {
+              console.error("Missing user ID for profile creation");
+              throw new Error("Missing user ID for profile creation");
+            }
 
-            if (profileError) {
-              console.error("Error creating profile:", profileError);
+            console.log("Creating profile for user:", signInData.user.id);
+
+            // Use our utility function to create the profile
+            const profileResult = await createUserProfile(
+              signInData.user.id,
+              email,
+              fullName,
+              churchUnit,
+              assignedPastor,
+              data.user?.user_metadata?.phone,
+              data.user?.user_metadata?.address
+            );
+
+            if (!profileResult.success) {
+              console.error("Error creating profile:", profileResult.message);
+              // Don't throw here, we'll still try to continue with the sign-in
             } else {
               console.log("Profile created/updated successfully");
             }
           } catch (profileError) {
             console.error("Profile creation error:", profileError);
+            // Don't throw here, we'll still try to continue with the sign-in
           }
 
           toast({
@@ -181,8 +209,39 @@ export const useAuthentication = () => {
         navigate("/auth");
       }
     } catch (error: any) {
-      console.error("Authentication error:", error.message);
-      setErrorMessage(error.message || "Failed to create account. Please try again.");
+      console.error("Authentication error:", error);
+
+      // Provide more specific error messages based on the error
+      let errorMsg = "Failed to create account. Please try again.";
+
+      if (error.message) {
+        if (error.message.includes("duplicate key")) {
+          errorMsg = "An account with this email already exists. Please sign in instead.";
+        } else if (error.message.includes("database")) {
+          errorMsg = "Database error. Please try again or contact support if the issue persists.";
+        } else {
+          errorMsg = error.message;
+        }
+      }
+
+      // If we have a Supabase error code, log it for debugging
+      if (error.code) {
+        console.error("Error code:", error.code);
+      }
+
+      // If we have detailed error information, log it
+      if (error.details) {
+        console.error("Error details:", error.details);
+      }
+
+      setErrorMessage(errorMsg);
+
+      // Show a toast with the error message
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: errorMsg,
+      });
     } finally {
       setIsLoading(false);
     }

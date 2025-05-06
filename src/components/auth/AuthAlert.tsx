@@ -31,6 +31,17 @@ export const AuthAlert = ({ isSignUp, errorMessage }: AuthAlertProps) => {
           <AlertTitle className="text-red-700 font-medium">Error</AlertTitle>
           <AlertDescription className="text-red-600">
             {errorMessage}
+            {errorMessage && errorMessage.includes("Database error") && (
+              <div className="mt-2 text-sm">
+                <p>This could be due to:</p>
+                <ul className="list-disc pl-5 mt-1">
+                  <li>A temporary database connection issue</li>
+                  <li>The email address is already in use</li>
+                  <li>Required fields are missing</li>
+                </ul>
+                <p className="mt-1">Please try again or use a different email address.</p>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}

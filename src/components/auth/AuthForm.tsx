@@ -7,14 +7,22 @@ import { PasswordField } from "./PasswordField";
 import { useAuthentication } from "@/hooks/useAuthentication";
 import { AuthAlert } from "./AuthAlert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Phone, MapPin, Mail, User } from "lucide-react";
 
 export const AuthForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("");
   const [selectedPastor, setSelectedPastor] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [formStep, setFormStep] = useState(0); // 0: Basic info, 1: Additional info
 
   const { isLoading, errorMessage, clearErrors, signIn, signUp, resetPassword } = useAuthentication();
 
@@ -37,18 +45,48 @@ export const AuthForm = () => {
     { id: "olaiya_sunday", name: "Olaiya Sunday" },
   ];
 
-  const validateForm = (): string | null => {
+  const validateEmail = (email: string): boolean => {
+    // More robust email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  const validateBasicInfo = (): string | null => {
     if (isSignUp) {
       if (!fullName || fullName.trim().length < 2) {
         return "Please enter your full name (at least 2 characters)";
       }
 
-      if (password.length < 6) {
-        return "Password must be at least 6 characters long";
+      if (password.length < 8) {
+        return "Password must be at least 8 characters long";
+      }
+
+      if (!/[A-Z]/.test(password)) {
+        return "Password must contain at least one uppercase letter";
+      }
+
+      if (!/[a-z]/.test(password)) {
+        return "Password must contain at least one lowercase letter";
+      }
+
+      if (!/[0-9!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        return "Password must contain at least one number or special character";
+      }
+
+      if (password !== confirmPassword) {
+        return "Passwords do not match";
+      }
+
+      if (!acceptTerms) {
+        return "You must accept the terms and conditions";
       }
     }
 
-    if (!email || !email.includes('@') || !email.includes('.')) {
+    if (!email) {
+      return "Please enter your email address";
+    }
+
+    if (!validateEmail(email)) {
       return "Please enter a valid email address";
     }
 
@@ -59,15 +97,53 @@ export const AuthForm = () => {
     return null;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateAdditionalInfo = (): string | null => {
+    // Phone validation is optional but if provided should be valid
+    if (phone && phone.length > 0 && phone.length < 10) {
+      return "Please enter a valid phone number";
+    }
 
-    // Validate form
-    const validationError = validateForm();
+    return null;
+  };
+
+  const handleNextStep = () => {
+    const validationError = validateBasicInfo();
     if (validationError) {
       clearErrors();
       setErrorMessage(validationError);
       return;
+    }
+
+    setFormStep(1);
+  };
+
+  const handlePrevStep = () => {
+    setFormStep(0);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isSignUp && formStep === 0) {
+      handleNextStep();
+      return;
+    }
+
+    // Validate form
+    const basicValidation = validateBasicInfo();
+    if (basicValidation) {
+      clearErrors();
+      setErrorMessage(basicValidation);
+      return;
+    }
+
+    if (isSignUp) {
+      const additionalValidation = validateAdditionalInfo();
+      if (additionalValidation) {
+        clearErrors();
+        setErrorMessage(additionalValidation);
+        return;
+      }
     }
 
     // Proceed with authentication
@@ -76,39 +152,81 @@ export const AuthForm = () => {
         email,
         passwordLength: password.length,
         fullName,
+        phone,
+        address,
         selectedUnit,
         selectedPastor
       });
-      signUp(email, password, fullName, selectedUnit, selectedPastor);
+      signUp(email, password, fullName, selectedUnit, selectedPastor, phone, address);
     } else {
       signIn(email, password);
     }
   };
 
   const handleForgotPassword = () => {
+    if (!email) {
+      clearErrors();
+      setErrorMessage("Please enter your email address first");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      clearErrors();
+      setErrorMessage("Please enter a valid email address");
+      return;
+    }
+
     resetPassword(email);
   };
 
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setFullName("");
+    setPhone("");
+    setAddress("");
+    setSelectedUnit("");
+    setSelectedPastor("");
+    setAcceptTerms(false);
+    setFormStep(0);
+    clearErrors();
+  };
+
+  const toggleSignUpMode = () => {
+    resetForm();
+    setIsSignUp(!isSignUp);
+  };
+
   return (
-    <div className="container mx-auto flex min-h-screen items-center justify-center">
+    <div className="container mx-auto flex min-h-screen items-center justify-center py-8">
       <div className="w-full max-w-md space-y-6 rounded-lg border bg-white p-8 shadow-lg">
         <div className="text-center">
           <h2 className="text-2xl font-bold">
             {isSignUp ? "Create an account" : "Welcome back"}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isSignUp ? "Sign up to get started" : "Please sign in to your account"}
+            {isSignUp
+              ? formStep === 0
+                ? "Enter your basic information"
+                : "Complete your profile"
+              : "Please sign in to your account"
+            }
           </p>
         </div>
 
         <AuthAlert isSignUp={isSignUp} errorMessage={errorMessage} />
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          <div className="space-y-4">
-            {isSignUp && (
-              <>
-                <div>
-                  <Label htmlFor="fullName">Full Name</Label>
+          {isSignUp && formStep === 0 ? (
+            // Step 1: Basic Information
+            <div className="space-y-4">
+              <div className="relative">
+                <Label htmlFor="fullName">Full Name</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    <User className="h-4 w-4" />
+                  </div>
                   <Input
                     id="fullName"
                     type="text"
@@ -117,76 +235,189 @@ export const AuthForm = () => {
                       clearErrors();
                       setFullName(e.target.value);
                     }}
-                    required={isSignUp}
+                    required
+                    className="pl-10"
+                    placeholder="John Doe"
                   />
                 </div>
+              </div>
+
+              <div className="relative">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      clearErrors();
+                      setEmail(e.target.value.toLowerCase()); // Force lowercase
+                    }}
+                    required
+                    className="pl-10"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+              </div>
+
+              <PasswordField
+                password={password}
+                setPassword={setPassword}
+                clearErrors={clearErrors}
+                showConfirmation={true}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={setConfirmPassword}
+                isSignUp={true}
+              />
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={acceptTerms}
+                  onCheckedChange={(checked) => {
+                    clearErrors();
+                    setAcceptTerms(checked as boolean);
+                  }}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I accept the{" "}
+                  <a href="/terms" className="text-blue-600 hover:underline" target="_blank">
+                    terms and conditions
+                  </a>
+                </label>
+              </div>
+            </div>
+          ) : isSignUp && formStep === 1 ? (
+            // Step 2: Additional Information
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      clearErrors();
+                      setPhone(e.target.value);
+                    }}
+                    className="pl-10"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="address">Address (Optional)</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-3 text-gray-500">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <Textarea
+                    id="address"
+                    value={address}
+                    onChange={(e) => {
+                      clearErrors();
+                      setAddress(e.target.value);
+                    }}
+                    className="pl-10 min-h-[80px]"
+                    placeholder="Your address"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="churchUnit">Church Unit</Label>
+                <Select
+                  value={selectedUnit}
+                  onValueChange={(value) => {
+                    clearErrors();
+                    setSelectedUnit(value);
+                    // Reset pastor if not auxano
+                    if (value !== "auxano") {
+                      setSelectedPastor("");
+                    }
+                  }}
+                >
+                  <SelectTrigger id="churchUnit" className="w-full">
+                    <SelectValue placeholder="Select your church unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {churchUnits.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedUnit === "auxano" && (
                 <div>
-                  <Label htmlFor="churchUnit">Church Unit</Label>
+                  <Label htmlFor="pastor">Assign Pastor</Label>
                   <Select
-                    value={selectedUnit}
+                    value={selectedPastor}
                     onValueChange={(value) => {
                       clearErrors();
-                      setSelectedUnit(value);
+                      setSelectedPastor(value);
                     }}
                   >
-                    <SelectTrigger id="churchUnit" className="w-full">
-                      <SelectValue placeholder="Select your church unit" />
+                    <SelectTrigger id="pastor" className="w-full">
+                      <SelectValue placeholder="Select your pastor" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {churchUnits.map((unit) => (
-                        <SelectItem key={unit.id} value={unit.id}>
-                          {unit.name}
+                      {pastors.map((pastor) => (
+                        <SelectItem key={pastor.id} value={pastor.id}>
+                          {pastor.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedUnit === "auxano" && (
-                  <div>
-                    <Label htmlFor="pastor">Assign Pastor</Label>
-                    <Select
-                      value={selectedPastor}
-                      onValueChange={(value) => {
-                        clearErrors();
-                        setSelectedPastor(value);
-                      }}
-                    >
-                      <SelectTrigger id="pastor" className="w-full">
-                        <SelectValue placeholder="Select your pastor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {pastors.map((pastor) => (
-                          <SelectItem key={pastor.id} value={pastor.id}>
-                            {pastor.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              )}
+            </div>
+          ) : (
+            // Sign In Form
+            <div className="space-y-4">
+              <div className="relative">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    <Mail className="h-4 w-4" />
                   </div>
-                )}
-              </>
-            )}
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  clearErrors();
-                  setEmail(e.target.value);
-                }}
-                required
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      clearErrors();
+                      setEmail(e.target.value.toLowerCase()); // Force lowercase
+                    }}
+                    required
+                    className="pl-10"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+              </div>
+
+              <PasswordField
+                password={password}
+                setPassword={setPassword}
+                clearErrors={clearErrors}
               />
             </div>
-            <PasswordField
-              password={password}
-              setPassword={setPassword}
-              clearErrors={clearErrors}
-            />
-          </div>
+          )}
 
           {!isSignUp && (
             <div className="text-right">
@@ -200,22 +431,41 @@ export const AuthForm = () => {
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading
-              ? "Loading..."
-              : isSignUp
-              ? "Create Account"
-              : "Sign In"}
-          </Button>
+          <div className="flex flex-col space-y-3">
+            {isSignUp && formStep === 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevStep}
+                className="w-full"
+              >
+                Back
+              </Button>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : isSignUp ? (
+                formStep === 0 ? "Continue" : "Create Account"
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </div>
         </form>
 
         <div className="mt-4 text-center text-sm">
           <button
             type="button"
-            onClick={() => {
-              clearErrors();
-              setIsSignUp(!isSignUp);
-            }}
+            onClick={toggleSignUpMode}
             className="text-blue-600 hover:underline"
           >
             {isSignUp
