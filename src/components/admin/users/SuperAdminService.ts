@@ -60,14 +60,40 @@ export const listSuperAdmins = async (): Promise<{ superAdmins: SuperAdmin[], er
       return { superAdmins: [], error };
     }
 
-    // The function now returns a JSONB array directly
-    // If it's already an array, use it; otherwise, handle as empty array
-    const superAdmins = Array.isArray(data) ? data : [];
+    // Log the raw data for debugging
+    console.log('Raw super admins data:', data);
+    console.log('Data type:', typeof data);
 
-    console.log('Super admins data:', data);
-    console.log('Parsed super admins:', superAdmins);
+    // Handle different data formats
+    let superAdmins: SuperAdmin[] = [];
 
-    return { superAdmins: superAdmins as SuperAdmin[], error: null };
+    if (Array.isArray(data)) {
+      // If data is already an array, use it directly
+      superAdmins = data;
+    } else if (data && typeof data === 'object') {
+      // If data is a JSON object, try to convert it to an array
+      try {
+        // If it's a JSON string, parse it
+        if (typeof data === 'string') {
+          superAdmins = JSON.parse(data);
+        } else {
+          // If it has array-like properties, convert to array
+          const keys = Object.keys(data).filter(k => !isNaN(Number(k)));
+          if (keys.length > 0) {
+            superAdmins = keys.map(k => data[k]);
+          } else if (data.length !== undefined) {
+            // Try to convert to array if it has a length property
+            superAdmins = Array.from({ length: data.length }, (_, i) => data[i]);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing super admins data:', e);
+      }
+    }
+
+    console.log('Processed super admins:', superAdmins);
+
+    return { superAdmins, error: null };
   } catch (error: any) {
     console.error('Exception listing super admins:', error);
     return { superAdmins: [], error };
