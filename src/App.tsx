@@ -2,7 +2,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
@@ -104,7 +103,17 @@ const App = () => {
         </TooltipProvider>
       </AuthProvider>
       {/* Add React Query Devtools - only visible in development */}
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      {import.meta.env.DEV &&
+        (() => {
+          // Dynamically import ReactQueryDevtools only in development
+          const ReactQueryDevtools = lazy(() => import('@tanstack/react-query-devtools').then(mod => ({ default: mod.ReactQueryDevtools })));
+          return (
+            <Suspense fallback={null}>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </Suspense>
+          );
+        })()
+      }
     </QueryClientProvider>
   );
 };
