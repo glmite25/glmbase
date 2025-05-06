@@ -71,10 +71,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Add a safety timeout to prevent infinite loading
     const authTimeoutId = setTimeout(() => {
       if (isLoading) {
-        console.warn("[AuthContext] Auth initialization timed out after 10 seconds");
+        console.warn("[AuthContext] Auth initialization timed out after 30 seconds");
         setIsLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 30000); // 30 second timeout
 
     const initializeAuth = async () => {
       try {
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Add timeout for Supabase session fetch
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Session fetch timeout")), 5000)
+          setTimeout(() => reject(new Error("Session fetch timeout")), 15000)
         );
 
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
@@ -155,9 +155,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchProfile = async (userId: string) => {
     // Add a safety timeout for the entire profile fetch operation
     const profileFetchTimeout = setTimeout(() => {
-      console.warn('[AuthContext] Profile fetch timed out after 8 seconds');
+      console.warn('[AuthContext] Profile fetch timed out after 15 seconds');
       setIsLoading(false);
-    }, 8000);
+    }, 15000);
 
     try {
       console.log('[AuthContext] Fetching profile for user ID:', userId);
@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 5000)
+        setTimeout(() => reject(new Error("Profile fetch timeout")), 10000)
       );
 
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
@@ -199,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userDataPromise = supabase.auth.getUser();
         const { data: userDataResult, error: userError } = await Promise.race([
           userDataPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error("User data fetch timeout")), 3000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error("User data fetch timeout")), 8000))
         ]) as any;
 
         if (userError) {
@@ -236,7 +236,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const { data: roleDataResult, error } = await Promise.race([
           rolePromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Role data fetch timeout")), 3000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Role data fetch timeout")), 8000))
         ]) as any;
 
         if (error) {

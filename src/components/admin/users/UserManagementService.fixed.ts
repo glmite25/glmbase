@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AdminUser } from "./types";
 
@@ -9,7 +8,7 @@ import { AdminUser } from "./types";
 export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error | null }> => {
   try {
     console.log("Fetching users from profiles table...");
-
+    
     // First, fetch all profiles
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
@@ -21,7 +20,7 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
     }
 
     console.log(`Found ${profilesData?.length || 0} profiles`);
-
+    
     // Then, fetch all user roles
     console.log("Fetching user roles...");
     const { data: rolesData, error: rolesError } = await supabase
@@ -34,7 +33,7 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
     }
 
     console.log(`Found ${rolesData?.length || 0} user roles`);
-
+    
     // Log the roles for debugging
     if (rolesData && rolesData.length > 0) {
       console.log("Sample role data:", rolesData[0]);
@@ -46,7 +45,7 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
     const usersWithRoles = profilesData.map((profile) => {
       // Find all roles for this user
       const userRoles = rolesData.filter((role) => role.user_id === profile.id);
-
+      
       // Determine the highest role (superuser > admin > user)
       let highestRole = "user";
       if (userRoles.some(r => r.role === "superuser")) {
@@ -54,7 +53,7 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
       } else if (userRoles.some(r => r.role === "admin")) {
         highestRole = "admin";
       }
-
+      
       return {
         ...profile,
         role: highestRole,
@@ -62,7 +61,7 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
     });
 
     console.log(`Processed ${usersWithRoles.length} users with roles`);
-
+    
     return { users: usersWithRoles, error: null };
   } catch (error: any) {
     console.error("Error in fetchUsers:", error);
