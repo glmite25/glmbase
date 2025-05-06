@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
 import { useToast } from '@/hooks/use-toast';
+import { fetchPaginatedMembers } from '@/utils/databaseUtils';
 
 // Define types for member data
 export interface Member {
@@ -33,13 +34,41 @@ export interface MemberFilters {
   isActive?: boolean;
 }
 
+// Define pagination options
+export interface PaginationOptions {
+  page: number;
+  pageSize: number;
+}
+
+// Define paginated response type
+export interface PaginatedResponse<T> {
+  data: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 /**
- * Custom hook for fetching members with optional filtering
+ * Custom hook for fetching members with optional filtering and pagination
  */
-export const useMembers = (filters?: MemberFilters) => {
+export const useMembers = (
+  filters?: MemberFilters,
+  pagination?: PaginationOptions
+) => {
   return useQuery({
-    queryKey: queryKeys.members.list(filters),
+    queryKey: queryKeys.members.list({ filters, pagination }),
     queryFn: async () => {
+      // Use the database utility for paginated queries
+      if (pagination) {
+        return fetchPaginatedMembers(
+          pagination.page,
+          pagination.pageSize,
+          filters
+        ) as Promise<PaginatedResponse<Member>>;
+      }
+
+      // If no pagination is requested, use the old approach
       // Start building the query
       let query = supabase.from('members').select('*');
 
@@ -80,7 +109,13 @@ export const useMembers = (filters?: MemberFilters) => {
         throw error;
       }
 
-      return data as Member[];
+      return {
+        data: data as Member[],
+        totalCount: data.length,
+        page: 1,
+        pageSize: data.length,
+        totalPages: 1
+      } as PaginatedResponse<Member>;
     },
   });
 };
@@ -153,7 +188,7 @@ export const useCreateMember = () => {
     onSuccess: (data) => {
       // Invalidate relevant queries
       invalidateRelatedQueries(queryClient, 'members');
-      
+
       // Show success toast
       toast({
         title: 'Member created',
@@ -195,12 +230,12 @@ export const useUpdateMember = () => {
     onSuccess: (data) => {
       // Invalidate relevant queries
       invalidateRelatedQueries(queryClient, 'members', data.id);
-      
+
       // If the member is a pastor, also invalidate pastor queries
       if (data.category === 'Pastors') {
         invalidateRelatedQueries(queryClient, 'pastors', data.id);
       }
-      
+
       // Show success toast
       toast({
         title: 'Member updated',
@@ -253,12 +288,12 @@ export const useDeleteMember = () => {
     onSuccess: (data) => {
       // Invalidate relevant queries
       invalidateRelatedQueries(queryClient, 'members');
-      
+
       // If the member was a pastor, also invalidate pastor queries
       if (data.category === 'Pastors') {
         invalidateRelatedQueries(queryClient, 'pastors');
       }
-      
+
       // Show success toast
       toast({
         title: 'Member deleted',

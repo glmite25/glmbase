@@ -14,7 +14,14 @@ import { DeleteMemberDialog } from "./members/DeleteMemberDialog";
 import { PaginatedMembersTable } from "./members/PaginatedMembersTable";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 import { SyncProfilesButton } from "./dashboard/SyncProfilesButton";
-import { useMembers, useCreateMember, useUpdateMember, useDeleteMember, Member as MemberType } from "@/hooks/useMembers";
+import {
+  useMembers,
+  useCreateMember,
+  useUpdateMember,
+  useDeleteMember,
+  Member as MemberType,
+  PaginationOptions
+} from "@/hooks/useMembers";
 import { usePastors } from "@/hooks/usePastors";
 import { MemberFormValues } from "@/types/member";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,16 +32,25 @@ export default function MembersView() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<MemberType | null>(null);
+  const [pagination, setPagination] = useState<PaginationOptions>({
+    page: 1,
+    pageSize: 10
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Use our custom hooks for data fetching and mutations
+  // Use our custom hooks for data fetching and mutations with pagination
   const {
-    data: members = [],
+    data: membersResponse,
     isLoading: membersLoading,
     error: membersError,
     refetch: refetchMembers
-  } = useMembers({ searchTerm });
+  } = useMembers({ searchTerm }, pagination);
+
+  // Extract members data and pagination info
+  const members = membersResponse?.data || [];
+  const totalCount = membersResponse?.totalCount || 0;
+  const totalPages = membersResponse?.totalPages || 1;
 
   const {
     data: pastors = [],
@@ -113,6 +129,22 @@ export default function MembersView() {
   const getAssignedPastorName = (pastorId: string) => {
     const pastor = pastors.find(p => p.id === pastorId);
     return pastor ? pastor.fullname : "Not Assigned";
+  };
+
+  // Handle pagination changes
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({
+      ...prev,
+      page: newPage
+    }));
+  };
+
+  // Handle page size changes
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPagination({
+      page: 1, // Reset to first page when changing page size
+      pageSize: newPageSize
+    });
   };
 
   // Determine if we're in a loading state
@@ -196,7 +228,12 @@ export default function MembersView() {
                 }
               }}
               getAssignedPastorName={getAssignedPastorName}
-              initialPageSize={10}
+              currentPage={pagination.page}
+              totalPages={totalPages}
+              pageSize={pagination.pageSize}
+              totalItems={totalCount}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
             />
           </>
         )}

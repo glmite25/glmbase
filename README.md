@@ -54,6 +54,22 @@ The application will be available at [http://localhost:8080](http://localhost:80
 
 This project uses environment variables for configuration. See [Environment Variables Documentation](docs/environment_variables.md) for details.
 
+## Database Setup
+
+This project uses Supabase PostgreSQL for data storage. To set up the database:
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Set up your database tables according to the [Database Schema Documentation](docs/database_schema.md)
+3. Run the database migrations:
+
+```sh
+# Option 1: Using the SQL Editor in Supabase
+# Copy the contents of migrations/run_all_migrations.sql and run it in the SQL Editor
+
+# Option 2: Using the command line (requires proper permissions)
+npm run db:migrate
+```
+
 ## Building for Production
 
 ```sh
