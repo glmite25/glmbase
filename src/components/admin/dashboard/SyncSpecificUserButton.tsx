@@ -1,35 +1,35 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { syncProfilesToMembers } from "@/utils/syncProfilesToMembers";
+import { syncSpecificUser } from "@/utils/syncSpecificUser";
 
-interface SyncProfilesButtonProps {
+interface SyncSpecificUserButtonProps {
+  email: string;
   onSyncComplete?: () => void;
 }
 
-export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) {
+export function SyncSpecificUserButton({ email, onSyncComplete }: SyncSpecificUserButtonProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      console.log("Starting sync process...");
-      const result = await syncProfilesToMembers();
+      console.log(`Syncing specific user: ${email}`);
+      const result = await syncSpecificUser(email);
       console.log("Sync result:", result);
-
+      
       if (result.success) {
-        // Always call onSyncComplete even if no members were added
-        // This ensures the UI refreshes to show the latest data
+        // Always call onSyncComplete to refresh the UI
         if (onSyncComplete) {
           console.log("Calling onSyncComplete to refresh data");
           onSyncComplete();
         }
-
+        
         // Show success toast
         toast({
-          title: "Sync completed",
+          title: "User synced",
           description: result.message,
         });
       } else {
@@ -39,11 +39,6 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
           title: "Sync failed",
           description: result.message,
         });
-      }
-
-      // If there were errors during sync, log them
-      if (result.errors && result.errors.length > 0) {
-        console.error("Errors during sync:", result.errors);
       }
     } catch (error: any) {
       console.error("Exception during sync:", error);
@@ -68,9 +63,9 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
       {isSyncing ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <RefreshCw className="h-4 w-4" />
+        <UserPlus className="h-4 w-4" />
       )}
-      {isSyncing ? "Syncing..." : "Sync New Users"}
+      {isSyncing ? "Syncing..." : `Sync User: ${email}`}
     </Button>
   );
 }

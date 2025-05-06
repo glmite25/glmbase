@@ -17,6 +17,8 @@ import { MembersTable } from "./members/MembersTable";
 import { standardizeAllRecords, standardizeAllFields, prepareForDatabase } from "@/utils/standardizeFields";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 import { SyncProfilesButton } from "./dashboard/SyncProfilesButton";
+import { SyncSpecificUserButton } from "./dashboard/SyncSpecificUserButton";
+import { AddSpecificMemberButton } from "./dashboard/AddSpecificMemberButton";
 
 export default function MembersView() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -297,6 +299,8 @@ export default function MembersView() {
           </div>
           <div className="flex items-center gap-2">
             <SyncProfilesButton onSyncComplete={fetchMembers} />
+            <SyncSpecificUserButton email="adeyemi958@gmail.com" onSyncComplete={fetchMembers} />
+            <AddSpecificMemberButton onComplete={fetchMembers} />
             <AddMemberDialog onAddMember={handleAddMember} pastors={pastors} />
           </div>
         </div>

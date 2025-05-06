@@ -25,6 +25,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/data-state";
 import { SyncProfilesButton } from "./SyncProfilesButton";
+import { SyncSpecificUserButton } from "./SyncSpecificUserButton";
+import { AddSpecificMemberButton } from "./AddSpecificMemberButton";
 
 interface DashboardMembersTableProps {
   category: MemberCategory | 'All';
@@ -181,6 +183,8 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         </div>
         <div className="flex items-center gap-2">
           <SyncProfilesButton onSyncComplete={fetchMembers} />
+          <SyncSpecificUserButton email="adeyemi958@gmail.com" onSyncComplete={fetchMembers} />
+          <AddSpecificMemberButton onComplete={fetchMembers} />
           <Button
             className="flex items-center gap-2"
             onClick={() => navigate("/admin/members")}
@@ -226,7 +230,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.fullName}</TableCell>
+                    <TableCell className="font-medium">{member.fullName || member.fullname}</TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>
                       <Badge className={getCategoryBadgeColor(member.category)}>
