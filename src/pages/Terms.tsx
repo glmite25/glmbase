@@ -1,16 +1,10 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { Helmet } from "react-helmet-async";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const Terms = () => {
   return (
     <div className="flex min-h-screen flex-col">
-      <Helmet>
-        <title>Terms and Conditions | Gospel Labour Ministry</title>
-        <meta name="description" content="Terms and conditions for using the Gospel Labour Ministry platform" />
-      </Helmet>
-
-      <Navbar />
+      <Header />
 
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4">
