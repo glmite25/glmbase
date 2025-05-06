@@ -24,6 +24,7 @@ Stores information about church members, including pastors.
 | joindate | date | NOT NULL, DEFAULT CURRENT_DATE | Date the member joined |
 | notes | text | | Additional notes about the member |
 | isactive | boolean | NOT NULL, DEFAULT true | Whether the member is active |
+| userid | uuid | REFERENCES auth.users(id) | Reference to the auth.users table for linking members to authenticated users |
 | created_at | timestamp with time zone | DEFAULT now() | Record creation timestamp |
 | updated_at | timestamp with time zone | DEFAULT now() | Record update timestamp |
 
@@ -60,6 +61,7 @@ Stores role assignments for users.
 - A member can be assigned to one pastor (`members.assignedto` references `members.id` where category = 'Pastors')
 - A user profile is linked to an auth user (`profiles.id` references `auth.users.id`)
 - User roles are linked to auth users (`user_roles.user_id` references `auth.users.id`)
+- A member can be linked to an auth user (`members.userid` references `auth.users.id`)
 
 ## Enums
 
