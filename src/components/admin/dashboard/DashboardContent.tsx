@@ -6,6 +6,7 @@ import MembersView from "@/components/admin/MembersView";
 import PastorsPage from "@/components/admin/pastors/PastorsPage";
 import PastorDetail from "@/components/admin/pastors/PastorDetail";
 import UnitMembersView from "@/components/admin/units/UnitMembersView";
+import UserProfileView from "@/components/admin/profile/UserProfileView";
 import PlaceholderCard from "./PlaceholderCard";
 import StatsCardGrid from "./StatsCardGrid";
 import SuperUserSection from "./SuperUserSection";
@@ -42,6 +43,8 @@ const DashboardContent = () => {
     return <PlaceholderCard title="Sermons Management" description="Manage church sermons" />;
   } else if (path === "/admin/settings") {
     return <PlaceholderCard title="Settings" description="Manage church settings" />;
+  } else if (path === "/admin/profile") {
+    return <UserProfileView />;
   } else if (path.startsWith("/admin/units/")) {
     // Extract the unit name from the path
     const unitId = path.split("/").pop();

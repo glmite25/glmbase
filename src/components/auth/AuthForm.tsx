@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Phone, MapPin, Mail, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AuthForm = () => {
   const [email, setEmail] = useState("");
@@ -37,13 +38,36 @@ export const AuthForm = () => {
     { id: "auxano", name: "Auxano Group" },
   ];
 
-  const pastors = [
-    { id: "timileyin_fadeyi", name: "Timileyin Fadeyi" },
-    { id: "samuel_friday", name: "Samuel Friday" },
-    { id: "femi_fatoyinbo", name: "Femi Fatoyinbo" },
-    { id: "igbalaye_olajide", name: "Igbalaye Olajide" },
-    { id: "olaiya_sunday", name: "Olaiya Sunday" },
-  ];
+  // Fetch pastors dynamically from the database instead of using hardcoded values
+  const [pastors, setPastors] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch pastors when the component loads
+  useEffect(() => {
+    const fetchPastors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('members')
+          .select('id, fullname')
+          .eq('category', 'Pastors');
+
+        if (error) {
+          console.error('Error fetching pastors:', error);
+          return;
+        }
+
+        if (data) {
+          setPastors(data.map(pastor => ({
+            id: pastor.id,
+            name: pastor.fullname
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching pastors:', error);
+      }
+    };
+
+    fetchPastors();
+  }, []);
 
   const validateEmail = (email: string): boolean => {
     // More robust email validation

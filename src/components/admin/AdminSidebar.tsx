@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   Video,
   Speaker,
-  UserCog
+  UserCog,
+  User
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -116,11 +117,18 @@ const AdminSidebar = () => {
       icon: <Speaker size={20} />
     },
     {
-      name: "TOF",
-      path: "/admin/units/tof",
+      name: "Cloven Tongues",
+      path: "/admin/units/cloventongues",
       icon: <Church size={20} />
     }
   ];
+
+  // Profile menu item for all
+  const profileMenuItem = {
+    name: "My Profile",
+    path: "/admin/profile",
+    icon: <User size={20} />
+  };
 
   // Settings menu item for all
   const settingsMenuItem = {
@@ -131,8 +139,8 @@ const AdminSidebar = () => {
 
   // Combine menu items based on user role
   const menuItems = isSuperUser
-    ? [dashboardMenuItem, ...superUserMenuItems, settingsMenuItem]
-    : [dashboardMenuItem, ...regularAdminMenuItems, settingsMenuItem];
+    ? [dashboardMenuItem, ...superUserMenuItems, profileMenuItem, settingsMenuItem]
+    : [dashboardMenuItem, ...regularAdminMenuItems, profileMenuItem, settingsMenuItem];
 
   return (
     <div className="w-full md:w-64 bg-white border-r h-full flex flex-col">

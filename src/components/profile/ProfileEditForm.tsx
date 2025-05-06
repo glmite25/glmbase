@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,6 +27,8 @@ const profileFormSchema = z.object({
   phone: z.string().optional(),
   genotype: z.string().optional(),
   address: z.string().optional(),
+  church_unit: z.string().optional(),
+  assigned_pastor: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -41,10 +43,50 @@ const genotypeOptions = [
   { value: "unknown", label: "Unknown" },
 ];
 
+const churchUnits = [
+  { value: "3hmedia", label: "3H Media" },
+  { value: "3hmusic", label: "3H Music" },
+  { value: "3hmovies", label: "3H Movies" },
+  { value: "3hsecurity", label: "3H Security" },
+  { value: "discipleship", label: "Discipleship" },
+  { value: "praisefeet", label: "Praise Feet" },
+  { value: "cloventongues", label: "Cloven Tongues" },
+  { value: "auxano", label: "Auxano Group" },
+];
+
 export function ProfileEditForm() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pastors, setPastors] = useState<{ value: string; label: string }[]>([]);
+
+  // Fetch pastors when the component loads
+  useEffect(() => {
+    const fetchPastors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('members')
+          .select('id, fullname')
+          .eq('category', 'Pastors');
+
+        if (error) {
+          console.error('Error fetching pastors:', error);
+          return;
+        }
+
+        if (data) {
+          setPastors(data.map(pastor => ({
+            value: pastor.id,
+            label: pastor.fullname
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching pastors:', error);
+      }
+    };
+
+    fetchPastors();
+  }, []);
 
   // Initialize the form with current profile values
   const form = useForm<ProfileFormValues>({
@@ -54,6 +96,8 @@ export function ProfileEditForm() {
       phone: profile?.phone || "",
       genotype: profile?.genotype || "",
       address: profile?.address || "",
+      church_unit: profile?.church_unit || "",
+      assigned_pastor: profile?.assigned_pastor || "",
     },
   });
 
@@ -70,6 +114,8 @@ export function ProfileEditForm() {
           phone: values.phone || null,
           genotype: values.genotype || null,
           address: values.address || null,
+          church_unit: values.church_unit || null,
+          assigned_pastor: values.assigned_pastor || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
@@ -179,6 +225,66 @@ export function ProfileEditForm() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="church_unit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Church Unit</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value || ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your church unit" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {churchUnits.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {form.watch("church_unit") === "auxano" && (
+              <FormField
+                control={form.control}
+                name="assigned_pastor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned Pastor</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your pastor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {pastors.map((pastor) => (
+                          <SelectItem key={pastor.value} value={pastor.value}>
+                            {pastor.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
