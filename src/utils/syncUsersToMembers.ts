@@ -42,13 +42,13 @@ export const syncUsersToMembers = async () => {
     const profilesToSync = profiles.filter(profile => {
       // Skip if email is missing
       if (!profile.email) return false;
-      
+
       // Check if this profile's email already exists in members
       const emailExists = memberEmails.has(profile.email.toLowerCase());
-      
+
       // Check if this profile's ID is already linked to a member
       const idLinked = linkedUserIds.has(profile.id);
-      
+
       // We need to sync if either the email doesn't exist in members
       // or the ID isn't linked to any member
       return !emailExists || !idLinked;
@@ -67,9 +67,9 @@ export const syncUsersToMembers = async () => {
     // Step 4: Prepare member records for insertion
     const membersToInsert = profilesToSync.map(profile => {
       // Extract name from email if full_name is not available
-      const fullName = profile.full_name || 
+      const fullName = profile.full_name ||
                       (profile.email ? profile.email.split('@')[0].replace(/[.]/g, ' ') : 'Unknown');
-      
+
       // Convert church_unit to churchunits array if available
       const churchUnits = profile.church_unit ? [profile.church_unit] : [];
 
@@ -141,43 +141,157 @@ export const syncUsersToMembers = async () => {
 export const syncUserByEmail = async (email: string) => {
   try {
     console.log(`Syncing user with email: ${email}`);
-    
+
     // Step 1: Check if the email exists in profiles
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .ilike("email", email)
       .single();
-    
-    if (profileError) {
-      console.error("Error finding profile:", profileError);
-      return { 
-        success: false, 
-        message: `User with email ${email} not found in registered users` 
+
+    // If profile not found, try to find the user in auth.users
+    if (profileError || !profileData) {
+      console.log("Profile not found, checking auth.users table...");
+
+      // Since we don't have admin access, we'll check the auth.users table directly
+      // This requires RLS policies that allow this query or using a service role client
+      const { data: userData, error: userError } = await supabase
+        .from('auth.users')
+        .select('id, email, user_metadata')
+        .eq('email', email)
+        .limit(1);
+
+      if (userError) {
+        console.error("Error finding user:", userError);
+        return {
+          success: false,
+          message: `Error finding user: ${userError.message}`
+        };
+      }
+
+      if (!userData || userData.length === 0) {
+        console.error("No user found with email:", email);
+
+        // Let's try a different approach - check if the user exists in the auth schema
+        // This is a workaround since we don't have admin access
+        const { data: authUser, error: authError } = await supabase.auth.signInWithOtp({
+          email: email,
+          options: {
+            shouldCreateUser: false // Don't create a new user, just check if it exists
+          }
+        });
+
+        if (authError && authError.message.includes("User not found")) {
+          return {
+            success: false,
+            message: `User with email ${email} not found in registered users`
+          };
+        }
+
+        // If we get here, the user exists but we can't access their details
+        // We'll need to create a profile for them with minimal information
+        const { data: newUser, error: newUserError } = await supabase.auth.getUser();
+
+        if (newUserError || !newUser) {
+          console.error("Error getting current user:", newUserError);
+          return {
+            success: false,
+            message: `User exists but we can't access their details. Please ask them to log in first.`
+          };
+        }
+
+        // Create a minimal profile
+        const minimalUser = {
+          id: newUser.user.id,
+          email: email,
+          user_metadata: { full_name: email.split('@')[0] }
+        };
+
+        console.log("Created minimal user object:", minimalUser);
+        return createProfileAndSync(minimalUser, email);
+      }
+
+      // User found in auth.users but not in profiles, create a profile first
+      const user = userData[0];
+      console.log("User found in auth.users:", user);
+
+      return createProfileAndSync(user, email);
+    }
+
+    // If profile was found, proceed with syncing
+    return syncUserWithProfile(profileData, email);
+  } catch (error: any) {
+    console.error("Error in syncUserByEmail:", error);
+    return {
+      success: false,
+      message: `Error: ${error.message || "Unknown error"}`
+    };
+  }
+};
+
+/**
+ * Helper function to create a profile for a user and then sync them
+ * @param user The user data
+ * @param email The user's email
+ * @returns Object with success status and message
+ */
+const createProfileAndSync = async (user: any, email: string) => {
+  try {
+    // Create a profile for this user
+    const { data: newProfile, error: createProfileError } = await supabase
+      .from("profiles")
+      .insert([{
+        id: user.id,
+        email: user.email || email,
+        full_name: user.user_metadata?.full_name || email.split('@')[0],
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (createProfileError) {
+      console.error("Error creating profile:", createProfileError);
+      return {
+        success: false,
+        message: `Error creating profile: ${createProfileError.message}`
       };
     }
-    
-    if (!profileData) {
-      return { 
-        success: false, 
-        message: `User with email ${email} not found in registered users` 
-      };
-    }
-    
+
+    console.log("Created new profile:", newProfile);
+
+    // Use the newly created profile
+    return syncUserWithProfile(newProfile, email);
+  } catch (error: any) {
+    console.error("Error in createProfileAndSync:", error);
+    return {
+      success: false,
+      message: `Error: ${error.message || "Unknown error"}`
+    };
+  }
+};
+
+/**
+ * Helper function to sync a user with an existing profile
+ * @param profileData The profile data
+ * @param email The user's email
+ * @returns Object with success status and message
+ */
+const syncUserWithProfile = async (profileData: any, email: string) => {
+  try {
     // Step 2: Check if the member already exists
     const { data: memberData, error: memberError } = await supabase
       .from("members")
       .select("*")
       .ilike("email", email);
-    
+
     if (memberError) {
       console.error("Error checking for existing member:", memberError);
-      return { 
-        success: false, 
-        message: `Error checking for existing member: ${memberError.message}` 
+      return {
+        success: false,
+        message: `Error checking for existing member: ${memberError.message}`
       };
     }
-    
+
     if (memberData && memberData.length > 0) {
       // Member exists, update the userid if needed
       if (!memberData[0].userid) {
@@ -185,29 +299,29 @@ export const syncUserByEmail = async (email: string) => {
           .from("members")
           .update({ userid: profileData.id })
           .eq("id", memberData[0].id);
-        
+
         if (updateError) {
           console.error("Error updating member userid:", updateError);
-          return { 
-            success: false, 
-            message: `Error updating member: ${updateError.message}` 
+          return {
+            success: false,
+            message: `Error updating member: ${updateError.message}`
           };
         }
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           message: `Updated existing member with user ID for ${email}`,
           updated: true
         };
       }
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         message: `Member already exists with email: ${email}`,
         existing: true
       };
     }
-    
+
     // Step 3: Create the member record
     const memberRecord = {
       fullname: profileData.full_name || email.split('@')[0] || 'Unknown',
@@ -221,35 +335,35 @@ export const syncUserByEmail = async (email: string) => {
       joindate: new Date().toISOString().split('T')[0],
       userid: profileData.id, // Link to the auth user ID
     };
-    
+
     console.log("Creating member record:", memberRecord);
-    
+
     // Step 4: Insert the member
     const { data: insertedMember, error: insertError } = await supabase
       .from("members")
       .insert([memberRecord])
       .select();
-    
+
     if (insertError) {
       console.error("Error inserting member:", insertError);
-      return { 
-        success: false, 
-        message: `Error inserting member: ${insertError.message}` 
+      return {
+        success: false,
+        message: `Error inserting member: ${insertError.message}`
       };
     }
-    
+
     console.log("Successfully added member:", insertedMember);
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       message: `Successfully added member with email: ${email}`,
       member: insertedMember?.[0]
     };
   } catch (error: any) {
-    console.error("Error in syncUserByEmail:", error);
-    return { 
-      success: false, 
-      message: `Error: ${error.message || "Unknown error"}` 
+    console.error("Error in syncUserWithProfile:", error);
+    return {
+      success: false,
+      message: `Error: ${error.message || "Unknown error"}`
     };
   }
 };
