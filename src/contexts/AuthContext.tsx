@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { checkSuperUserStatus, setSuperUserStatus, clearSuperUserStatus } from "@/utils/superuser-fix";
+import { checkAndNotifyDatabaseTriggers } from "@/utils/checkDatabaseTriggers";
 
 export type UserRole = 'user' | 'admin' | 'superuser';
 
@@ -77,6 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
+        // Check if database triggers are properly installed
+        await checkAndNotifyDatabaseTriggers();
+
         const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
         if (storedSuperUserStatus) {
           setIsSuperUser(true);

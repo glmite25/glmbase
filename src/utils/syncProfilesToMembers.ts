@@ -33,17 +33,20 @@ export const syncProfilesToMembers = async () => {
     // Create a set of lowercase emails for case-insensitive comparison
     const existingEmails = new Set((existingMembers || [])
       .filter(m => m.email) // Filter out null emails
-      .map(m => m.email.toLowerCase())); // Convert to lowercase
+      .map(m => m.email.toLowerCase())); // Convert to lowercase for consistent comparison
 
     console.log(`Found ${existingEmails.size} existing members with emails`);
     console.log("Existing emails:", Array.from(existingEmails));
 
     // Step 3: Filter profiles that don't exist in members table
     const profilesToAdd = profiles.filter(profile => {
-      if (!profile.email) return false;
+      if (!profile.email) {
+        console.log(`Skipping profile with no email: ${profile.id}`);
+        return false;
+      }
       const lowerEmail = profile.email.toLowerCase();
       const exists = existingEmails.has(lowerEmail);
-      console.log(`Checking profile ${profile.email}: exists in members? ${exists}`);
+      console.log(`Checking profile ${profile.email} (${profile.full_name || 'No name'}): exists in members? ${exists}`);
       return !exists;
     });
 
@@ -54,18 +57,29 @@ export const syncProfilesToMembers = async () => {
     }
 
     // Step 4: Prepare member records from profiles
-    const membersToInsert = profilesToAdd.map(profile => ({
-      fullname: profile.full_name || profile.email?.split('@')[0] || 'Unknown',
-      email: profile.email?.toLowerCase(),
-      category: 'Others', // Default category
-      churchunit: profile.church_unit || null,
-      assignedto: profile.assigned_pastor || null,
-      phone: profile.phone || null,
-      address: profile.address || null,
-      isactive: true,
-      joindate: new Date().toISOString().split('T')[0],
-      userid: profile.id, // Link to the auth user ID
-    }));
+    const membersToInsert = profilesToAdd.map(profile => {
+      // Ensure we have a valid full name
+      const fullName = profile.full_name?.trim() || profile.email?.split('@')[0] || 'Unknown';
+
+      // Extract church units if available
+      const churchUnits = profile.church_unit ? [profile.church_unit] : [];
+
+      return {
+        fullname: fullName,
+        email: profile.email?.toLowerCase(),
+        category: 'Others', // Default category
+        churchunit: profile.church_unit || null,
+        churchunits: churchUnits, // Add array of church units
+        assignedto: profile.assigned_pastor || null,
+        phone: profile.phone || null,
+        address: profile.address || null,
+        isactive: true,
+        joindate: new Date().toISOString().split('T')[0],
+        userid: profile.id, // Link to the auth user ID
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    });
 
     // Step 5: Insert new members
     console.log("Attempting to insert members:", membersToInsert);
@@ -110,7 +124,14 @@ export const syncProfilesToMembers = async () => {
     }
 
     // Create a detailed message including any errors
-    let message = `Successfully added ${insertedMembers.length} members from profiles`;
+    let message = `Successfully added ${insertedMembers.length} new members from user profiles`;
+    if (insertedMembers.length > 0) {
+      const newUserNames = insertedMembers.map(m => m.fullname || m.email).join(', ');
+      message += `: ${newUserNames}`;
+    } else {
+      message = "All registered users are already in the members list";
+    }
+
     if (errors.length > 0) {
       message += `. Failed to add ${errors.length} members due to errors.`;
     }

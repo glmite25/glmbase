@@ -42,6 +42,16 @@ export const AuthAlert = ({ isSignUp, errorMessage }: AuthAlertProps) => {
                 <p className="mt-1">Please try again or use a different email address.</p>
               </div>
             )}
+            {errorMessage && errorMessage.includes("Failed to fetch") && (
+              <div className="mt-2 text-sm">
+                <p>This could be due to:</p>
+                <ul className="list-disc pl-5 mt-1">
+                  <li>Your internet connection is unstable</li>
+                  <li>The server is temporarily unavailable</li>
+                </ul>
+                <p className="mt-1">Please check your connection and try again in a few moments.</p>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}

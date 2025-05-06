@@ -215,10 +215,14 @@ export const useAuthentication = () => {
       let errorMsg = "Failed to create account. Please try again.";
 
       if (error.message) {
-        if (error.message.includes("duplicate key")) {
+        if (error.message.includes("duplicate key") || error.message.includes("already registered")) {
           errorMsg = "An account with this email already exists. Please sign in instead.";
         } else if (error.message.includes("database")) {
-          errorMsg = "Database error. Please try again or contact support if the issue persists.";
+          errorMsg = "Database error saving new user. Please try again or contact support if the issue persists.";
+        } else if (error.message.includes("fetch") || error.message.includes("network")) {
+          errorMsg = "Failed to connect to the server. Please check your internet connection and try again.";
+        } else if (error.message.includes("timeout")) {
+          errorMsg = "The request timed out. Please try again when you have a better connection.";
         } else {
           errorMsg = error.message;
         }
@@ -227,11 +231,28 @@ export const useAuthentication = () => {
       // If we have a Supabase error code, log it for debugging
       if (error.code) {
         console.error("Error code:", error.code);
+
+        // Handle specific Supabase error codes
+        if (error.code === "23505") { // Unique violation
+          errorMsg = "An account with this email already exists. Please sign in instead.";
+        } else if (error.code === "23502") { // Not null violation
+          errorMsg = "Missing required information. Please fill in all required fields.";
+        } else if (error.code === "42P01") { // Undefined table
+          errorMsg = "Database configuration error. Please contact support.";
+        } else if (error.code === "auth_signup_duplicate_email") {
+          errorMsg = "This email is already registered. Please sign in instead.";
+        }
       }
 
       // If we have detailed error information, log it
       if (error.details) {
         console.error("Error details:", error.details);
+      }
+
+      // If the error is a network error, try to provide more helpful information
+      if (error instanceof TypeError && error.message === "Failed to fetch") {
+        errorMsg = "Failed to connect to the server. Please check your internet connection and try again.";
+        console.error("Network error detected:", error);
       }
 
       setErrorMessage(errorMsg);

@@ -13,38 +13,64 @@ BEGIN
   -- ALTER TABLE public.profiles ADD COLUMN genotype text;
   -- ALTER TABLE public.profiles ADD COLUMN address text;
 
-  INSERT INTO public.profiles (
-    id,
-    email,
-    full_name,
-    church_unit,
-    assigned_pastor,
-    phone,
-    genotype,
-    address,
-    updated_at
-  )
-  VALUES (
-    new.id,
-    new.email,
-    new.raw_user_meta_data->>'full_name',
-    new.raw_user_meta_data->>'church_unit',
-    new.raw_user_meta_data->>'assigned_pastor',
-    new.raw_user_meta_data->>'phone',
-    new.raw_user_meta_data->>'genotype',
-    new.raw_user_meta_data->>'address',
-    now()
-  )
-  ON CONFLICT (id) DO UPDATE
-  SET
-    email = EXCLUDED.email,
-    full_name = EXCLUDED.full_name,
-    church_unit = EXCLUDED.church_unit,
-    assigned_pastor = EXCLUDED.assigned_pastor,
-    phone = EXCLUDED.phone,
-    genotype = EXCLUDED.genotype,
-    address = EXCLUDED.address,
-    updated_at = now();
+  -- Add error handling with BEGIN/EXCEPTION block
+  BEGIN
+    INSERT INTO public.profiles (
+      id,
+      email,
+      full_name,
+      church_unit,
+      assigned_pastor,
+      phone,
+      genotype,
+      address,
+      updated_at
+    )
+    VALUES (
+      new.id,
+      LOWER(new.email), -- Ensure email is lowercase
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'church_unit',
+      new.raw_user_meta_data->>'assigned_pastor',
+      new.raw_user_meta_data->>'phone',
+      new.raw_user_meta_data->>'genotype',
+      new.raw_user_meta_data->>'address',
+      now()
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET
+      email = LOWER(EXCLUDED.email), -- Ensure email is lowercase
+      full_name = EXCLUDED.full_name,
+      church_unit = EXCLUDED.church_unit,
+      assigned_pastor = EXCLUDED.assigned_pastor,
+      phone = EXCLUDED.phone,
+      genotype = EXCLUDED.genotype,
+      address = EXCLUDED.address,
+      updated_at = now();
+  EXCEPTION
+    WHEN others THEN
+      -- Log the error (this will appear in Supabase logs)
+      RAISE WARNING 'Error in handle_new_user trigger: %', SQLERRM;
+
+      -- Try a simplified insert with just the essential fields
+      BEGIN
+        INSERT INTO public.profiles (
+          id,
+          email,
+          updated_at
+        )
+        VALUES (
+          new.id,
+          LOWER(new.email),
+          now()
+        )
+        ON CONFLICT (id) DO NOTHING;
+      EXCEPTION
+        WHEN others THEN
+          RAISE WARNING 'Fallback insert also failed: %', SQLERRM;
+          -- Continue anyway to avoid blocking user creation
+      END;
+  END;
 
   RETURN new;
 END;

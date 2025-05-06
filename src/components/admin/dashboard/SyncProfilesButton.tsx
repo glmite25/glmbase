@@ -59,18 +59,18 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
 
   return (
     <Button
-      variant="outline"
+      variant="default"
       size="sm"
       onClick={handleSync}
       disabled={isSyncing}
-      className="flex items-center gap-2"
+      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
     >
       {isSyncing ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <RefreshCw className="h-4 w-4" />
       )}
-      {isSyncing ? "Syncing..." : "Sync New Users"}
+      {isSyncing ? "Syncing Users..." : "Sync New Users"}
     </Button>
   );
 }
