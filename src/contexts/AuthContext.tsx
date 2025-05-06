@@ -250,16 +250,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('[AuthContext] Role data retrieved:', roleData);
 
-      // Determine admin status
+      // Determine admin and superuser status from database roles
       const isUserAdmin = roleData.some(r => r.role === 'admin');
+      const isUserSuperAdmin = roleData.some(r => r.role === 'superuser');
 
-      // Check superuser status
+      // Also check superuser status by email (legacy method)
       const userEmail = data.email?.toLowerCase() || userData?.user?.email?.toLowerCase() || '';
       console.log('[AuthContext] Checking superuser status for email:', userEmail);
-      const isSuperAdmin = checkSuperUserStatus(userEmail);
+      const isSuperAdminByEmail = checkSuperUserStatus(userEmail);
       const forceSuperAdmin = false;
       const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
-      const finalSuperUserStatus = isSuperAdmin || forceSuperAdmin || storedSuperUserStatus;
+
+      // User is a superuser if they have the role in the database OR they're in the email list OR they have it in localStorage
+      const finalSuperUserStatus = isUserSuperAdmin || isSuperAdminByEmail || forceSuperAdmin || storedSuperUserStatus;
 
       if (finalSuperUserStatus) {
         console.log('[AuthContext] User is a superadmin!');
@@ -271,7 +274,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthContext] User authorization determined:', {
         email: userEmail,
         isAdmin: isUserAdmin,
-        isSuperAdmin,
+        isSuperAdminByEmail,
+        isUserSuperAdmin,
         storedSuperUserStatus,
         forceSuperAdmin,
         finalIsSuperUser: finalSuperUserStatus,

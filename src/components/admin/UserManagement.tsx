@@ -8,11 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 import UserTable from "./users/UserTable";
 import AddUserDialog from "./users/AddUserDialog";
 import EditUserDialog from "./users/EditUserDialog";
 import DeleteUserDialog from "./users/DeleteUserDialog";
+import SuperAdminDialog from "./users/SuperAdminDialog";
 import { fetchUsers } from "./users/UserManagementService";
 import { AdminUser } from "./users/types";
 
@@ -31,7 +33,7 @@ export default function UserManagement() {
   const loadUsers = async () => {
     setLoading(true);
     const { users: fetchedUsers, error } = await fetchUsers();
-    
+
     if (error) {
       toast({
         variant: "destructive",
@@ -41,7 +43,7 @@ export default function UserManagement() {
     } else {
       setUsers(fetchedUsers);
     }
-    
+
     setLoading(false);
   };
 
@@ -63,11 +65,14 @@ export default function UserManagement() {
             <CardTitle>User Management</CardTitle>
             <CardDescription>Manage administrators and users</CardDescription>
           </div>
-          <AddUserDialog onUserAdded={loadUsers} />
+          <div className="flex space-x-2">
+            <SuperAdminDialog onSuperAdminAdded={loadUsers} />
+            <AddUserDialog onUserAdded={loadUsers} />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <UserTable 
+        <UserTable
           users={users}
           loading={loading}
           onEdit={handleEditUser}
