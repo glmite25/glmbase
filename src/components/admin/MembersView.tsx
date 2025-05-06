@@ -1,8 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Member, MemberFormValues } from "@/types/member";
 import {
   Card,
   CardContent,
@@ -13,279 +11,129 @@ import {
 import { AddMemberDialog } from "./members/AddMemberDialog";
 import { EditMemberDialog } from "./members/EditMemberDialog";
 import { DeleteMemberDialog } from "./members/DeleteMemberDialog";
-import { MembersTable } from "./members/MembersTable";
-import { standardizeAllRecords, standardizeAllFields, prepareForDatabase } from "@/utils/standardizeFields";
+import { PaginatedMembersTable } from "./members/PaginatedMembersTable";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 import { SyncProfilesButton } from "./dashboard/SyncProfilesButton";
+import { useMembers, useCreateMember, useUpdateMember, useDeleteMember, Member as MemberType } from "@/hooks/useMembers";
+import { usePastors } from "@/hooks/usePastors";
+import { MemberFormValues } from "@/types/member";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/react-query-config";
 
 export default function MembersView() {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [pastors, setPastors] = useState<{ id: string; fullName: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<MemberType | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchMembers();
-    fetchPastors();
-  }, [searchTerm]);
+  // Use our custom hooks for data fetching and mutations
+  const {
+    data: members = [],
+    isLoading: membersLoading,
+    error: membersError,
+    refetch: refetchMembers
+  } = useMembers({ searchTerm });
 
-  const fetchMembers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Start building the query
-      let query = supabase.from('members').select('*');
+  const {
+    data: pastors = [],
+    isLoading: pastorsLoading,
+    refetch: refetchPastors
+  } = usePastors({ searchTerm });
 
-      // Apply search filter at the database level if searchTerm exists
-      if (searchTerm && searchTerm.trim() !== '') {
-        const term = searchTerm.toLowerCase();
+  const createMemberMutation = useCreateMember();
+  const updateMemberMutation = useUpdateMember();
+  const deleteMemberMutation = useDeleteMember();
 
-        // Use ilike for case-insensitive search on multiple columns
-        // Try both fullName and fullname to handle case sensitivity in column names
-        query = query.or(`fullname.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
-      }
+  const handleAddMember = async (newMember: MemberFormValues) => {
+    // Convert from MemberFormValues to the format expected by the mutation
+    const memberData = {
+      fullname: newMember.fullName,
+      email: newMember.email,
+      phone: newMember.phone || undefined,
+      address: newMember.address || undefined,
+      category: newMember.category,
+      assignedto: newMember.assignedTo === "none" ? undefined : newMember.assignedTo,
+      churchunit: newMember.churchUnit || undefined,
+      churchunits: newMember.churchUnits || [],
+      auxanogroup: newMember.auxanoGroup || undefined,
+      notes: newMember.notes || undefined,
+      isactive: newMember.isActive,
+      joindate: newMember.joinDate || new Date().toISOString().split('T')[0],
+    };
 
-      // Execute the query
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        // Standardize the data and transform it to match the Member interface
-        const standardizedData = standardizeAllRecords(data);
-
-        const formattedMembers: Member[] = standardizedData.map(member => ({
-          id: member.id,
-          fullName: member.fullName,
-          email: member.email,
-          phone: member.phone || undefined,
-          address: member.address || undefined,
-          category: member.category as any,
-          joinDate: member.joinDate || new Date().toISOString().split('T')[0],
-          assignedTo: member.assignedTo || undefined,
-          churchUnit: member.churchUnit || undefined,
-          churchUnits: member.churchUnits || [],
-          auxanoGroup: member.auxanoGroup || undefined,
-          notes: member.notes || undefined,
-          isActive: member.isActive !== false, // Default to true if not specified
-        }));
-
-        setMembers(formattedMembers);
-      } else {
-        // If no data, set empty array
-        console.log('No members found in database');
-        setMembers([]);
-      }
-    } catch (error: any) {
-      console.error('Error fetching members:', error);
-      setError(error.message || 'Failed to fetch members');
-      toast({
-        variant: "destructive",
-        title: "Error fetching members",
-        description: error.message,
-      });
-
-      // Set empty array in case of error
-      setMembers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPastors = async () => {
-    try {
-      console.log('MembersView: Fetching pastors from Supabase...');
-
-      // Start building the query
-      let query = supabase
-        .from('members')
-        .select('id, fullname, churchunit, churchunits, auxanogroup')
-        .eq('category', 'Pastors');
-
-      // Apply search filter at the database level if searchTerm exists
-      if (searchTerm && searchTerm.trim() !== '') {
-        const term = searchTerm.toLowerCase();
-
-        // Use ilike for case-insensitive search on fullname (lowercase)
-        query = query.ilike('fullname', `%${term}%`);
-      }
-
-      // Execute the query
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('MembersView: Error fetching pastors data:', error);
-        throw error;
-      }
-
-      console.log('MembersView: Pastors data received:', data);
-
-      if (data && data.length > 0) {
-        // Standardize the data
-        const standardizedData = standardizeAllRecords(data);
-        setPastors(standardizedData);
-      } else {
-        // If no pastors found, set empty array
-        console.log('MembersView: No pastors found in database');
-        setPastors([]);
-      }
-    } catch (error: any) {
-      console.error('MembersView: Error fetching pastors:', error);
-      setError(error.message || 'Failed to fetch pastors');
-      toast({
-        variant: "destructive",
-        title: "Error fetching pastors",
-        description: error.message || "Failed to fetch pastors. Please try again later.",
-      });
-
-      // Set empty array in case of error
-      setPastors([]);
-    }
-  };
-
-  const handleAddMember = async (newMember: Member) => {
-    try {
-      // Prepare the member data for database insertion
-      // This converts camelCase properties to lowercase for the database
-      const dbMember = prepareForDatabase({
-        fullName: newMember.fullName,
-        email: newMember.email,
-        phone: newMember.phone || null,
-        address: newMember.address || null,
-        category: newMember.category,
-        assignedTo: newMember.assignedTo === "none" ? null : newMember.assignedTo,
-        churchUnits: newMember.churchUnits || [],
-        auxanoGroup: newMember.auxanoGroup || null,
-        notes: newMember.notes || null,
-        isActive: newMember.isActive,
-        joinDate: newMember.joinDate || new Date().toISOString().split('T')[0],
-      });
-
-      // Insert the new member into the database
-      const { data, error } = await supabase
-        .from('members')
-        .insert([dbMember])
-        .select();
-
-      if (error) throw error;
-
-      // If successful, update the local state with the new member from the database
-      if (data && data.length > 0) {
-        const addedMember = data[0];
-        setMembers([...members, {
-          ...newMember,
-          id: addedMember.id // Use the ID generated by the database
-        }]);
-
-        toast({
-          title: "Member added successfully",
-        });
-      }
-    } catch (error: any) {
-      console.error('Error adding member:', error);
-      toast({
-        variant: "destructive",
-        title: "Error adding member",
-        description: error.message,
-      });
-    }
+    createMemberMutation.mutate(memberData);
   };
 
   const handleEditMember = async (values: MemberFormValues) => {
     if (!selectedMember) return;
 
-    try {
-      // Prepare the member data for database update
-      // This converts camelCase properties to lowercase for the database
-      const dbValues = prepareForDatabase({
-        fullName: values.fullName,
-        email: values.email,
-        phone: values.phone || null,
-        address: values.address || null,
-        category: values.category,
-        assignedTo: values.assignedTo === "none" ? null : values.assignedTo,
-        churchUnits: values.churchUnits || [],
-        auxanoGroup: values.auxanoGroup || null,
-        notes: values.notes || null,
-        isActive: values.isActive,
-      });
+    // Convert from MemberFormValues to the format expected by the mutation
+    const memberData = {
+      id: selectedMember.id,
+      fullname: values.fullName,
+      email: values.email,
+      phone: values.phone || undefined,
+      address: values.address || undefined,
+      category: values.category,
+      assignedto: values.assignedTo === "none" ? undefined : values.assignedTo,
+      churchunit: values.churchUnit || undefined,
+      churchunits: values.churchUnits || [],
+      auxanogroup: values.auxanoGroup || undefined,
+      notes: values.notes || undefined,
+      isactive: values.isActive,
+    };
 
-      // Update the member in the database
-      const { error } = await supabase
-        .from('members')
-        .update(dbValues)
-        .eq('id', selectedMember.id);
-
-      if (error) throw error;
-
-      // Update the local state
-      const updatedMembers = members.map(member =>
-        member.id === selectedMember.id
-          ? { ...member, ...values }
-          : member
-      );
-
-      setMembers(updatedMembers);
-      toast({
-        title: "Member updated successfully",
-      });
-    } catch (error: any) {
-      console.error('Error updating member:', error);
-      toast({
-        variant: "destructive",
-        title: "Error updating member",
-        description: error.message,
-      });
-    } finally {
-      setOpenEditDialog(false);
-      setSelectedMember(null);
-    }
+    updateMemberMutation.mutate(memberData, {
+      onSuccess: () => {
+        setOpenEditDialog(false);
+        setSelectedMember(null);
+      }
+    });
   };
 
   const handleDeleteMember = async () => {
     if (!selectedMember) return;
 
-    try {
-      // Delete the member from the database
-      const { error } = await supabase
-        .from('members')
-        .delete()
-        .eq('id', selectedMember.id);
-
-      if (error) throw error;
-
-      // Update the local state
-      const filteredMembers = members.filter(
-        member => member.id !== selectedMember.id
-      );
-
-      setMembers(filteredMembers);
-      toast({
-        title: "Member deleted successfully",
-      });
-    } catch (error: any) {
-      console.error('Error deleting member:', error);
-      toast({
-        variant: "destructive",
-        title: "Error deleting member",
-        description: error.message,
-      });
-    } finally {
-      setOpenDeleteDialog(false);
-      setSelectedMember(null);
-    }
+    deleteMemberMutation.mutate(selectedMember.id, {
+      onSuccess: () => {
+        setOpenDeleteDialog(false);
+        setSelectedMember(null);
+      }
+    });
   };
 
-  const getAssignedPastorName = (memberId: string) => {
-    const pastor = pastors.find(p => p.id === memberId);
-    // Use the standardized field name that's available after standardizeAllRecords
-    return pastor ? (pastor.fullName || pastor.fullname || "Unknown") : "Not Assigned";
+  const handleSyncComplete = () => {
+    // Invalidate and refetch both members and pastors queries
+    queryClient.invalidateQueries({ queryKey: queryKeys.members.list() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.pastors.list() });
   };
+
+  const getAssignedPastorName = (pastorId: string) => {
+    const pastor = pastors.find(p => p.id === pastorId);
+    return pastor ? pastor.fullname : "Not Assigned";
+  };
+
+  // Determine if we're in a loading state
+  const isLoading = membersLoading || pastorsLoading;
+
+  // Format members for the table
+  const formattedMembers = members.map(member => ({
+    id: member.id,
+    fullName: member.fullname,
+    email: member.email,
+    phone: member.phone || undefined,
+    address: member.address || undefined,
+    category: member.category,
+    joinDate: member.joindate,
+    assignedTo: member.assignedto || undefined,
+    churchUnit: member.churchunit || undefined,
+    churchUnits: member.churchunits || [],
+    auxanoGroup: member.auxanogroup || undefined,
+    notes: member.notes || undefined,
+    isActive: member.isactive,
+  }));
 
   return (
     <Card>
@@ -296,20 +144,26 @@ export default function MembersView() {
             <CardDescription>Manage church members and their relationships</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <SyncProfilesButton onSyncComplete={fetchMembers} />
-            <AddMemberDialog onAddMember={handleAddMember} pastors={pastors} />
+            <SyncProfilesButton onSyncComplete={handleSyncComplete} />
+            <AddMemberDialog
+              onAddMember={handleAddMember}
+              pastors={pastors.map(p => ({
+                id: p.id,
+                fullName: p.fullname
+              }))}
+            />
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {isLoading ? (
           <LoadingState message="Loading members..." />
-        ) : error ? (
+        ) : membersError ? (
           <ErrorState
-            message={error}
+            message={(membersError as Error).message}
             onRetry={() => {
-              fetchMembers();
-              fetchPastors();
+              refetchMembers();
+              refetchPastors();
             }}
           />
         ) : (
@@ -323,17 +177,26 @@ export default function MembersView() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <MembersTable
-              members={members}
+            <PaginatedMembersTable
+              members={formattedMembers}
               onEdit={(member) => {
-                setSelectedMember(member);
-                setOpenEditDialog(true);
+                // Find the original member from our data
+                const originalMember = members.find(m => m.id === member.id);
+                if (originalMember) {
+                  setSelectedMember(originalMember);
+                  setOpenEditDialog(true);
+                }
               }}
               onDelete={(member) => {
-                setSelectedMember(member);
-                setOpenDeleteDialog(true);
+                // Find the original member from our data
+                const originalMember = members.find(m => m.id === member.id);
+                if (originalMember) {
+                  setSelectedMember(originalMember);
+                  setOpenDeleteDialog(true);
+                }
               }}
               getAssignedPastorName={getAssignedPastorName}
+              initialPageSize={10}
             />
           </>
         )}
@@ -342,16 +205,47 @@ export default function MembersView() {
         <EditMemberDialog
           open={openEditDialog}
           onOpenChange={setOpenEditDialog}
-          member={selectedMember}
+          member={selectedMember ? {
+            id: selectedMember.id,
+            fullName: selectedMember.fullname,
+            email: selectedMember.email,
+            phone: selectedMember.phone || undefined,
+            address: selectedMember.address || undefined,
+            category: selectedMember.category,
+            joinDate: selectedMember.joindate,
+            assignedTo: selectedMember.assignedto || undefined,
+            churchUnit: selectedMember.churchunit || undefined,
+            churchUnits: selectedMember.churchunits || [],
+            auxanoGroup: selectedMember.auxanogroup || undefined,
+            notes: selectedMember.notes || undefined,
+            isActive: selectedMember.isactive,
+          } : null}
           onEditMember={handleEditMember}
-          pastors={pastors}
+          pastors={pastors.map(p => ({
+            id: p.id,
+            fullName: p.fullname
+          }))}
         />
 
         {/* Delete Member Dialog */}
         <DeleteMemberDialog
           open={openDeleteDialog}
           onOpenChange={setOpenDeleteDialog}
-          member={selectedMember}
+          member={selectedMember ? {
+            id: selectedMember.id,
+            fullName: selectedMember.fullname,
+            email: selectedMember.email,
+            phone: selectedMember.phone || undefined,
+            address: selectedMember.address || undefined,
+            category: selectedMember.category,
+            joinDate: selectedMember.joindate,
+            assignedTo: selectedMember.assignedto || undefined,
+            churchUnit: selectedMember.churchunit || undefined,
+            churchUnits: selectedMember.churchunits || [],
+            auxanoGroup: selectedMember.auxanogroup || undefined,
+            notes: selectedMember.notes || undefined,
+            isActive: selectedMember.isactive,
+          } : null}
           onDeleteMember={handleDeleteMember}
         />
       </CardContent>

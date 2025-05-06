@@ -40,11 +40,19 @@ cd glmhome
 # Install dependencies
 npm install
 
+# Set up environment variables
+cp .env.example .env
+# Edit the .env file with your Supabase credentials
+
 # Start the development server
 npm run dev
 ```
 
 The application will be available at [http://localhost:8080](http://localhost:8080)
+
+## Environment Variables
+
+This project uses environment variables for configuration. See [Environment Variables Documentation](docs/environment_variables.md) for details.
 
 ## Building for Production
 

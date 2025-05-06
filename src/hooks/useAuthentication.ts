@@ -3,15 +3,32 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { createUserProfile } from "@/utils/createUserProfile";
+import { validatePassword, PasswordValidationResult } from "@/utils/passwordValidation";
 
 export const useAuthentication = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidationResult | null>(null);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [loginLocked, setLoginLocked] = useState(false);
+  const [lockoutEndTime, setLockoutEndTime] = useState<Date | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const clearErrors = () => {
     setErrorMessage(null);
+    setPasswordValidation(null);
+  };
+
+  /**
+   * Validates a password and updates the validation state
+   * @param password The password to validate
+   * @returns Whether the password is valid
+   */
+  const validateAndSetPassword = (password: string): boolean => {
+    const validation = validatePassword(password);
+    setPasswordValidation(validation);
+    return validation.isValid;
   };
 
   // Helper function to clear all auth storage
@@ -35,41 +52,102 @@ export const useAuthentication = () => {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     clearErrors();
+
+    // Check if login is locked
+    if (loginLocked) {
+      const now = new Date();
+      if (lockoutEndTime && now < lockoutEndTime) {
+        const remainingMinutes = Math.ceil((lockoutEndTime.getTime() - now.getTime()) / 60000);
+        setErrorMessage(`Too many failed login attempts. Please try again in ${remainingMinutes} minute(s).`);
+        setIsLoading(false);
+        return;
+      } else {
+        // Reset lockout if time has passed
+        setLoginLocked(false);
+        setLoginAttempts(0);
+        setLockoutEndTime(null);
+      }
+    }
+
     console.log("[signIn] Attempting login for:", email);
     try {
       // Clear any existing auth data first to ensure a fresh login
       clearAuthStorage();
+
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase();
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
+
       console.log("[signIn] Supabase response:", { data, error });
-      // Handle the email_not_confirmed error specifically
+
+      // Handle errors
       if (error) {
+        // Increment login attempts on failure
+        const newAttempts = loginAttempts + 1;
+        setLoginAttempts(newAttempts);
+
+        // Lock account after 5 failed attempts
+        if (newAttempts >= 5) {
+          const lockoutEnd = new Date();
+          lockoutEnd.setMinutes(lockoutEnd.getMinutes() + 15); // 15 minute lockout
+          setLoginLocked(true);
+          setLockoutEndTime(lockoutEnd);
+          setErrorMessage(`Too many failed login attempts. Your account is locked for 15 minutes.`);
+
+          toast({
+            variant: "destructive",
+            title: "Account temporarily locked",
+            description: "Too many failed login attempts. Please try again in 15 minutes.",
+          });
+
+          setIsLoading(false);
+          return;
+        }
+
+        // Handle the email_not_confirmed error specifically
         if (error.message === "Email not confirmed") {
           toast({
             variant: "destructive",
             title: "Email not confirmed",
             description: "Your email has not been confirmed yet. You can still use the app in development mode.",
           });
+
           // Try to sign in again without options for development purposes
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (!signInError) {
-            console.log("[signIn] Second attempt success, navigating to home");
-            navigate("/");
-            return;
+          if (import.meta.env.DEV) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: normalizedEmail,
+              password,
+            });
+
+            if (!signInError) {
+              console.log("[signIn] Second attempt success, navigating to home");
+              // Reset login attempts on success
+              setLoginAttempts(0);
+              navigate("/");
+              return;
+            }
           }
         }
+
         // Display specific error message
         setErrorMessage(error.message);
         console.error("[signIn] Error:", error.message);
         throw error;
       }
-      // Success - navigate to home
+
+      // Success - reset login attempts and navigate to home
+      setLoginAttempts(0);
       console.log("[signIn] Login successful, navigating to home");
+
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully signed in.",
+      });
+
       navigate("/");
     } catch (error: any) {
       console.error("[signIn] Authentication error:", error.message);
@@ -90,6 +168,14 @@ export const useAuthentication = () => {
   ) => {
     setIsLoading(true);
     clearErrors();
+
+    // Validate password strength
+    const isPasswordValid = validateAndSetPassword(password);
+    if (!isPasswordValid) {
+      setIsLoading(false);
+      setErrorMessage("Please use a stronger password.");
+      return;
+    }
 
     try {
       console.log("Attempting signup with:", {
@@ -299,7 +385,11 @@ export const useAuthentication = () => {
   return {
     isLoading,
     errorMessage,
+    passwordValidation,
+    loginLocked,
+    lockoutEndTime,
     clearErrors,
+    validateAndSetPassword,
     signIn,
     signUp,
     resetPassword,

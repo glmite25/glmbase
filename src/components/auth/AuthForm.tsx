@@ -25,7 +25,18 @@ export const AuthForm = () => {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [formStep, setFormStep] = useState(0); // 0: Basic info, 1: Additional info
 
-  const { isLoading, errorMessage, clearErrors, signIn, signUp, resetPassword } = useAuthentication();
+  const {
+    isLoading,
+    errorMessage,
+    passwordValidation,
+    loginLocked,
+    lockoutEndTime,
+    clearErrors,
+    validateAndSetPassword,
+    signIn,
+    signUp,
+    resetPassword
+  } = useAuthentication();
 
   const churchUnits = [
     { id: "3hmedia", name: "3H Media" },
@@ -81,20 +92,14 @@ export const AuthForm = () => {
         return "Please enter your full name (at least 2 characters)";
       }
 
-      if (password.length < 8) {
-        return "Password must be at least 8 characters long";
-      }
-
-      if (!/[A-Z]/.test(password)) {
-        return "Password must contain at least one uppercase letter";
-      }
-
-      if (!/[a-z]/.test(password)) {
-        return "Password must contain at least one lowercase letter";
-      }
-
-      if (!/[0-9!@#$%^&*(),.?":{}|<>]/.test(password)) {
-        return "Password must contain at least one number or special character";
+      // Use our enhanced password validation
+      if (password) {
+        validateAndSetPassword(password);
+        if (passwordValidation && !passwordValidation.isValid) {
+          return passwordValidation.message;
+        }
+      } else {
+        return "Please enter a password";
       }
 
       if (password !== confirmPassword) {
@@ -240,6 +245,16 @@ export const AuthForm = () => {
         </div>
 
         <AuthAlert isSignUp={isSignUp} errorMessage={errorMessage} />
+
+        {/* Show lockout message if account is locked */}
+        {loginLocked && lockoutEndTime && (
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mt-4">
+            <p className="text-amber-800 text-sm">
+              Too many failed login attempts. Your account is temporarily locked until{" "}
+              {lockoutEndTime.toLocaleTimeString()}.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           {isSignUp && formStep === 0 ? (

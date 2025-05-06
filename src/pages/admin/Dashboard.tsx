@@ -1,14 +1,17 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import AdminSidebar from "@/components/admin/AdminSidebar";
-import DashboardHeader from "@/components/admin/dashboard/DashboardHeader";
-import DashboardContent from "@/components/admin/dashboard/DashboardContent";
 import { Menu, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { PageLoader } from "@/components/ui/loading-spinner";
+
+// Lazy load admin components
+const AdminSidebar = lazy(() => import("@/components/admin/AdminSidebar"));
+const DashboardHeader = lazy(() => import("@/components/admin/dashboard/DashboardHeader"));
+const DashboardContent = lazy(() => import("@/components/admin/dashboard/DashboardContent"));
 
 const AdminDashboard = () => {
   const { user, isAdmin, isSuperUser, isLoading } = useAuth();
@@ -177,7 +180,9 @@ const AdminDashboard = () => {
             className={`w-64 bg-white h-[calc(100vh-4rem)] ${isMobile ? 'relative' : 'sticky top-16'}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <AdminSidebar />
+            <Suspense fallback={<div className="p-4">Loading sidebar...</div>}>
+              <AdminSidebar />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -185,12 +190,16 @@ const AdminDashboard = () => {
       {/* Main content */}
       <div className="flex-1 p-4 md:p-8">
         <div className="md:block">
-          <DashboardHeader
-            title={isSuperUser ? "Super Admin Dashboard" : "Admin Dashboard"}
-            description={isSuperUser ? "Manage users, members, and system settings" : "Manage members, events, and more"}
-          />
+          <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse rounded-md"></div>}>
+            <DashboardHeader
+              title={isSuperUser ? "Super Admin Dashboard" : "Admin Dashboard"}
+              description={isSuperUser ? "Manage users, members, and system settings" : "Manage members, events, and more"}
+            />
+          </Suspense>
         </div>
-        <DashboardContent />
+        <Suspense fallback={<PageLoader />}>
+          <DashboardContent />
+        </Suspense>
       </div>
     </div>
   );
