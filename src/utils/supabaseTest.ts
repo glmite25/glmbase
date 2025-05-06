@@ -11,13 +11,13 @@ export const testSupabaseConnection = async (): Promise<{
 }> => {
   try {
     console.log('Testing Supabase connection...');
-    
-    // Simple query to test connection
+
+    // Simple query to test connection - avoid using aggregate functions
     const { data, error } = await supabase
       .from('members')
-      .select('count()')
+      .select('id')
       .limit(1);
-      
+
     if (error) {
       console.error('Supabase connection test failed:', error);
       return {
@@ -26,7 +26,7 @@ export const testSupabaseConnection = async (): Promise<{
         error
       };
     }
-    
+
     console.log('Supabase connection test successful:', data);
     return {
       success: true,
@@ -52,13 +52,13 @@ export const testMembersTable = async (): Promise<{
 }> => {
   try {
     console.log('Testing members table...');
-    
+
     // Query to test if the members table exists and has the expected structure
     const { data, error } = await supabase
       .from('members')
-      .select('id, fullName, category')
+      .select('id, fullname, category')
       .limit(1);
-      
+
     if (error) {
       console.error('Members table test failed:', error);
       return {
@@ -67,7 +67,7 @@ export const testMembersTable = async (): Promise<{
         error
       };
     }
-    
+
     console.log('Members table test successful:', data);
     return {
       success: true,
