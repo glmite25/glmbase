@@ -110,7 +110,7 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="">Not Assigned</SelectItem>
+                <SelectItem value="none">Not Assigned</SelectItem>
                 {pastors.map(pastor => (
                   <SelectItem key={pastor.id} value={pastor.id}>
                     {pastor.fullName}

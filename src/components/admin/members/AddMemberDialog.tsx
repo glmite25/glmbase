@@ -35,7 +35,7 @@ export function AddMemberDialog({ onAddMember, pastors }: AddMemberDialogProps) 
       phone: "",
       address: "",
       category: "Sons",
-      assignedTo: "",
+      assignedTo: "none",
       churchUnits: [],
       notes: "",
       isActive: true,

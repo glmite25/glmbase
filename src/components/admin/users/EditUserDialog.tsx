@@ -323,7 +323,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Not Specified</SelectItem>
+                          <SelectItem value="none">Not Specified</SelectItem>
                           <SelectItem value="AA">AA</SelectItem>
                           <SelectItem value="AS">AS</SelectItem>
                           <SelectItem value="SS">SS</SelectItem>
@@ -368,7 +368,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {pastors.map((pastor) => (
                               <SelectItem key={pastor.id} value={pastor.id}>
                                 {pastor.name}

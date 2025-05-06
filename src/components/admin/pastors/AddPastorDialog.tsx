@@ -52,8 +52,8 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
     defaultValues: {
       email: "",
       title: "",
-      churchUnit: "",
-      auxanoGroup: "",
+      churchUnit: "none",
+      auxanoGroup: "none",
     },
   });
 
@@ -209,8 +209,8 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
             email: values.email.toLowerCase(),
             category: "Pastors",
             title: values.title || null,
-            churchunit: values.churchUnit || null,
-            auxanogroup: values.auxanoGroup || null,
+            churchunit: values.churchUnit === "none" ? null : values.churchUnit,
+            auxanogroup: values.auxanoGroup === "none" ? null : values.auxanoGroup,
             joindate: new Date().toISOString().split('T')[0],
             isactive: true,
             userid: userId,
@@ -315,7 +315,7 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {churchUnits.map((unit) => (
                         <SelectItem key={unit.id} value={unit.id}>
                           {unit.name}
@@ -344,7 +344,7 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {auxanoGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
