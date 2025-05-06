@@ -16,6 +16,7 @@ Stores information about church members, including pastors.
 | phone | text | | Member's phone number |
 | address | text | | Member's physical address |
 | category | text | NOT NULL | Member category (Sons, Pastors, MINT, Others) |
+| title | text | | Pastor's title (e.g., Senior Pastor, Youth Pastor) |
 | assignedto | uuid | | ID of the pastor assigned to this member |
 | churchunit | text | | Primary church unit the member belongs to |
 | churchunits | text[] | | Array of church units the member belongs to |
@@ -65,6 +66,7 @@ Stores role assignments for users.
 ### app_role
 
 Possible values:
+
 - 'user'
 - 'admin'
 - 'superuser'

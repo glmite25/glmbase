@@ -5,29 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 const About = () => {
-  const pastors = [
-    {
-      id: "1",
-      name: "John Smith",
-      title: "Senior Pastor",
-      image: "https://images.unsplash.com/photo-1545167622-3a6ac756afa4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=712&q=80",
-      bio: "Pastor John has been leading Gospel Labour Ministry for over 15 years, with a passion for teaching God's Word and mentoring leaders."
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      title: "Associate Pastor",
-      image: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
-      bio: "Pastor Sarah leads our worship ministry and women's programs, bringing creativity and compassion to everything she does."
-    },
-    {
-      id: "3",
-      name: "Michael Williams",
-      title: "Youth Pastor",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
-      bio: "Pastor Michael is dedicated to guiding our youth to develop a deep and meaningful relationship with Christ through engaging programs and mentorship."
-    }
-  ];
+  // Fetch real pastors from the database instead of using dummy data
+  const pastors = [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -132,20 +111,26 @@ const About = () => {
             <h2 className="text-3xl font-bold mb-10 text-center">Our Leadership</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {pastors.map((pastor) => (
-                <div key={pastor.id} className="flex flex-col items-center text-center">
-                  <div className="w-48 h-48 rounded-full overflow-hidden mb-4">
-                    <img
-                      src={pastor.image}
-                      alt={pastor.name}
-                      className="w-full h-full object-cover"
-                    />
+              {pastors.length > 0 ? (
+                pastors.map((pastor) => (
+                  <div key={pastor.id} className="flex flex-col items-center text-center">
+                    <div className="w-48 h-48 rounded-full overflow-hidden mb-4">
+                      <img
+                        src={pastor.image}
+                        alt={pastor.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">{pastor.name}</h3>
+                    <p className="text-church-red font-medium mb-3">{pastor.title}</p>
+                    <p className="text-gray-600">{pastor.bio}</p>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">{pastor.name}</h3>
-                  <p className="text-church-red font-medium mb-3">{pastor.title}</p>
-                  <p className="text-gray-600">{pastor.bio}</p>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-8">
+                  <p className="text-gray-600">Our leadership team information will be available soon.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>

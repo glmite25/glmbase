@@ -8,7 +8,8 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
-  // Sample upcoming events
+  // Events should be fetched from the database
+  // For now, use real recurring events
   const upcomingEvents = [
     {
       id: "1",
@@ -25,44 +26,12 @@ const Index = () => {
       time: "4:00 PM",
       location: "Upper Room",
       image: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80"
-    },
-    {
-      id: "3",
-      title: "BSF Conference",
-      date: "June 6-8, 2025",
-      time: "8:00 AM",
-      location: "Upper Room",
-      image: "https://res.cloudinary.com/dsaqsxtup/image/upload/v1746371168/584_g8yxvz.jpg"
     }
   ];
 
-  // Sample recent sermons
-  const recentSermons = [
-    {
-      id: "1",
-      title: "The Spirit of Excellence",
-      speaker: "Apostle Joseph Ibrahim",
-      date: "May 3, 2025",
-      type: "video",
-      image: "https://res.cloudinary.com/dsaqsxtup/image/upload/v1746371305/2149008918_dlptqv.jpg"
-    },
-    {
-      id: "2",
-      title: "I shall not die",
-      speaker: "Apostle Joseph Ibrahim",
-      date: "April 28, 2025",
-      type: "audio",
-      image: "https://res.cloudinary.com/dsaqsxtup/image/upload/v1746371168/584_g8yxvz.jpg"
-    },
-    {
-      id: "3",
-      title: "You are Chosen",
-      speaker: "Apostle Joseph Ibrahim",
-      date: "April 28, 2025",
-      type: "text",
-      image: "https://res.cloudinary.com/dsaqsxtup/image/upload/v1746389357/2149187035_a2fvfm.jpg"
-    }
-  ] as const;
+  // Sermons should be fetched from the database
+  // For now, use an empty array
+  const recentSermons = [] as const;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -407,43 +376,52 @@ const Index = () => {
 
             {/* Sermon list with minimalist design */}
             <div className="max-w-4xl mx-auto space-y-16">
-              {recentSermons.map((sermon, index) => (
-                <div key={sermon.id} className="group" data-aos="zoom-in" data-aos-delay={index * 100}>
-                  <Link to={`/sermons/${sermon.id}`} className="block">
-                    <div className="flex flex-col md:flex-row gap-8 items-start">
-                      {/* Image with hover effect */}
-                      <div className="w-full md:w-1/3 overflow-hidden">
-                        <img
-                          src={sermon.image}
-                          alt={sermon.title}
-                          className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      </div>
+              {recentSermons.length > 0 ? (
+                recentSermons.map((sermon, index) => (
+                  <div key={sermon.id} className="group" data-aos="zoom-in" data-aos-delay={index * 100}>
+                    <Link to={`/sermons/${sermon.id}`} className="block">
+                      <div className="flex flex-col md:flex-row gap-8 items-start">
+                        {/* Image with hover effect */}
+                        <div className="w-full md:w-1/3 overflow-hidden">
+                          <img
+                            src={sermon.image}
+                            alt={sermon.title}
+                            className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        </div>
 
-                      {/* Content */}
-                      <div className="w-full md:w-2/3">
-                        <div className="text-church-red text-sm font-medium mb-2">
-                          {sermon.type.toUpperCase()}
-                        </div>
-                        <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
-                          {sermon.title}
-                        </h3>
-                        <div className="text-xl text-gray-600 mb-4">
-                          {sermon.speaker}
-                        </div>
-                        <div className="text-gray-500">
-                          {sermon.date}
-                        </div>
-                        <div className="mt-6">
-                          <span className="inline-block border-b-2 border-church-red pb-1 text-church-red font-medium group-hover:border-church-blue group-hover:text-church-blue transition-colors">
-                            Listen Now →
-                          </span>
+                        {/* Content */}
+                        <div className="w-full md:w-2/3">
+                          <div className="text-church-red text-sm font-medium mb-2">
+                            {sermon.type.toUpperCase()}
+                          </div>
+                          <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
+                            {sermon.title}
+                          </h3>
+                          <div className="text-xl text-gray-600 mb-4">
+                            {sermon.speaker}
+                          </div>
+                          <div className="text-gray-500">
+                            {sermon.date}
+                          </div>
+                          <div className="mt-6">
+                            <span className="inline-block border-b-2 border-church-red pb-1 text-church-red font-medium group-hover:border-church-blue group-hover:text-church-blue transition-colors">
+                              Listen Now →
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12" data-aos="fade-up">
+                  <p className="text-xl text-gray-600 mb-6">Our sermon library is being updated. Check back soon for the latest messages.</p>
+                  <Link to="/sermons" className="inline-block text-church-red hover:text-church-red/80 font-medium">
+                    Browse All Sermons →
                   </Link>
                 </div>
-              ))}
+              )}
             </div>
 
             {/* View All link */}
