@@ -49,8 +49,13 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
     setLoading(true);
     setError(null);
     try {
-      // Start building the query
-      let query = supabase.from('members').select('*');
+      console.log("Fetching members for category:", category);
+
+      // Start building the query - use a cache-busting timestamp to ensure fresh data
+      const timestamp = new Date().getTime();
+      let query = supabase.from('members')
+        .select('*')
+        .order('created_at', { ascending: false }); // Get newest members first
 
       // Filter by category if not 'All'
       if (category !== 'All') {
@@ -66,12 +71,30 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         query = query.or(`fullname.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
       }
 
+      console.log("Executing members query...");
       // Execute the query
       const { data, error } = await query;
 
       if (error) throw error;
 
       if (data && data.length > 0) {
+        console.log(`Found ${data.length} members in database`);
+
+        // Log the first few records for debugging
+        console.log("Sample members data:", data.slice(0, 3));
+
+        // Check if Biodun is in the results
+        const biodunUser = data.find(m =>
+          (m.fullname && m.fullname.toLowerCase().includes('biodun')) ||
+          (m.email && m.email.toLowerCase().includes('biodun'))
+        );
+
+        if (biodunUser) {
+          console.log("Found Biodun in the results:", biodunUser);
+        } else {
+          console.log("Biodun not found in the results");
+        }
+
         // Transform the data to match the Member interface
         // Use lowercase column names from database and map to camelCase for the UI
         const formattedMembers: Member[] = data.map(member => ({
@@ -93,8 +116,10 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
           isActive: member.isactive !== false, // Use lowercase column name
         }));
 
+        console.log("Formatted members:", formattedMembers.slice(0, 3));
         setMembers(formattedMembers);
       } else {
+        console.log("No members found in database for category:", category);
         setMembers([]);
       }
     } catch (error: any) {

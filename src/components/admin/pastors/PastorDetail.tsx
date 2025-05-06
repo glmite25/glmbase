@@ -55,6 +55,7 @@ const PastorDetail = () => {
 
     try {
       setLoading(true);
+      console.log('Fetching pastor details for ID:', pastorId);
 
       // Fetch pastor details
       const { data: pastorData, error: pastorError } = await supabase
@@ -64,19 +65,33 @@ const PastorDetail = () => {
         .eq('category', 'Pastors')
         .single();
 
-      if (pastorError) throw pastorError;
+      if (pastorError) {
+        console.error('Error fetching pastor:', pastorError);
+        throw pastorError;
+      }
 
-      setPastor(pastorData);
+      console.log('Pastor data received:', pastorData);
+
+      // Normalize pastor data
+      const normalizedPastor = normalizePastor(pastorData);
+      setPastor(normalizedPastor);
 
       // Fetch members assigned to this pastor
+      console.log('Fetching members assigned to pastor:', pastorId);
       const { data: membersData, error: membersError } = await supabase
         .from('members')
         .select('*')
         .eq('assignedto', pastorId);
 
-      if (membersError) throw membersError;
+      if (membersError) {
+        console.error('Error fetching members:', membersError);
+        throw membersError;
+      }
 
-      setMembers(membersData);
+      console.log(`Found ${membersData?.length || 0} members assigned to this pastor`);
+
+      // Set members (will be normalized in the filteredMembers computation)
+      setMembers(membersData || []);
     } catch (error: any) {
       console.error('Error fetching pastor details:', error);
       toast({
@@ -84,22 +99,52 @@ const PastorDetail = () => {
         title: "Error fetching pastor details",
         description: error.message
       });
+      // Set empty arrays to avoid undefined errors
+      setPastor(null);
+      setMembers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Make sure we handle both fullName and fullname properties
-  const filteredMembers = members.filter(member => {
-    const name = member.fullName || member.fullname || '';
-    const email = member.email || '';
-    const category = member.category || '';
+  // Normalize member data to handle case inconsistencies
+  const normalizeMembers = (members: any[]): Member[] => {
+    return members.map(member => ({
+      id: member.id,
+      fullName: member.fullName || member.fullname || '',
+      email: member.email || '',
+      phone: member.phone || '',
+      address: member.address || '',
+      category: member.category || '',
+      joinDate: member.joinDate || member.joindate || new Date().toISOString(),
+      notes: member.notes || '',
+      isActive: member.isActive || member.isactive || false
+    }));
+  };
 
+  // Normalize pastor data to handle case inconsistencies
+  const normalizePastor = (pastor: any): Pastor | null => {
+    if (!pastor) return null;
+    return {
+      id: pastor.id,
+      fullName: pastor.fullName || pastor.fullname || '',
+      email: pastor.email || '',
+      phone: pastor.phone || '',
+      title: pastor.title || '',
+      bio: pastor.bio || '',
+      churchUnit: pastor.churchUnit || pastor.churchunit || '',
+      auxanoGroup: pastor.auxanoGroup || pastor.auxanogroup || ''
+    };
+  };
+
+  // Filter members based on search query
+  const filteredMembers = normalizeMembers(members).filter(member => {
+    const name = member.fullName.toLowerCase();
+    const email = member.email.toLowerCase();
+    const category = member.category.toLowerCase();
     const query = searchQuery.toLowerCase();
 
-    return name.toLowerCase().includes(query) ||
-           email.toLowerCase().includes(query) ||
-           category.toLowerCase().includes(query);
+    return name.includes(query) || email.includes(query) || category.includes(query);
   });
 
   const getInitials = (name: string) => {

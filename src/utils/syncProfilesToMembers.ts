@@ -24,11 +24,15 @@ export const syncProfilesToMembers = async () => {
     console.log(`Found ${profiles.length} profiles to check`);
 
     // Step 2: Get all existing members by email to avoid duplicates
+    // Use a more robust query to ensure we get all members
     const { data: existingMembers, error: membersError } = await supabase
       .from("members")
-      .select("email");
+      .select("email, fullname, id");
 
-    if (membersError) throw membersError;
+    if (membersError) {
+      console.error("Error fetching existing members:", membersError);
+      throw membersError;
+    }
 
     // Create a set of lowercase emails for case-insensitive comparison
     const existingEmails = new Set((existingMembers || [])
@@ -36,7 +40,11 @@ export const syncProfilesToMembers = async () => {
       .map(m => m.email.toLowerCase())); // Convert to lowercase for consistent comparison
 
     console.log(`Found ${existingEmails.size} existing members with emails`);
-    console.log("Existing emails:", Array.from(existingEmails));
+
+    // Log the first few existing members for debugging
+    if (existingMembers && existingMembers.length > 0) {
+      console.log("Sample existing members:", existingMembers.slice(0, 5));
+    }
 
     // Step 3: Filter profiles that don't exist in members table
     const profilesToAdd = profiles.filter(profile => {
@@ -44,9 +52,24 @@ export const syncProfilesToMembers = async () => {
         console.log(`Skipping profile with no email: ${profile.id}`);
         return false;
       }
+
       const lowerEmail = profile.email.toLowerCase();
       const exists = existingEmails.has(lowerEmail);
-      console.log(`Checking profile ${profile.email} (${profile.full_name || 'No name'}): exists in members? ${exists}`);
+
+      // Log more details for debugging, especially for specific users we're looking for
+      const isTargetUser = profile.full_name?.toLowerCase().includes('biodun') ||
+                          profile.email?.toLowerCase().includes('biodun');
+
+      if (isTargetUser) {
+        console.log(`IMPORTANT - Found target user: ${profile.email} (${profile.full_name || 'No name'})`);
+        console.log(`Target user exists in members? ${exists}`);
+        if (exists) {
+          console.log("This user should be synced but isn't showing up in the frontend");
+        }
+      } else {
+        console.log(`Checking profile ${profile.email} (${profile.full_name || 'No name'}): exists in members? ${exists}`);
+      }
+
       return !exists;
     });
 

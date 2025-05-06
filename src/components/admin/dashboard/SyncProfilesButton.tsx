@@ -32,6 +32,13 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
           title: "Sync completed",
           description: result.message,
         });
+
+        // Force a page refresh after a short delay to ensure everything is updated
+        console.log("Scheduling page refresh to ensure new users appear...");
+        setTimeout(() => {
+          console.log("Refreshing page to show updated data...");
+          window.location.reload();
+        }, 1500);
       } else {
         console.error("Sync failed:", result);
         toast({
