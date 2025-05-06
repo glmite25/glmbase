@@ -92,11 +92,14 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
       // Check if the user is already a pastor
       const { data: pastorData, error: pastorError } = await supabase
         .from('members')
-        .select('id')
-        .eq('email', email.toLowerCase())
-        .eq('category', 'Pastors');
+        .select('id, category')
+        .eq('email', email.toLowerCase());
 
-      if (!pastorError && pastorData && pastorData.length > 0) {
+      // Check if the user is already a pastor
+      const isPastor = !pastorError && pastorData && pastorData.length > 0 &&
+                      pastorData.some(member => member.category === 'Pastors');
+
+      if (isPastor) {
         toast({
           variant: "destructive",
           title: "User is already a pastor",
@@ -107,12 +110,24 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
         return;
       }
 
+      // Check if the user exists in members table but is not a pastor
+      const existsAsMember = !pastorError && pastorData && pastorData.length > 0;
+
       // User is not already a pastor, so we can proceed
       setUserFound(true);
 
-      // If user exists in profiles, use their name, otherwise use email
+      // If user exists in profiles, use their name
       if (userExists) {
         setFoundUserName(userData[0].full_name || email);
+      } else if (existsAsMember) {
+        // If user exists in members but not profiles, we'll update their category
+        const { data: memberData } = await supabase
+          .from('members')
+          .select('fullname')
+          .eq('email', email.toLowerCase())
+          .single();
+
+        setFoundUserName(memberData?.fullname || email);
       } else {
         // Extract name from email for new users
         const nameFromEmail = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ');
@@ -201,22 +216,58 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
       }
 
       // Create a new member record with category "Pastors"
-      const { data, error } = await supabase
+      // First check if the user already exists in the members table
+      const { data: existingMember, error: existingMemberError } = await supabase
         .from('members')
-        .insert([
-          {
+        .select('id')
+        .eq('email', values.email.toLowerCase());
+
+      if (existingMemberError) {
+        console.error("Error checking existing member:", existingMemberError);
+      }
+
+      let data, error;
+
+      if (existingMember && existingMember.length > 0) {
+        // Update the existing member record
+        const { data: updateData, error: updateError } = await supabase
+          .from('members')
+          .update({
             fullname: fullName,
-            email: values.email.toLowerCase(),
             category: "Pastors",
             title: values.title || null,
             churchunit: values.churchUnit === "none" ? null : values.churchUnit,
             auxanogroup: values.auxanoGroup === "none" ? null : values.auxanoGroup,
-            joindate: new Date().toISOString().split('T')[0],
             isactive: true,
-            userid: userId,
-          }
-        ])
-        .select();
+            userid: userId || null, // Use null if userId is empty
+          })
+          .eq('id', existingMember[0].id)
+          .select();
+
+        data = updateData;
+        error = updateError;
+      } else {
+        // Insert a new member record
+        const { data: insertData, error: insertError } = await supabase
+          .from('members')
+          .insert([
+            {
+              fullname: fullName,
+              email: values.email.toLowerCase(),
+              category: "Pastors",
+              title: values.title || null,
+              churchunit: values.churchUnit === "none" ? null : values.churchUnit,
+              auxanogroup: values.auxanoGroup === "none" ? null : values.auxanoGroup,
+              joindate: new Date().toISOString().split('T')[0],
+              isactive: true,
+              userid: userId || null, // Use null if userId is empty
+            }
+          ])
+          .select();
+
+        data = insertData;
+        error = insertError;
+      }
 
       if (error) throw error;
 
