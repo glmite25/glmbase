@@ -60,7 +60,14 @@ export const listSuperAdmins = async (): Promise<{ superAdmins: SuperAdmin[], er
       return { superAdmins: [], error };
     }
 
-    return { superAdmins: data as SuperAdmin[], error: null };
+    // The function now returns a JSONB array directly
+    // If it's already an array, use it; otherwise, handle as empty array
+    const superAdmins = Array.isArray(data) ? data : [];
+
+    console.log('Super admins data:', data);
+    console.log('Parsed super admins:', superAdmins);
+
+    return { superAdmins: superAdmins as SuperAdmin[], error: null };
   } catch (error: any) {
     console.error('Exception listing super admins:', error);
     return { superAdmins: [], error };
