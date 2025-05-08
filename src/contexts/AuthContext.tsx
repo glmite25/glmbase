@@ -312,7 +312,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Create profile data with what we have
-      const profileData: Profile = {
+      const userProfile: Profile = {
         id: data.id,
         email: data.email,
         full_name: data.full_name,
@@ -324,7 +324,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         address: (data as any).address || null,
         role: (data as any).role
       };
-      setProfile(profileData);
+      setProfile(userProfile);
 
       // Fetch role data with timeout and retry logic
       let roleData = [];
