@@ -1,6 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
+// API server URL for secure operations
+const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL || 'http://localhost:3000/api';
+
 /**
  * Checks for registered users who aren't in the members list and syncs them
  * @returns Object with success status, message, and counts
@@ -8,6 +11,56 @@ import { toast } from "@/hooks/use-toast";
 export const syncUsersToMembers = async () => {
   try {
     console.log("Starting sync of all users to members table");
+
+    // Try to use the server API first
+    try {
+      console.log(`Using server API at ${API_SERVER_URL}/users/sync-all`);
+
+      const response = await fetch(`${API_SERVER_URL}/users/sync-all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Error from server API:", result);
+        throw new Error(result.message || `Server returned ${response.status}`);
+      }
+
+      console.log("Server API response:", result);
+      return result;
+    } catch (apiError: any) {
+      // If the server API is not available, fall back to client-side implementation
+      if (apiError.message?.includes('Failed to fetch') ||
+          apiError.message?.includes('Network error') ||
+          apiError.message?.includes('NetworkError') ||
+          apiError.message?.includes('fetch')) {
+        console.warn("Server API not available, falling back to client-side implementation");
+        return fallbackSyncUsersToMembers();
+      }
+
+      throw apiError;
+    }
+  } catch (error: any) {
+    console.error("Error in syncUsersToMembers:", error);
+    return {
+      success: false,
+      message: `Error: ${error.message || "Unknown error"}`,
+      error
+    };
+  }
+};
+
+/**
+ * Fallback implementation that runs entirely on the client side
+ * This is used when the server API is not available
+ */
+const fallbackSyncUsersToMembers = async () => {
+  try {
+    console.log("Fallback: Starting sync of all users to members table");
 
     // Step 1: Get all profiles (registered users)
     const { data: profiles, error: profilesError } = await supabase
@@ -124,7 +177,7 @@ export const syncUsersToMembers = async () => {
       added: insertedMembers?.length || 0
     };
   } catch (error: any) {
-    console.error("Error in syncUsersToMembers:", error);
+    console.error("Error in fallbackSyncUsersToMembers:", error);
     return {
       success: false,
       message: `Error: ${error.message || "Unknown error"}`,
@@ -142,6 +195,56 @@ export const syncUserByEmail = async (email: string) => {
   try {
     console.log(`Syncing user with email: ${email}`);
 
+    // Try to use the server API first
+    try {
+      console.log(`Using server API at ${API_SERVER_URL}/users/sync-by-email`);
+
+      const response = await fetch(`${API_SERVER_URL}/users/sync-by-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Error from server API:", result);
+        throw new Error(result.message || `Server returned ${response.status}`);
+      }
+
+      console.log("Server API response:", result);
+      return result;
+    } catch (apiError: any) {
+      // If the server API is not available, fall back to client-side implementation
+      if (apiError.message?.includes('Failed to fetch') ||
+          apiError.message?.includes('Network error') ||
+          apiError.message?.includes('NetworkError') ||
+          apiError.message?.includes('fetch')) {
+        console.warn("Server API not available, falling back to client-side implementation");
+        return fallbackSyncUserByEmail(email);
+      }
+
+      throw apiError;
+    }
+  } catch (error: any) {
+    console.error("Error in syncUserByEmail:", error);
+    return {
+      success: false,
+      message: `Error: ${error.message || "Unknown error"}`
+    };
+  }
+};
+
+/**
+ * Fallback implementation that runs entirely on the client side
+ * This is used when the server API is not available
+ */
+const fallbackSyncUserByEmail = async (email: string) => {
+  try {
+    console.log(`Fallback: Syncing user with email: ${email}`);
+
     // Step 1: Check if the email exists in profiles
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
@@ -149,66 +252,65 @@ export const syncUserByEmail = async (email: string) => {
       .ilike("email", email)
       .single();
 
-    // If profile not found, try to find the user in auth.users
+    // If profile not found, we can't do much on the client side
     if (profileError || !profileData) {
-      console.log("Profile not found, checking auth.users table...");
+      console.log("Profile not found. Checking if member exists...");
 
-      // We can't directly query auth.users with the anon key
-      // Instead, let's check if there's a user with this email in the profiles table
-      // with a case-insensitive search
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .ilike('email', email)
-        .limit(1);
+      // Try a direct query to the members table to see if the email exists there
+      const { data: existingMember, error: memberError } = await supabase
+        .from("members")
+        .select("*")
+        .ilike("email", email)
+        .single();
 
-      if (userError) {
-        console.error("Error finding user:", userError);
+      if (memberError) {
+        console.log("No existing member found with this email either");
+      } else if (existingMember) {
+        console.log("Found existing member but no user account:", existingMember);
         return {
-          success: false,
-          message: `Error finding user: ${userError.message}`
+          success: true,
+          message: `Member exists with email ${email}, but no user account is linked. User needs to register.`,
+          existing: true
         };
       }
 
-      if (!userData || userData.length === 0) {
-        console.error("No user found with email:", email);
+      // Try the OTP method to check if the user exists
+      try {
+        console.log("Trying OTP method to check if user exists...");
+        const { error: signInError } = await supabase.auth.signInWithOtp({
+          email: email,
+          options: {
+            shouldCreateUser: false // Don't create a new user, just check if it exists
+          }
+        });
 
-        // Try a direct query to the members table to see if the email exists there
-        const { data: existingMember, error: memberError } = await supabase
-          .from("members")
-          .select("*")
-          .ilike("email", email)
-          .single();
-
-        if (memberError) {
-          console.log("No existing member found with this email either");
-        } else if (existingMember) {
-          console.log("Found existing member but no user account:", existingMember);
+        // If we get a "User not found" error, the user doesn't exist
+        if (signInError && signInError.message.includes("User not found")) {
+          console.log("User not found in auth.users either");
           return {
-            success: true,
-            message: `Member exists with email ${email}, but no user account is linked. User needs to register.`,
-            existing: true
+            success: false,
+            message: `User with email ${email} not found in registered users. They need to sign up first.`
           };
         }
 
-        // If we get here, the user doesn't exist in auth.users or has restricted access
+        // If we get here, the user exists but we can't access their details
         return {
           success: false,
-          message: `User with email ${email} not found in registered users. They need to sign up first.`
+          message: `User exists but cannot be synced without the server API. Please ensure the API server is running.`
+        };
+      } catch (otpError: any) {
+        console.error("Error checking user with OTP:", otpError);
+        return {
+          success: false,
+          message: `Error checking user: ${otpError.message}`
         };
       }
-
-      // User found in profiles table
-      const user = userData[0];
-      console.log("User found in profiles:", user);
-
-      return prepareProfileAndSync(user, email);
     }
 
     // If profile was found, proceed with syncing
     return syncUserWithProfile(profileData, email);
   } catch (error: any) {
-    console.error("Error in syncUserByEmail:", error);
+    console.error("Error in fallbackSyncUserByEmail:", error);
     return {
       success: false,
       message: `Error: ${error.message || "Unknown error"}`
