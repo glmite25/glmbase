@@ -223,6 +223,7 @@ export const syncUserByEmail = async (email: string) => {
           apiError.message?.includes('NetworkError') ||
           apiError.message?.includes('fetch')) {
         console.warn("Server API not available, falling back to client-side implementation");
+        console.log("Note: Some admin functions like getUserByEmail are not available in client-side mode");
         return fallbackSyncUserByEmail(email);
       }
 
@@ -274,37 +275,11 @@ const fallbackSyncUserByEmail = async (email: string) => {
         };
       }
 
-      // Try the OTP method to check if the user exists
-      try {
-        console.log("Trying OTP method to check if user exists...");
-        const { error: signInError } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            shouldCreateUser: false // Don't create a new user, just check if it exists
-          }
-        });
-
-        // If we get a "User not found" error, the user doesn't exist
-        if (signInError && signInError.message.includes("User not found")) {
-          console.log("User not found in auth.users either");
-          return {
-            success: false,
-            message: `User with email ${email} not found in registered users. They need to sign up first.`
-          };
-        }
-
-        // If we get here, the user exists but we can't access their details
-        return {
-          success: false,
-          message: `User exists but cannot be synced without the server API. Please ensure the API server is running.`
-        };
-      } catch (otpError: any) {
-        console.error("Error checking user with OTP:", otpError);
-        return {
-          success: false,
-          message: `Error checking user: ${otpError.message}`
-        };
-      }
+      // Since we can't access auth.admin API from the client, inform the user
+      return {
+        success: false,
+        message: `Cannot verify if user exists in the authentication system. Please ensure the API server is running for full functionality.`
+      };
     }
 
     // If profile was found, proceed with syncing
