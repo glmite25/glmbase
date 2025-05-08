@@ -1,8 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-// API server URL for secure operations
-const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL || 'http://localhost:3000/api';
+import { API_SERVER_URL, checkApiServerAvailability } from "@/utils/api-config";
 
 /**
  * Checks for registered users who aren't in the members list and syncs them
@@ -12,7 +10,18 @@ export const syncUsersToMembers = async () => {
   try {
     console.log("Starting sync of all users to members table");
 
-    // Try to use the server API first
+    // Check if the API server is available first
+    const isServerAvailable = await checkApiServerAvailability();
+
+    if (!isServerAvailable) {
+      console.warn("API server is not available. This operation requires the server API.");
+      return {
+        success: false,
+        message: "The API server is required for this operation. Please ensure the API server is running."
+      };
+    }
+
+    // Try to use the server API
     try {
       console.log(`Using server API at ${API_SERVER_URL}/users/sync-all`);
 
@@ -33,16 +42,13 @@ export const syncUsersToMembers = async () => {
       console.log("Server API response:", result);
       return result;
     } catch (apiError: any) {
-      // If the server API is not available, fall back to client-side implementation
-      if (apiError.message?.includes('Failed to fetch') ||
-          apiError.message?.includes('Network error') ||
-          apiError.message?.includes('NetworkError') ||
-          apiError.message?.includes('fetch')) {
-        console.warn("Server API not available, falling back to client-side implementation");
-        return fallbackSyncUsersToMembers();
-      }
+      console.error("API error:", apiError);
 
-      throw apiError;
+      // Provide a clear error message
+      return {
+        success: false,
+        message: "There was an error communicating with the API server. Please try again later or contact support."
+      };
     }
   } catch (error: any) {
     console.error("Error in syncUsersToMembers:", error);
@@ -195,7 +201,18 @@ export const syncUserByEmail = async (email: string) => {
   try {
     console.log(`Syncing user with email: ${email}`);
 
-    // Try to use the server API first
+    // Check if the API server is available first
+    const isServerAvailable = await checkApiServerAvailability();
+
+    if (!isServerAvailable) {
+      console.warn("API server is not available. This operation requires the server API.");
+      return {
+        success: false,
+        message: "The API server is required for this operation. Please ensure the API server is running."
+      };
+    }
+
+    // Try to use the server API
     try {
       console.log(`Using server API at ${API_SERVER_URL}/users/sync-by-email`);
 
@@ -217,40 +234,21 @@ export const syncUserByEmail = async (email: string) => {
       console.log("Server API response:", result);
       return result;
     } catch (apiError: any) {
-      // If the server API is not available, fall back to client-side implementation
-      if (apiError.message?.includes('Failed to fetch') ||
-          apiError.message?.includes('Network error') ||
-          apiError.message?.includes('NetworkError') ||
-          apiError.message?.includes('fetch')) {
-        console.warn("Server API not available, falling back to client-side implementation");
-        console.log("Note: Some admin functions like getUserByEmail are not available in client-side mode");
-        return fallbackSyncUserByEmail(email);
-      }
+      console.error("API error:", apiError);
 
-      // Handle specific errors to prevent app crashes
-      if (apiError.message?.includes('getUserByEmail is not a function')) {
-        console.error("Admin API function not available:", apiError);
-        return {
-          success: false,
-          message: "This operation requires the server API. Please ensure the API server is running."
-        };
-      }
-
-      throw apiError;
+      // Provide a clear error message
+      return {
+        success: false,
+        message: "There was an error communicating with the API server. Please try again later or contact support."
+      };
     }
   } catch (error: any) {
     // Handle errors gracefully to prevent app crashes
     console.error("Error in syncUserByEmail:", error);
 
-    // Provide a more user-friendly error message
-    let errorMessage = error.message || "Unknown error";
-    if (errorMessage.includes('getUserByEmail is not a function')) {
-      errorMessage = "This operation requires the server API. Please ensure the API server is running.";
-    }
-
     return {
       success: false,
-      message: `Error: ${errorMessage}`
+      message: `Error: ${error.message || "Unknown error"}`
     };
   }
 };

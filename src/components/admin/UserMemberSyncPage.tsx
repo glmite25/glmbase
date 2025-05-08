@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { syncUsersToMembers, syncUserByEmail } from "@/utils/syncUsersToMembers";
-import { Loader2, RefreshCw, UserPlus, CheckCircle } from "lucide-react";
+import { Loader2, RefreshCw, UserPlus, CheckCircle, Server, ServerOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { getApiServerStatus } from "@/utils/api-config";
 
 export default function UserMemberSyncPage() {
   const { toast } = useToast();
@@ -26,25 +28,53 @@ export default function UserMemberSyncPage() {
     updated?: boolean;
     member?: any;
   } | null>(null);
+  const [apiStatus, setApiStatus] = useState<{
+    available: boolean;
+    url: string;
+    environment: string;
+    message: string;
+  }>({
+    available: false,
+    url: '',
+    environment: '',
+    message: 'Checking API server status...'
+  });
+  const [isCheckingApi, setIsCheckingApi] = useState(true);
+
+  // Check API server status on component mount
+  useEffect(() => {
+    checkApiStatus();
+  }, []);
+
+  // Function to check API server status
+  const checkApiStatus = async () => {
+    setIsCheckingApi(true);
+    try {
+      const status = await getApiServerStatus();
+      setApiStatus(status);
+    } catch (error) {
+      setApiStatus({
+        available: false,
+        url: '',
+        environment: '',
+        message: 'Error checking API server status'
+      });
+    } finally {
+      setIsCheckingApi(false);
+    }
+  };
 
   const handleSyncAll = async () => {
     setIsLoading(true);
     setResults(null);
 
-    try {
-      // Check if the API server is running first
-      try {
-        const response = await fetch('http://localhost:3000/api/health', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
+    // Refresh API status before proceeding
+    await checkApiStatus();
 
-        if (!response.ok) {
-          throw new Error('API server is not responding properly');
-        }
-      } catch (serverError) {
-        console.error("API server check failed:", serverError);
-        // Show a more helpful message about starting the server
+    try {
+      // Check if the API server is available
+      if (!apiStatus.available) {
+        console.error("API server is not available");
         toast({
           title: "API Server Not Running",
           description: "The API server is required for this operation. Please start the server using 'cd server && npm run dev' in a terminal.",
@@ -99,20 +129,13 @@ export default function UserMemberSyncPage() {
     setIsSyncingEmail(true);
     setEmailSyncResult(null);
 
-    try {
-      // Check if the API server is running first
-      try {
-        const response = await fetch('http://localhost:3000/api/health', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
+    // Refresh API status before proceeding
+    await checkApiStatus();
 
-        if (!response.ok) {
-          throw new Error('API server is not responding properly');
-        }
-      } catch (serverError) {
-        console.error("API server check failed:", serverError);
-        // Show a more helpful message about starting the server
+    try {
+      // Check if the API server is available
+      if (!apiStatus.available) {
+        console.error("API server is not available");
         toast({
           title: "API Server Not Running",
           description: "The API server is required for this operation. Please start the server using 'cd server && npm run dev' in a terminal.",
@@ -156,6 +179,44 @@ export default function UserMemberSyncPage() {
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">User-Member Synchronization</h1>
+
+      {/* API Server Status Indicator */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          {isCheckingApi ? (
+            <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+          ) : apiStatus.available ? (
+            <Server className="h-5 w-5 text-green-500" />
+          ) : (
+            <ServerOff className="h-5 w-5 text-red-500" />
+          )}
+          <span className="font-medium">API Server Status:</span>
+          <Badge variant={apiStatus.available ? "success" : "destructive"}>
+            {apiStatus.available ? "Online" : "Offline"}
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={checkApiStatus}
+            disabled={isCheckingApi}
+            className="ml-2"
+          >
+            {isCheckingApi ? (
+              <>
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              "Refresh"
+            )}
+          </Button>
+        </div>
+        <p className="text-sm text-gray-500">
+          {apiStatus.available
+            ? `Connected to API server at ${apiStatus.url}`
+            : "The API server is required for user synchronization. Please start the server using 'cd server && npm run dev' in a terminal."}
+        </p>
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
