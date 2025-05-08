@@ -30,11 +30,40 @@ export default function UserMemberSyncPage() {
   const handleSyncAll = async () => {
     setIsLoading(true);
     setResults(null);
-    
+
     try {
+      // Check if the API server is running first
+      try {
+        const response = await fetch('http://localhost:3000/api/health', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error('API server is not responding properly');
+        }
+      } catch (serverError) {
+        console.error("API server check failed:", serverError);
+        // Show a more helpful message about starting the server
+        toast({
+          title: "API Server Not Running",
+          description: "The API server is required for this operation. Please start the server using 'cd server && npm run dev' in a terminal.",
+          variant: "destructive",
+        });
+
+        setResults({
+          success: false,
+          message: "The API server is not running. Please start the server using 'cd server && npm run dev' in a terminal.",
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
+      // If we get here, the server is running
       const result = await syncUsersToMembers();
       setResults(result);
-      
+
       toast({
         title: result.success ? "Sync Completed" : "Sync Failed",
         description: result.message,
@@ -46,7 +75,7 @@ export default function UserMemberSyncPage() {
         message: `Error: ${error.message || "Unknown error"}`,
         error
       });
-      
+
       toast({
         title: "Sync Failed",
         description: `Error: ${error.message || "Unknown error"}`,
@@ -66,14 +95,43 @@ export default function UserMemberSyncPage() {
       });
       return;
     }
-    
+
     setIsSyncingEmail(true);
     setEmailSyncResult(null);
-    
+
     try {
+      // Check if the API server is running first
+      try {
+        const response = await fetch('http://localhost:3000/api/health', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error('API server is not responding properly');
+        }
+      } catch (serverError) {
+        console.error("API server check failed:", serverError);
+        // Show a more helpful message about starting the server
+        toast({
+          title: "API Server Not Running",
+          description: "The API server is required for this operation. Please start the server using 'cd server && npm run dev' in a terminal.",
+          variant: "destructive",
+        });
+
+        setEmailSyncResult({
+          success: false,
+          message: "The API server is not running. Please start the server using 'cd server && npm run dev' in a terminal.",
+        });
+
+        setIsSyncingEmail(false);
+        return;
+      }
+
+      // If we get here, the server is running
       const result = await syncUserByEmail(email);
       setEmailSyncResult(result);
-      
+
       toast({
         title: result.success ? "User Sync Completed" : "User Sync Failed",
         description: result.message,
@@ -84,7 +142,7 @@ export default function UserMemberSyncPage() {
         success: false,
         message: `Error: ${error.message || "Unknown error"}`,
       });
-      
+
       toast({
         title: "User Sync Failed",
         description: `Error: ${error.message || "Unknown error"}`,
@@ -98,7 +156,7 @@ export default function UserMemberSyncPage() {
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">User-Member Synchronization</h1>
-      
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -115,7 +173,7 @@ export default function UserMemberSyncPage() {
               Running this process will check all registered users and add any missing ones to your members list.
               It will not affect existing members.
             </p>
-            
+
             {results && (
               <Alert className={results.success ? "bg-green-50" : "bg-red-50"}>
                 <AlertTitle>{results.success ? "Success" : "Error"}</AlertTitle>
@@ -131,8 +189,8 @@ export default function UserMemberSyncPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button 
-              onClick={handleSyncAll} 
+            <Button
+              onClick={handleSyncAll}
               disabled={isLoading}
               className="w-full"
             >
@@ -150,7 +208,7 @@ export default function UserMemberSyncPage() {
             </Button>
           </CardFooter>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -172,7 +230,7 @@ export default function UserMemberSyncPage() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              
+
               {emailSyncResult && (
                 <Alert className={emailSyncResult.success ? "bg-green-50" : "bg-red-50"}>
                   <AlertTitle>
@@ -193,8 +251,8 @@ export default function UserMemberSyncPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
-              onClick={handleSyncEmail} 
+            <Button
+              onClick={handleSyncEmail}
               disabled={isSyncingEmail || !email}
               className="w-full"
             >
