@@ -9,6 +9,12 @@ const router = express.Router();
 // Create Supabase client with service role key
 const supabaseUrl = process.env.SUPABASE_URL as string;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+
+// Validation should already be done in index.ts, but let's be extra safe
+if (!supabaseUrl || !supabaseServiceKey || supabaseServiceKey === 'your-service-role-key-goes-here') {
+  throw new Error('Missing or invalid Supabase credentials. Please check your .env file.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 /**
