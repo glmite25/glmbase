@@ -7,9 +7,13 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import { PageLoader } from "@/components/ui/loading-spinner";
 import { useEffect, useState, lazy, Suspense } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { createQueryClient } from "@/lib/react-query-config";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 // Lazy load pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -93,31 +97,69 @@ const AppContent = () => {
 const App = () => {
   // Create a new QueryClient instance with our optimized configuration
   const [queryClient] = useState(() => createQueryClient());
+  const [error, setError] = useState<Error | null>(null);
+
+  // Add global error handler
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Global error caught:', event.error);
+      setError(event.error);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Application Error</AlertTitle>
+            <AlertDescription className="mt-2">
+              <p className="mb-2">Something went wrong with the application.</p>
+              <p className="text-sm mb-4 whitespace-pre-wrap">
+                {error.message || "Unknown error"}
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  Reload Application
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-      {/* Add React Query Devtools - only visible in development */}
-      {import.meta.env.DEV &&
-        (() => {
-          // Dynamically import ReactQueryDevtools only in development
-          const ReactQueryDevtools = lazy(() => import('@tanstack/react-query-devtools').then(mod => ({ default: mod.ReactQueryDevtools })));
-          return (
-            <Suspense fallback={null}>
-              <ReactQueryDevtools initialIsOpen={false} />
-            </Suspense>
-          );
-        })()
-      }
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+        {/* Add React Query Devtools - only visible in development */}
+        {import.meta.env.DEV &&
+          (() => {
+            // Dynamically import ReactQueryDevtools only in development
+            const ReactQueryDevtools = lazy(() => import('@tanstack/react-query-devtools').then(mod => ({ default: mod.ReactQueryDevtools })));
+            return (
+              <Suspense fallback={null}>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </Suspense>
+            );
+          })()
+        }
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

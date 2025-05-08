@@ -227,13 +227,30 @@ export const syncUserByEmail = async (email: string) => {
         return fallbackSyncUserByEmail(email);
       }
 
+      // Handle specific errors to prevent app crashes
+      if (apiError.message?.includes('getUserByEmail is not a function')) {
+        console.error("Admin API function not available:", apiError);
+        return {
+          success: false,
+          message: "This operation requires the server API. Please ensure the API server is running."
+        };
+      }
+
       throw apiError;
     }
   } catch (error: any) {
+    // Handle errors gracefully to prevent app crashes
     console.error("Error in syncUserByEmail:", error);
+
+    // Provide a more user-friendly error message
+    let errorMessage = error.message || "Unknown error";
+    if (errorMessage.includes('getUserByEmail is not a function')) {
+      errorMessage = "This operation requires the server API. Please ensure the API server is running.";
+    }
+
     return {
       success: false,
-      message: `Error: ${error.message || "Unknown error"}`
+      message: `Error: ${errorMessage}`
     };
   }
 };
@@ -285,7 +302,17 @@ const fallbackSyncUserByEmail = async (email: string) => {
     // If profile was found, proceed with syncing
     return syncUserWithProfile(profileData, email);
   } catch (error: any) {
+    // Handle the error gracefully to prevent app crashes
     console.error("Error in fallbackSyncUserByEmail:", error);
+
+    // Check if it's the specific error we're trying to fix
+    if (error.message && error.message.includes("getUserByEmail is not a function")) {
+      return {
+        success: false,
+        message: `The server-side API is required for this operation. Please ensure the API server is running.`
+      };
+    }
+
     return {
       success: false,
       message: `Error: ${error.message || "Unknown error"}`
