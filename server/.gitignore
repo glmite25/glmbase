@@ -14,7 +14,6 @@ node_modules
 
 # Build outputs
 dist
-dist-ssr
 build
 *.local
 
@@ -24,11 +23,6 @@ build
 .env.development.local
 .env.test.local
 .env.production.local
-server/.env
-server/.env.local
-server/.env.development.local
-server/.env.test.local
-server/.env.production.local
 
 # Testing
 /coverage
