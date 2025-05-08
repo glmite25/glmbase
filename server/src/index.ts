@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import usersRoutes from './routes/users.js';
 
 // Load environment variables
 dotenv.config();
@@ -77,7 +78,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
-app.use('/api/users', require('./routes/users'));
+app.use('/api/users', usersRoutes);
 
 // Start server
 app.listen(port, () => {

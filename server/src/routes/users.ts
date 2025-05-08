@@ -36,7 +36,22 @@ router.post('/sync-by-email', async (req, res) => {
     console.log(`Syncing user with email: ${email}`);
 
     // Step 1: Check if the user exists in auth.users
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(email);
+    // Use listUsers and filter by email since getUserByEmail is not available
+    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
+
+    if (listError) {
+      console.error("Error listing users:", listError);
+      return res.status(500).json({
+        success: false,
+        message: `Error finding user: ${listError.message}`
+      });
+    }
+
+    const authUser = {
+      user: usersData?.users.find(user => user.email?.toLowerCase() === email.toLowerCase())
+    };
+
+    const authError = !authUser.user ? { message: `User with email ${email} not found` } : null;
 
     if (authError) {
       console.error("Error finding user in auth:", authError);
@@ -54,7 +69,7 @@ router.post('/sync-by-email', async (req, res) => {
     }
 
     // Step 2: Check if the user has a profile
-    const { data: profileData, error: profileError } = await supabase
+    let { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", authUser.user.id)
@@ -187,7 +202,7 @@ router.post('/sync-all', async (req, res) => {
     console.log("Starting sync of all users to members table");
 
     // Step 1: Get all users from auth.users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
 
     if (authError) {
       console.error("Error fetching auth users:", authError);
@@ -365,4 +380,4 @@ router.post('/sync-all', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
