@@ -186,30 +186,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchProfile = async (userId: string) => {
     // Add a safety timeout for the entire profile fetch operation
     const profileFetchTimeout = setTimeout(() => {
-      console.warn('[AuthContext] Profile fetch timed out after 15 seconds');
+      console.warn('[AuthContext] Profile fetch timed out after 20 seconds');
       setIsLoading(false);
-    }, 15000);
+    }, 20000); // Increased from 15 seconds to 20 seconds
 
     try {
       console.log('[AuthContext] Fetching profile for user ID:', userId);
 
-      // Add timeout for profile fetch
-      const profilePromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Implement retry logic for profile fetch
+      let profileData = null;
+      let profileError = null;
+      let attempts = 0;
+      const maxAttempts = 3;
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 10000)
-      );
+      while (attempts < maxAttempts && !profileData) {
+        attempts++;
+        console.log(`[AuthContext] Profile fetch attempt ${attempts}/${maxAttempts}`);
 
-      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+        try {
+          // Add timeout for profile fetch
+          const profilePromise = supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
 
-      if (error) {
-        console.error('[AuthContext] Error fetching profile data:', error);
-        // Don't throw, continue with partial data if possible
-        // If we have a stored superuser status, we can still proceed
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Profile fetch timeout (attempt ${attempts})`)), 15000) // Increased from 10 seconds to 15 seconds
+          );
+
+          const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
+          if (error) {
+            console.error(`[AuthContext] Error fetching profile data (attempt ${attempts}):`, error);
+            profileError = error;
+
+            // If not the last attempt, wait before retrying
+            if (attempts < maxAttempts) {
+              const delay = Math.min(1000 * attempts, 3000); // Exponential backoff with max 3 seconds
+              console.log(`[AuthContext] Retrying profile fetch in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          } else if (data) {
+            console.log(`[AuthContext] Profile data retrieved on attempt ${attempts}:`, data);
+            profileData = data;
+            break; // Exit the retry loop if successful
+          }
+        } catch (fetchError) {
+          console.error(`[AuthContext] Exception in profile fetch (attempt ${attempts}):`, fetchError);
+          profileError = fetchError;
+
+          // If not the last attempt, wait before retrying
+          if (attempts < maxAttempts) {
+            const delay = Math.min(1000 * attempts, 3000);
+            console.log(`[AuthContext] Retrying profile fetch in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+
+      // After all attempts, check if we have data or need to use fallback
+      if (!profileData) {
+        // If we have a stored superuser status, we can still proceed with limited functionality
         const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
         if (storedSuperUserStatus) {
           console.log('[AuthContext] Using stored superuser status due to profile fetch error');
@@ -219,27 +257,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           clearTimeout(profileFetchTimeout);
           return;
         }
-        throw error;
+
+        // If we reached here, all attempts failed and we have no fallback
+        if (profileError) {
+          throw profileError;
+        } else {
+          throw new Error("Failed to fetch profile after multiple attempts");
+        }
       }
 
-      console.log('[AuthContext] Profile data retrieved:', data);
+      // Use the successfully retrieved profile data
+      const data = profileData;
+      console.log('[AuthContext] Using profile data:', data);
 
-      // Get user data with timeout
+      // Get user data with timeout and retry logic
       let userData = null;
-      try {
-        const userDataPromise = supabase.auth.getUser();
-        const { data: userDataResult, error: userError } = await Promise.race([
-          userDataPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error("User data fetch timeout")), 8000))
-        ]) as any;
+      let userDataAttempts = 0;
+      const maxUserDataAttempts = 2;
 
-        if (userError) {
-          console.error('[AuthContext] Error fetching user data:', userError);
-        } else {
-          userData = userDataResult;
+      while (userDataAttempts < maxUserDataAttempts && !userData) {
+        userDataAttempts++;
+        try {
+          console.log(`[AuthContext] User data fetch attempt ${userDataAttempts}/${maxUserDataAttempts}`);
+
+          const userDataPromise = supabase.auth.getUser();
+          const { data: userDataResult, error: userError } = await Promise.race([
+            userDataPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`User data fetch timeout (attempt ${userDataAttempts})`)), 10000)) // Increased from 8 seconds to 10 seconds
+          ]) as any;
+
+          if (userError) {
+            console.error(`[AuthContext] Error fetching user data (attempt ${userDataAttempts}):`, userError);
+
+            // If not the last attempt, wait before retrying
+            if (userDataAttempts < maxUserDataAttempts) {
+              const delay = 1000; // Simple 1 second delay between attempts
+              console.log(`[AuthContext] Retrying user data fetch in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          } else {
+            userData = userDataResult;
+            console.log(`[AuthContext] User data retrieved on attempt ${userDataAttempts}:`, userData);
+          }
+        } catch (userDataError) {
+          console.error(`[AuthContext] Exception fetching user data (attempt ${userDataAttempts}):`, userDataError);
+
+          // If not the last attempt, wait before retrying
+          if (userDataAttempts < maxUserDataAttempts) {
+            const delay = 1000;
+            console.log(`[AuthContext] Retrying user data fetch in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
-      } catch (userDataError) {
-        console.error('[AuthContext] Exception fetching user data:', userDataError);
       }
 
       // Create profile data with what we have
@@ -257,26 +326,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       };
       setProfile(profileData);
 
-      // Fetch role data with timeout
+      // Fetch role data with timeout and retry logic
       let roleData = [];
-      try {
-        const rolePromise = supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId);
+      let roleDataAttempts = 0;
+      const maxRoleDataAttempts = 2;
 
-        const { data: roleDataResult, error } = await Promise.race([
-          rolePromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Role data fetch timeout")), 8000))
-        ]) as any;
+      while (roleDataAttempts < maxRoleDataAttempts) {
+        roleDataAttempts++;
+        try {
+          console.log(`[AuthContext] Role data fetch attempt ${roleDataAttempts}/${maxRoleDataAttempts}`);
 
-        if (error) {
-          console.error('[AuthContext] Error fetching role data:', error);
-        } else {
-          roleData = roleDataResult || [];
+          const rolePromise = supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId);
+
+          const { data: roleDataResult, error } = await Promise.race([
+            rolePromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`Role data fetch timeout (attempt ${roleDataAttempts})`)), 10000)) // Increased from 8 seconds to 10 seconds
+          ]) as any;
+
+          if (error) {
+            console.error(`[AuthContext] Error fetching role data (attempt ${roleDataAttempts}):`, error);
+
+            // If not the last attempt, wait before retrying
+            if (roleDataAttempts < maxRoleDataAttempts) {
+              const delay = 1000; // Simple 1 second delay between attempts
+              console.log(`[AuthContext] Retrying role data fetch in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          } else {
+            roleData = roleDataResult || [];
+            console.log(`[AuthContext] Role data retrieved on attempt ${roleDataAttempts}:`, roleData);
+            break; // Exit the retry loop if successful
+          }
+        } catch (roleError) {
+          console.error(`[AuthContext] Exception fetching role data (attempt ${roleDataAttempts}):`, roleError);
+
+          // If not the last attempt, wait before retrying
+          if (roleDataAttempts < maxRoleDataAttempts) {
+            const delay = 1000;
+            console.log(`[AuthContext] Retrying role data fetch in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
-      } catch (roleError) {
-        console.error('[AuthContext] Exception fetching role data:', roleError);
       }
 
       console.log('[AuthContext] Role data retrieved:', roleData);
@@ -317,8 +410,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsSuperUser(finalSuperUserStatus);
     } catch (error) {
       console.error('[AuthContext] Error in fetchProfile:', error);
-      setIsAdmin(false);
-      setIsSuperUser(false);
+
+      // Check if we have a stored superuser status as a fallback
+      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+      if (storedSuperUserStatus) {
+        console.log('[AuthContext] Using stored superuser status due to profile fetch error in catch block');
+        setIsSuperUser(true);
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+        setIsSuperUser(false);
+      }
+
+      // Create a minimal profile with user ID if we have it
+      if (userId) {
+        console.log('[AuthContext] Creating minimal profile with user ID:', userId);
+        setProfile({
+          id: userId,
+          email: null,
+          full_name: null,
+          updated_at: null,
+          church_unit: null,
+          assigned_pastor: null,
+          phone: null,
+          genotype: null,
+          address: null
+        });
+      }
     } finally {
       clearTimeout(profileFetchTimeout);
       setIsLoading(false);
