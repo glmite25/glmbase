@@ -78,8 +78,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
+        // Check if we can access Supabase
+        try {
+          // Simple test to see if Supabase is accessible
+          if (!supabase || !supabase.auth) {
+            throw new Error("Supabase client is not properly initialized");
+          }
+        } catch (supabaseError) {
+          console.error("[AuthContext] Supabase client error:", supabaseError);
+          // Allow the app to load even if Supabase is not available
+          setIsLoading(false);
+          return;
+        }
+
         // Check if database triggers are properly installed
-        await checkAndNotifyDatabaseTriggers();
+        try {
+          await checkAndNotifyDatabaseTriggers();
+        } catch (triggerError) {
+          console.error("[AuthContext] Error checking database triggers:", triggerError);
+          // Continue even if this fails
+        }
 
         const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
         if (storedSuperUserStatus) {
@@ -88,24 +106,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("[AuthContext] Initial superuser check from localStorage:", storedSuperUserStatus);
 
         // Add timeout for Supabase session fetch
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Session fetch timeout")), 15000)
-        );
+        try {
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Session fetch timeout")), 15000)
+          );
 
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
-        console.log("[AuthContext] Initial session check:", session ? "Session exists" : "No session", session);
-        setSession(session);
-        setUser(session?.user ?? null);
+          console.log("[AuthContext] Initial session check:", session ? "Session exists" : "No session", session);
+          setSession(session);
+          setUser(session?.user ?? null);
 
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          if (storedSuperUserStatus) {
-            console.log("[AuthContext] No session but superuser status found in localStorage");
-            setIsSuperUser(true);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          } else {
+            if (storedSuperUserStatus) {
+              console.log("[AuthContext] No session but superuser status found in localStorage");
+              setIsSuperUser(true);
+            }
+            setIsLoading(false);
           }
+        } catch (sessionError) {
+          console.error("[AuthContext] Error fetching session:", sessionError);
           setIsLoading(false);
         }
       } catch (error) {
@@ -117,34 +140,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[AuthContext] Auth state changed:", event, session ? "Session exists" : "No session", session);
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Set up auth state change listener with error handling
+    let subscription = { unsubscribe: () => {} };
 
-      if (session?.user) {
-        try {
-          await fetchProfile(session.user.id);
-        } catch (error) {
-          console.error("[AuthContext] Error in auth state change handler:", error);
+    try {
+      const authStateChange = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log("[AuthContext] Auth state changed:", event, session ? "Session exists" : "No session", session);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          try {
+            await fetchProfile(session.user.id);
+          } catch (error) {
+            console.error("[AuthContext] Error in auth state change handler:", error);
+            setIsLoading(false);
+          }
+        } else {
+          console.log("[AuthContext] User logged out or session expired");
+          setProfile(null);
+          setIsAdmin(false);
+          setIsSuperUser(false);
           setIsLoading(false);
-        }
-      } else {
-        console.log("[AuthContext] User logged out or session expired");
-        setProfile(null);
-        setIsAdmin(false);
-        setIsSuperUser(false);
-        setIsLoading(false);
 
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          console.log(`[AuthContext] ${event} event detected, clearing state`);
-          clearSuperUserStatus();
-          clearAuthStorage();
+          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+            console.log(`[AuthContext] ${event} event detected, clearing state`);
+            clearSuperUserStatus();
+            clearAuthStorage();
+          }
         }
-      }
-    });
+      });
+
+      subscription = authStateChange.data.subscription;
+    } catch (error) {
+      console.error("[AuthContext] Error setting up auth state change listener:", error);
+      setIsLoading(false);
+    }
 
     return () => {
       clearTimeout(authTimeoutId);

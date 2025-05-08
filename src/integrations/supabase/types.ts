@@ -15,18 +15,93 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string | null
+          church_unit: string | null
+          assigned_pastor: string | null
+          phone: string | null
+          genotype: string | null
+          address: string | null
+          role: string | null
         }
         Insert: {
           email?: string | null
           full_name?: string | null
           id: string
           updated_at?: string | null
+          church_unit?: string | null
+          assigned_pastor?: string | null
+          phone?: string | null
+          genotype?: string | null
+          address?: string | null
+          role?: string | null
         }
         Update: {
           email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          church_unit?: string | null
+          assigned_pastor?: string | null
+          phone?: string | null
+          genotype?: string | null
+          address?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      members: {
+        Row: {
+          id: string
+          fullname: string
+          email: string
+          phone: string | null
+          address: string | null
+          category: string
+          assignedto: string | null
+          churchunit: string | null
+          auxanogroup: string | null
+          joindate: string
+          notes: string | null
+          isactive: boolean
+          created_at: string | null
+          updated_at: string | null
+          churchunits: string[] | null
+          userid: string | null
+        }
+        Insert: {
+          id?: string
+          fullname: string
+          email: string
+          phone?: string | null
+          address?: string | null
+          category: string
+          assignedto?: string | null
+          churchunit?: string | null
+          auxanogroup?: string | null
+          joindate?: string
+          notes?: string | null
+          isactive?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+          churchunits?: string[] | null
+          userid?: string | null
+        }
+        Update: {
+          id?: string
+          fullname?: string
+          email?: string
+          phone?: string | null
+          address?: string | null
+          category?: string
+          assignedto?: string | null
+          churchunit?: string | null
+          auxanogroup?: string | null
+          joindate?: string
+          notes?: string | null
+          isactive?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+          churchunits?: string[] | null
+          userid?: string | null
         }
         Relationships: []
       }
@@ -62,7 +137,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "superuser" | "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -178,7 +253,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["superuser", "admin", "user"],
     },
   },
 } as const
