@@ -23,9 +23,10 @@ export const syncUsersToMembers = async () => {
 
     // Try to use the server API
     try {
-      console.log(`Using server API at ${API_SERVER_URL}/users/sync-all`);
+      const apiEndpoint = `${API_SERVER_URL}/api/users/sync-all`;
+      console.log(`Using server API at ${apiEndpoint}`);
 
-      const response = await fetch(`${API_SERVER_URL}/users/sync-all`, {
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,9 +215,10 @@ export const syncUserByEmail = async (email: string) => {
 
     // Try to use the server API
     try {
-      console.log(`Using server API at ${API_SERVER_URL}/users/sync-by-email`);
+      const apiEndpoint = `${API_SERVER_URL}/api/users/sync-by-email`;
+      console.log(`Using server API at ${apiEndpoint}`);
 
-      const response = await fetch(`${API_SERVER_URL}/users/sync-by-email`, {
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -76,14 +76,14 @@ export default function UserMemberSyncPage() {
       if (!apiStatus.available) {
         console.error("API server is not available");
         toast({
-          title: "API Server Not Running",
-          description: "The API server is required for this operation. Please start the server using 'cd server && npm run dev' in a terminal.",
+          title: "API Connection Error",
+          description: "Unable to connect to the API. Please check your network connection or contact support.",
           variant: "destructive",
         });
 
         setResults({
           success: false,
-          message: "The API server is not running. Please start the server using 'cd server && npm run dev' in a terminal.",
+          message: "Unable to connect to the API. The API might be temporarily unavailable or there could be a network issue.",
         });
 
         setIsLoading(false);
@@ -137,14 +137,14 @@ export default function UserMemberSyncPage() {
       if (!apiStatus.available) {
         console.error("API server is not available");
         toast({
-          title: "API Server Not Running",
-          description: "The API server is required for this operation. Please start the server using 'cd server && npm run dev' in a terminal.",
+          title: "API Connection Error",
+          description: "Unable to connect to the API. Please check your network connection or contact support.",
           variant: "destructive",
         });
 
         setEmailSyncResult({
           success: false,
-          message: "The API server is not running. Please start the server using 'cd server && npm run dev' in a terminal.",
+          message: "Unable to connect to the API. The API might be temporarily unavailable or there could be a network issue.",
         });
 
         setIsSyncingEmail(false);
@@ -213,8 +213,8 @@ export default function UserMemberSyncPage() {
         </div>
         <p className="text-sm text-gray-500">
           {apiStatus.available
-            ? `Connected to API server at ${apiStatus.url}`
-            : "The API server is required for user synchronization. Please start the server using 'cd server && npm run dev' in a terminal."}
+            ? `Connected to API at ${apiStatus.url || window.location.origin}`
+            : "The API connection is required for user synchronization. Please check your network connection or contact support if the issue persists."}
         </p>
       </div>
 
