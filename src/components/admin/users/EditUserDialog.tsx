@@ -76,7 +76,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
     { id: "3hsecurity", name: "3H Security" },
     { id: "discipleship", name: "Discipleship" },
     { id: "praisefeet", name: "Praise Feet" },
-    { id: "tof", name: "TOF" },
+    { id: "cloventongues", name: "Cloven Tongues" },
     { id: "auxano", name: "Auxano Group" },
   ];
 
