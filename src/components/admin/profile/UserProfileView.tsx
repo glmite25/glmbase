@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCog, Users, Building, UserPlus, Phone, MapPin, Mail } from "lucide-react";
+import { UserCog, Users, Building, UserPlus, Phone, MapPin, Mail, Activity, CalendarDays } from "lucide-react";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { getSuperUserStatus } from "@/utils/superuser-fix";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -146,9 +146,26 @@ const UserProfileView = () => {
                     )}
                     {profile?.genotype && (
                       <div className="flex items-start gap-2">
+                        <Activity className="h-4 w-4 text-gray-500 mt-0.5" />
                         <div>
                           <p className="font-medium">Genotype</p>
                           <p className="text-gray-600">{profile.genotype}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {profile?.date_of_birth && (
+                      <div className="flex items-start gap-2">
+                        <CalendarDays className="h-4 w-4 text-gray-500 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Date of Birth</p>
+                          <p className="text-gray-600">
+                            {new Date(profile.date_of_birth).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
                         </div>
                       </div>
                     )}

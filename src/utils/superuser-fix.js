@@ -17,7 +17,8 @@ export const checkSuperUserStatus = (email) => {
   // List of superuser emails
   const superUserEmails = [
     'ojidelawrence@gmail.com',
-    'clickcom007@yahoo.com'
+    'clickcom007@yahoo.com',
+    'popsabey1@gmail.com'
     // Add other superuser emails as needed
   ];
 
