@@ -19,7 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Loader2, CalendarIcon } from "lucide-react";
 
 // Define the form schema with validation
 const profileFormSchema = z.object({
@@ -29,6 +33,7 @@ const profileFormSchema = z.object({
   address: z.string().optional(),
   church_unit: z.string().optional(),
   assigned_pastor: z.string().optional(),
+  date_of_birth: z.date().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -98,6 +103,7 @@ export function ProfileEditForm() {
       address: profile?.address || "",
       church_unit: profile?.church_unit || "",
       assigned_pastor: profile?.assigned_pastor || "",
+      date_of_birth: profile?.date_of_birth ? new Date(profile.date_of_birth) : undefined,
     },
   });
 
@@ -116,6 +122,7 @@ export function ProfileEditForm() {
           address: values.address || null,
           church_unit: values.church_unit || null,
           assigned_pastor: values.assigned_pastor || null,
+          date_of_birth: values.date_of_birth ? values.date_of_birth.toISOString().split('T')[0] : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
@@ -175,6 +182,48 @@ export function ProfileEditForm() {
                   <FormControl>
                     <Input placeholder="Enter your phone number" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Date of Birth</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
