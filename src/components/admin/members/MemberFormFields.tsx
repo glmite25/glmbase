@@ -74,8 +74,7 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
             <FormLabel>Category</FormLabel>
             <Select
               onValueChange={field.onChange}
-              defaultValue={field.value}
-              value={field.value}
+              value={field.value || undefined}
             >
               <FormControl>
                 <SelectTrigger>
@@ -101,8 +100,7 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
             <FormLabel>Assigned Pastor</FormLabel>
             <Select
               onValueChange={field.onChange}
-              defaultValue={field.value}
-              value={field.value}
+              value={field.value || undefined}
             >
               <FormControl>
                 <SelectTrigger>

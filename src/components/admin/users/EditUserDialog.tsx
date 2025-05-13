@@ -183,6 +183,9 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
 
       // If superuser, update user metadata and profile
       if (isSuperUser) {
+        // Process metadata values
+        const processedAssignedPastor = values.assignedPastor === "none" ? null : values.assignedPastor || null;
+
         // Update user metadata
         const { error: metadataError } = await supabase.auth.admin.updateUserById(
           user.id,
@@ -193,22 +196,27 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
               church_unit: values.churchUnits && values.churchUnits.length > 0 ? values.churchUnits[0] : null,
               churchunits: values.churchUnits || [],
               churchunit: values.churchUnits && values.churchUnits.length > 0 ? values.churchUnits[0] : null,
-              assigned_pastor: values.assignedPastor || null,
+              assigned_pastor: processedAssignedPastor,
             }
           }
         );
 
         if (metadataError) throw metadataError;
 
+        // Process form values
+        const processedValues = {
+          phone: values.phone || null,
+          genotype: values.genotype === "none" ? null : values.genotype || null,
+          address: values.address || null,
+          updated_at: new Date().toISOString()
+        };
+
+        console.log("Updating user profile with values:", processedValues);
+
         // Update profile with additional fields
         const { error: profileUpdateError } = await supabase
           .from("profiles")
-          .update({
-            phone: values.phone || null,
-            genotype: values.genotype || null,
-            address: values.address || null,
-            updated_at: new Date().toISOString()
-          })
+          .update(processedValues)
           .eq("id", user.id);
 
         if (profileUpdateError) throw profileUpdateError;
@@ -312,7 +320,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
                       <FormLabel>Genotype</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value || ""}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -357,7 +365,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
                         <FormLabel>Assigned Pastor</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value}
+                          value={field.value || undefined}
                         >
                           <FormControl>
                             <SelectTrigger>

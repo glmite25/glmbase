@@ -99,10 +99,10 @@ export function ProfileEditForm() {
     defaultValues: {
       full_name: profile?.full_name || "",
       phone: profile?.phone || "",
-      genotype: profile?.genotype || "",
+      genotype: profile?.genotype || undefined,
       address: profile?.address || "",
-      church_unit: profile?.church_unit || "",
-      assigned_pastor: profile?.assigned_pastor || "",
+      church_unit: profile?.church_unit || undefined,
+      assigned_pastor: profile?.assigned_pastor || undefined,
       date_of_birth: profile?.date_of_birth ? new Date(profile.date_of_birth) : undefined,
     },
   });
@@ -114,10 +114,10 @@ export function ProfileEditForm() {
       form.reset({
         full_name: profile.full_name || "",
         phone: profile.phone || "",
-        genotype: profile.genotype || "",
+        genotype: profile.genotype || undefined,
         address: profile.address || "",
-        church_unit: profile.church_unit || "",
-        assigned_pastor: profile.assigned_pastor || "",
+        church_unit: profile.church_unit || undefined,
+        assigned_pastor: profile.assigned_pastor || undefined,
         date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
       });
     }
@@ -128,19 +128,24 @@ export function ProfileEditForm() {
 
     setIsSubmitting(true);
     try {
+      // Process form values
+      const processedValues = {
+        full_name: values.full_name,
+        phone: values.phone || null,
+        genotype: values.genotype === "none" ? null : values.genotype || null,
+        address: values.address || null,
+        church_unit: values.church_unit === "none" ? null : values.church_unit || null,
+        assigned_pastor: values.assigned_pastor === "none" ? null : values.assigned_pastor || null,
+        date_of_birth: values.date_of_birth ? values.date_of_birth.toISOString().split('T')[0] : null,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log("Submitting profile update with values:", processedValues);
+
       // Update the profile in Supabase
       const { error } = await supabase
         .from("profiles")
-        .update({
-          full_name: values.full_name,
-          phone: values.phone || null,
-          genotype: values.genotype || null,
-          address: values.address || null,
-          church_unit: values.church_unit || null,
-          assigned_pastor: values.assigned_pastor || null,
-          date_of_birth: values.date_of_birth ? values.date_of_birth.toISOString().split('T')[0] : null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(processedValues)
         .eq("id", user.id);
 
       if (error) throw error;
@@ -253,7 +258,7 @@ export function ProfileEditForm() {
                   <FormLabel>Genotype</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value || ""}
+                    value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -261,6 +266,7 @@ export function ProfileEditForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
                       {genotypeOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -299,7 +305,7 @@ export function ProfileEditForm() {
                   <FormLabel>Church Unit</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value || ""}
+                    value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -307,7 +313,7 @@ export function ProfileEditForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {churchUnits.map((unit) => (
                         <SelectItem key={unit.value} value={unit.value}>
                           {unit.label}
@@ -329,7 +335,7 @@ export function ProfileEditForm() {
                     <FormLabel>Assigned Pastor</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value || ""}
+                      value={field.value || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -337,7 +343,7 @@ export function ProfileEditForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {pastors.map((pastor) => (
                           <SelectItem key={pastor.value} value={pastor.value}>
                             {pastor.label}
