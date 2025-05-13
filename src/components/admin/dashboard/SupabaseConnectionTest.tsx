@@ -11,35 +11,55 @@ const SupabaseConnectionTest = () => {
     success?: boolean;
     message?: string;
   }>({ tested: false });
-  
+
   const [membersTableStatus, setMembersTableStatus] = useState<{
     tested: boolean;
     success?: boolean;
     message?: string;
   }>({ tested: false });
-  
+
   const [loading, setLoading] = useState(false);
 
   const runTests = async () => {
     setLoading(true);
-    
-    // Test Supabase connection
-    const connectionResult = await testSupabaseConnection();
-    setConnectionStatus({
-      tested: true,
-      success: connectionResult.success,
-      message: connectionResult.message
-    });
-    
-    // Test members table
-    const membersTableResult = await testMembersTable();
-    setMembersTableStatus({
-      tested: true,
-      success: membersTableResult.success,
-      message: membersTableResult.message
-    });
-    
-    setLoading(false);
+
+    try {
+      // Test Supabase connection
+      console.log("Starting Supabase connection test...");
+      const connectionResult = await testSupabaseConnection();
+      console.log("Connection test result:", connectionResult);
+      setConnectionStatus({
+        tested: true,
+        success: connectionResult.success,
+        message: connectionResult.message
+      });
+
+      // Test members table
+      console.log("Starting members table test...");
+      const membersTableResult = await testMembersTable();
+      console.log("Members table test result:", membersTableResult);
+      setMembersTableStatus({
+        tested: true,
+        success: membersTableResult.success,
+        message: membersTableResult.message
+      });
+    } catch (error) {
+      console.error("Error running database tests:", error);
+      // Set both statuses to error if an exception occurs
+      setConnectionStatus({
+        tested: true,
+        success: false,
+        message: `Test failed with error: ${error instanceof Error ? error.message : String(error)}`
+      });
+      setMembersTableStatus({
+        tested: true,
+        success: false,
+        message: `Test failed with error: ${error instanceof Error ? error.message : String(error)}`
+      });
+    } finally {
+      // Always set loading to false, even if there's an error
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,7 +74,7 @@ const SupabaseConnectionTest = () => {
         <p className="text-sm text-muted-foreground">
           If you're experiencing issues with data loading, run this test to check the database connection.
         </p>
-        
+
         {connectionStatus.tested && (
           <Alert variant={connectionStatus.success ? "default" : "destructive"}>
             <div className="flex items-start gap-2">
@@ -70,7 +90,7 @@ const SupabaseConnectionTest = () => {
             </div>
           </Alert>
         )}
-        
+
         {membersTableStatus.tested && (
           <Alert variant={membersTableStatus.success ? "default" : "destructive"}>
             <div className="flex items-start gap-2">
@@ -86,9 +106,9 @@ const SupabaseConnectionTest = () => {
             </div>
           </Alert>
         )}
-        
-        <Button 
-          onClick={runTests} 
+
+        <Button
+          onClick={runTests}
           disabled={loading}
           className="w-full"
         >

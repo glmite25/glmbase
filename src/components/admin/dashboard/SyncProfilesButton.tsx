@@ -13,15 +13,32 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
   const { toast } = useToast();
 
   const handleSync = async () => {
+    // Prevent multiple clicks
+    if (isSyncing) return;
+
     setIsSyncing(true);
+
+    // Set a timeout to ensure the button doesn't stay in loading state forever
+    const syncTimeout = setTimeout(() => {
+      console.log("Sync operation timed out after 30 seconds");
+      setIsSyncing(false);
+      toast({
+        variant: "destructive",
+        title: "Sync timed out",
+        description: "The operation took too long. Please try again.",
+      });
+    }, 30000); // 30 second timeout
+
     try {
       console.log("Starting sync process...");
       const result = await syncProfilesToMembers();
       console.log("Sync result:", result);
 
+      // Clear the timeout since we got a response
+      clearTimeout(syncTimeout);
+
       if (result.success) {
-        // Always call onSyncComplete even if no members were added
-        // This ensures the UI refreshes to show the latest data
+        // Call onSyncComplete to refresh the data
         if (onSyncComplete) {
           console.log("Calling onSyncComplete to refresh data");
           onSyncComplete();
@@ -33,12 +50,14 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
           description: result.message,
         });
 
-        // Force a page refresh after a short delay to ensure everything is updated
-        console.log("Scheduling page refresh to ensure new users appear...");
+        // Instead of reloading the page, just call onSyncComplete again after a short delay
+        // This is less disruptive than a full page reload
         setTimeout(() => {
-          console.log("Refreshing page to show updated data...");
-          window.location.reload();
-        }, 1500);
+          console.log("Calling onSyncComplete again to ensure data is refreshed");
+          if (onSyncComplete) {
+            onSyncComplete();
+          }
+        }, 1000);
       } else {
         console.error("Sync failed:", result);
         toast({
@@ -53,6 +72,9 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
         console.error("Errors during sync:", result.errors);
       }
     } catch (error: any) {
+      // Clear the timeout since we got a response (even if it's an error)
+      clearTimeout(syncTimeout);
+
       console.error("Exception during sync:", error);
       toast({
         variant: "destructive",

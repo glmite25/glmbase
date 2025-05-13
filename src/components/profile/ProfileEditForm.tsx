@@ -107,6 +107,22 @@ export function ProfileEditForm() {
     },
   });
 
+  // Update form values when profile changes
+  useEffect(() => {
+    if (profile) {
+      console.log("Profile data changed, updating form values:", profile);
+      form.reset({
+        full_name: profile.full_name || "",
+        phone: profile.phone || "",
+        genotype: profile.genotype || "",
+        address: profile.address || "",
+        church_unit: profile.church_unit || "",
+        assigned_pastor: profile.assigned_pastor || "",
+        date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
+      });
+    }
+  }, [profile, form]);
+
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
 
