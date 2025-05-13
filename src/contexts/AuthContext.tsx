@@ -58,13 +58,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Function to fetch user profile
   const fetchProfile = async (userId: string) => {
     console.log(`[AuthContext] Fetching profile for user ${userId}`);
-    
+
     // Set a timeout for profile fetching
     const profileFetchTimeout = setTimeout(() => {
       console.warn('[AuthContext] Profile fetch timed out after 15 seconds');
       setIsLoading(false);
     }, 15000);
-    
+
     try {
       // Fetch the user profile from the profiles table
       const { data, error } = await supabase
@@ -75,15 +75,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) {
         console.error("[AuthContext] Error fetching profile:", error);
-        
+
         // Get user data directly from auth.users
         const { data: userData, error: userError } = await supabase.auth.getUser();
-        
+
         if (userError) {
           console.error("[AuthContext] Error fetching user data:", userError);
           return;
         }
-        
+
         // Create a minimal profile with user ID if we have it
         if (userId) {
           console.log('[AuthContext] Creating minimal profile with user ID:', userId);
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             date_of_birth: null
           });
         }
-        
+
         return;
       }
 
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Get user data to access metadata
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      
+
       if (userError) {
         console.error("[AuthContext] Error fetching user data:", userError);
       }
@@ -189,15 +189,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Add a safety timeout to prevent infinite loading
     const authTimeoutId = setTimeout(() => {
       if (isLoading) {
-        console.warn("[AuthContext] Auth initialization timed out after 30 seconds");
+        console.warn("[AuthContext] Auth initialization timed out after 45 seconds");
         setIsLoading(false);
       }
-    }, 30000);
+    }, 45000); // Increased from 30 seconds to 45 seconds
 
     const initializeAuth = async () => {
       try {
         // Check if database triggers are properly installed
-        await checkAndNotifyDatabaseTriggers();
+        try {
+          await checkAndNotifyDatabaseTriggers();
+        } catch (triggerError) {
+          console.warn("[AuthContext] Error checking database triggers:", triggerError);
+          // Continue with auth initialization even if trigger check fails
+        }
 
         const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
         if (storedSuperUserStatus) {
@@ -205,13 +210,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         console.log("[AuthContext] Initial superuser check from localStorage:", storedSuperUserStatus);
 
-        // Add timeout for Supabase session fetch
+        // Add timeout for Supabase session fetch with increased timeout
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Session fetch timeout")), 15000)
+          setTimeout(() => reject(new Error("Session fetch timeout")), 25000) // Increased from 15 seconds to 25 seconds
         );
 
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        try {
+          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
         console.log("[AuthContext] Initial session check:", session ? "Session exists" : "No session", session);
         setSession(session);
@@ -222,6 +228,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
           if (storedSuperUserStatus) {
             console.log("[AuthContext] No session but superuser status found in localStorage");
+            setIsSuperUser(true);
+          }
+          setIsLoading(false);
+        }
+        } catch (sessionError) {
+          console.error("[AuthContext] Error fetching session:", sessionError);
+          // If session fetch fails, try to continue with stored superuser status
+          if (storedSuperUserStatus) {
+            console.log("[AuthContext] Session fetch failed but superuser status found in localStorage");
             setIsSuperUser(true);
           }
           setIsLoading(false);

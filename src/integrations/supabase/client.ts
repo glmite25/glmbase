@@ -18,14 +18,38 @@ export const supabase = createClient<Database>(
   SUPABASE_URL as string,
   SUPABASE_ANON_KEY as string,
   {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true, // Changed to true to enable session persistence
-    detectSessionInUrl: true,
-    storageKey: 'glm-auth-token',
-    flowType: 'pkce',
-  },
-});
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'glm-auth-token',
+      flowType: 'pkce',
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'glmcms-web-app',
+      },
+      fetch: (url, options = {}) => {
+        // Add retry logic for fetch operations
+        const fetchWithRetry = async (attempt = 1, maxAttempts = 3) => {
+          try {
+            return await fetch(url, options);
+          } catch (error) {
+            console.warn(`Supabase fetch error (attempt ${attempt}/${maxAttempts}):`, error);
+            if (attempt < maxAttempts) {
+              // Exponential backoff: 1s, 2s, 4s, etc.
+              const delay = Math.pow(2, attempt - 1) * 1000;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return fetchWithRetry(attempt + 1, maxAttempts);
+            }
+            throw error;
+          }
+        };
+        return fetchWithRetry();
+      },
+    },
+  }
+);
 
 // Log Supabase initialization for debugging
 console.log('Supabase client initialized with URL:', SUPABASE_URL);
