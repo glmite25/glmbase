@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { manualSyncProfileToMember } from "@/utils/diagnosticTools";
+import { checkUserByEmail, manualSyncProfileToMember } from "@/utils/diagnosticTools";
 import {
   Dialog,
   DialogContent,
@@ -38,73 +38,28 @@ export function CheckUserButton() {
     try {
       console.log(`Checking user with email: ${emailToCheck}`);
 
-      // Step 1: Check profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .ilike("email", emailToCheck)
-        .maybeSingle();
+      const checkResult = await checkUserByEmail(emailToCheck);
 
-      if (profileError) {
-        console.error("Error checking profiles:", profileError);
+      if (!checkResult.success) {
+        throw new Error(checkResult.error || "Error checking user");
       }
 
-      // Step 2: Check members table
-      const { data: memberData, error: memberError } = await supabase
-        .from("members")
-        .select("*")
-        .ilike("email", emailToCheck)
-        .maybeSingle();
-
-      if (memberError) {
-        console.error("Error checking members:", memberError);
-      }
-
-      // Step 3: Check auth.users table (if possible)
-      let userData = null;
-      let userError = null;
-      try {
-        // This might not work depending on permissions
-        const { data, error } = await supabase.auth.admin.listUsers({
-          filter: {
-            email: emailToCheck,
-          },
-        });
-        userData = data;
-        userError = error;
-      } catch (error) {
-        console.log("Admin API not available:", error);
-        userError = error;
-      }
-
-      // Compile results
-      const results = {
-        email: emailToCheck,
-        inProfiles: !!profileData,
-        profileData,
-        inMembers: !!memberData,
-        memberData,
-        inAuth: !!userData?.users?.length,
-        userData,
-        timestamp: new Date().toISOString(),
-      };
-
-      console.log("User check results:", results);
-      setResults(results);
+      console.log("User check results:", checkResult.results);
+      setResults(checkResult.results);
 
       // Show toast with summary
       toast({
         title: "User check complete",
         description: `User ${emailToCheck} found in: ${[
-          results.inProfiles ? "Profiles" : "",
-          results.inMembers ? "Members" : "",
-          results.inAuth ? "Auth" : "",
+          checkResult.results.inProfiles ? "Profiles" : "",
+          checkResult.results.inMembers ? "Members" : "",
+          checkResult.results.hasRole ? "Roles" : "",
         ]
           .filter(Boolean)
           .join(", ") || "No tables"}`,
       });
 
-      return results;
+      return checkResult.results;
     } catch (error) {
       console.error("Error checking user:", error);
       toast({
@@ -213,8 +168,8 @@ export function CheckUserButton() {
                   <div>{results.inProfiles ? "✅ Yes" : "❌ No"}</div>
                   <div>In Members:</div>
                   <div>{results.inMembers ? "✅ Yes" : "❌ No"}</div>
-                  <div>In Auth:</div>
-                  <div>{results.inAuth ? "✅ Yes" : "❌ No"}</div>
+                  <div>Has Role:</div>
+                  <div>{results.hasRole ? `✅ Yes (${results.roleData?.role})` : "❌ No"}</div>
                 </div>
 
                 {results.inProfiles && !results.inMembers && (

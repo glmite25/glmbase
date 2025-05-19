@@ -1,6 +1,26 @@
 import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/adminClient";
 import { toast } from "@/hooks/use-toast";
 import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
+
+// Check if the database is accessible and credentials are working
+const checkDatabaseConnection = async () => {
+  try {
+    console.log("Testing database connection...");
+    const { data, error } = await supabase.from("profiles").select("count").limit(1);
+
+    if (error) {
+      console.error("Database connection test failed:", error);
+      return false;
+    }
+
+    console.log("Database connection successful");
+    return true;
+  } catch (err) {
+    console.error("Exception testing database connection:", err);
+    return false;
+  }
+};
 
 // Define a more robust function to check if a member exists
 const checkMemberExists = async (email: string, userId: string | null) => {
@@ -48,6 +68,98 @@ const checkMemberExists = async (email: string, userId: string | null) => {
 };
 
 /**
+ * Manually sync a specific profile to the members table
+ * This can be used to fix specific users that aren't showing up
+ */
+export const manualSyncProfileToMember = async (profileId: string) => {
+  try {
+    console.log(`Manually syncing profile ${profileId} to members table`);
+
+    // First check database connection
+    const dbConnected = await checkDatabaseConnection();
+    if (!dbConnected) {
+      return {
+        success: false,
+        error: "Could not connect to the database. Check your credentials and network connection."
+      };
+    }
+
+    // Try to get the profile using admin client for better permissions
+    const { data: profile, error: profileError } = await adminSupabase
+      .from("profiles")
+      .select("*")
+      .eq("id", profileId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Error fetching profile for manual sync:", profileError);
+      return {
+        success: false,
+        error: profileError?.message || "Profile not found"
+      };
+    }
+
+    // Check if member already exists
+    const memberExists = await checkMemberExists(profile.email || '', profile.id);
+    if (memberExists) {
+      console.log(`Member already exists for profile ${profileId}`);
+      return {
+        success: true,
+        message: "Member already exists in the database"
+      };
+    }
+
+    // Prepare member record
+    const fullName = profile.full_name?.trim() || profile.email?.split('@')[0] || 'Unknown';
+    const churchUnits = profile.church_unit ? [profile.church_unit] : [];
+    const now = new Date().toISOString();
+
+    const memberData = {
+      fullname: fullName,
+      email: profile.email?.toLowerCase(),
+      category: 'Others', // Default category
+      churchunit: profile.church_unit || null,
+      churchunits: churchUnits,
+      assignedto: profile.assigned_pastor || null,
+      phone: profile.phone || null,
+      address: profile.address || null,
+      isactive: true,
+      joindate: now.split('T')[0],
+      userid: profile.id,
+      created_at: now,
+      updated_at: now
+    };
+
+    // Insert the member using admin client
+    const { data: insertedMember, error: insertError } = await adminSupabase
+      .from("members")
+      .insert([memberData])
+      .select();
+
+    if (insertError) {
+      console.error("Error inserting member during manual sync:", insertError);
+      return {
+        success: false,
+        error: insertError.message
+      };
+    }
+
+    console.log(`Successfully manually synced profile ${profileId} to members table`);
+    return {
+      success: true,
+      message: `Successfully added ${fullName} to members table`,
+      member: insertedMember?.[0]
+    };
+  } catch (error: any) {
+    console.error("Error in manual sync:", error);
+    return {
+      success: false,
+      error: error.message || "An unknown error occurred"
+    };
+  }
+};
+
+/**
  * Syncs users from the profiles table to the members table
  * This ensures that all authenticated users appear in the members list
  */
@@ -55,14 +167,48 @@ export const syncProfilesToMembers = async () => {
   try {
     console.log("Starting sync of profiles to members table");
 
+    // First check database connection
+    const dbConnected = await checkDatabaseConnection();
+    if (!dbConnected) {
+      return {
+        success: false,
+        message: "Could not connect to the database. Check your credentials and network connection.",
+        added: 0
+      };
+    }
+
     // Step 1: Get all profiles with a fresh request
     const timestamp = new Date().getTime(); // Add timestamp for logging
     console.log(`Sync profiles timestamp: ${timestamp}`);
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*")
-      .order('created_at', { ascending: false }); // Get newest profiles first
+    // Try using admin client first for better permissions
+    let profiles;
+    let profilesError;
+
+    try {
+      const result = await adminSupabase
+        .from("profiles")
+        .select("*")
+        .order('created_at', { ascending: false }); // Get newest profiles first
+
+      profiles = result.data;
+      profilesError = result.error;
+
+      if (!profilesError && profiles) {
+        console.log("Successfully fetched profiles using admin client");
+      }
+    } catch (adminError) {
+      console.warn("Could not fetch profiles with admin client, falling back to regular client:", adminError);
+
+      // Fall back to regular client
+      const result = await supabase
+        .from("profiles")
+        .select("*")
+        .order('created_at', { ascending: false });
+
+      profiles = result.data;
+      profilesError = result.error;
+    }
 
     if (profilesError) throw profilesError;
 
@@ -78,9 +224,32 @@ export const syncProfilesToMembers = async () => {
     // Use a more robust query to ensure we get all members
     console.log(`Fetching existing members with timestamp: ${timestamp}`);
 
-    const { data: existingMembers, error: membersError } = await supabase
-      .from("members")
-      .select("email, fullname, id, userid");
+    // Try using admin client first for better permissions
+    let existingMembers;
+    let membersError;
+
+    try {
+      const result = await adminSupabase
+        .from("members")
+        .select("email, fullname, id, userid");
+
+      existingMembers = result.data;
+      membersError = result.error;
+
+      if (!membersError && existingMembers) {
+        console.log("Successfully fetched members using admin client");
+      }
+    } catch (adminError) {
+      console.warn("Could not fetch members with admin client, falling back to regular client:", adminError);
+
+      // Fall back to regular client
+      const result = await supabase
+        .from("members")
+        .select("email, fullname, id, userid");
+
+      existingMembers = result.data;
+      membersError = result.error;
+    }
 
     if (membersError) {
       console.error("Error fetching existing members:", membersError);
@@ -216,14 +385,70 @@ export const syncProfilesToMembers = async () => {
     for (const member of membersToInsert) {
       try {
         console.log(`Inserting member with email: ${member.email}`);
-        const { data, error } = await supabase
-          .from("members")
-          .insert([member])
-          .select();
+
+        // Try using admin client first for better permissions
+        let data;
+        let error;
+
+        try {
+          const result = await adminSupabase
+            .from("members")
+            .insert([member])
+            .select();
+
+          data = result.data;
+          error = result.error;
+
+          if (!error && data) {
+            console.log(`Successfully inserted member using admin client: ${member.email}`);
+          }
+        } catch (adminError) {
+          console.warn(`Could not insert member ${member.email} with admin client, falling back to regular client:`, adminError);
+
+          // Fall back to regular client
+          const result = await supabase
+            .from("members")
+            .insert([member])
+            .select();
+
+          data = result.data;
+          error = result.error;
+        }
 
         if (error) {
           console.error(`Error inserting member ${member.email}:`, error);
           errors.push({ email: member.email, error: error.message });
+
+          // Special handling for target users
+          if (member.email?.toLowerCase().includes('popsabey1')) {
+            console.error(`CRITICAL: Failed to insert important user ${member.email}. This user should be a super admin.`);
+
+            // Try one more time with a direct approach
+            try {
+              console.log(`Attempting direct insert for ${member.email} with minimal data`);
+              const minimalMember = {
+                fullname: member.fullname,
+                email: member.email,
+                category: 'Others',
+                isactive: true,
+                userid: member.userid
+              };
+
+              const directResult = await adminSupabase
+                .from("members")
+                .insert([minimalMember])
+                .select();
+
+              if (directResult.error) {
+                console.error(`Direct insert also failed for ${member.email}:`, directResult.error);
+              } else {
+                console.log(`Direct insert succeeded for ${member.email}`);
+                insertedMembers.push(directResult.data[0]);
+              }
+            } catch (directError) {
+              console.error(`Direct insert exception for ${member.email}:`, directError);
+            }
+          }
         } else if (data && data.length > 0) {
           console.log(`Successfully inserted member: ${member.email}`);
           insertedMembers.push(data[0]);

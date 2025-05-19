@@ -55,29 +55,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isSuperUser, setIsSuperUser] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Function to fetch user profile
+  // Function to fetch user profile with retry mechanism
   const fetchProfile = async (userId: string) => {
     console.log(`[AuthContext] Fetching profile for user ${userId}`);
 
-    // Set a timeout for profile fetching
+    // Set a timeout for profile fetching but make it longer
     const profileFetchTimeout = setTimeout(() => {
-      console.warn('[AuthContext] Profile fetch timed out after 30 seconds');
+      console.warn('[AuthContext] Profile fetch timed out after 60 seconds');
       setIsLoading(false);
-    }, 30000); // Increased to 30 seconds
+    }, 60000); // Increased to 60 seconds
 
     try {
       // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
-
-      // Fetch the user profile from the profiles table
-      // Note: .options() method is not available in this Supabase version
       console.log(`[AuthContext] Fetching profile with timestamp: ${timestamp}`);
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      // Try to fetch profile with retry logic
+      let profileData = null;
+      let profileError = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries && !profileData) {
+        try {
+          if (retryCount > 0) {
+            console.log(`[AuthContext] Retry attempt ${retryCount} for profile fetch`);
+            // Add exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 500));
+          }
+
+          const result = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single();
+
+          if (result.error) {
+            profileError = result.error;
+            console.warn(`[AuthContext] Profile fetch attempt ${retryCount + 1} failed:`, profileError);
+          } else {
+            profileData = result.data;
+            profileError = null;
+            console.log(`[AuthContext] Profile fetch succeeded on attempt ${retryCount + 1}`);
+            break;
+          }
+        } catch (err) {
+          profileError = err;
+          console.warn(`[AuthContext] Profile fetch attempt ${retryCount + 1} exception:`, err);
+        }
+
+        retryCount++;
+      }
+
+      // Use the result of our retry attempts
+      const data = profileData;
+      const error = profileError;
 
       if (error) {
         console.error("[AuthContext] Error fetching profile:", error);
@@ -270,41 +302,84 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setIsSuperUser(true);
         }
 
-        // Try to get session with a more robust approach
+        // Try to get session with a more efficient approach
         let session = null;
         let sessionError = null;
 
         try {
           console.log("[AuthContext] Attempting to fetch session...");
 
-          // First attempt: Use Promise.race with a longer timeout
-          const sessionPromise = supabase.auth.getSession();
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => {
-              console.warn("[AuthContext] Session fetch taking longer than expected (45s)");
-              reject(new Error("Session fetch timeout"));
-            }, 45000) // Increased to 45 seconds
-          );
+          // First, check localStorage for an existing session
+          const storedSession = localStorage.getItem('sb-' + supabase.supabaseUrl.split('//')[1].split('.')[0] + '-auth-token');
+          if (storedSession) {
+            console.log("[AuthContext] Found stored session in localStorage");
+          }
 
-          try {
-            // Use Promise.race but handle the timeout more gracefully
-            const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-            session = result.data.session;
-            console.log("[AuthContext] Session fetched successfully:", session ? "Session exists" : "No session");
-          } catch (raceError) {
-            console.warn("[AuthContext] Session fetch race failed:", raceError);
-            sessionError = raceError;
+          // Use a retry mechanism instead of Promise.race
+          let retryCount = 0;
+          const maxRetries = 3;
 
-            // Second attempt: Try to get session directly without timeout
-            console.log("[AuthContext] Trying direct session fetch as fallback...");
+          while (retryCount < maxRetries && !session) {
             try {
-              const directResult = await supabase.auth.getSession();
-              session = directResult.data.session;
-              console.log("[AuthContext] Direct session fetch succeeded:", session ? "Session exists" : "No session");
-              sessionError = null; // Clear the error since we succeeded
-            } catch (directError) {
-              console.error("[AuthContext] Direct session fetch also failed:", directError);
-              sessionError = directError;
+              if (retryCount > 0) {
+                console.log(`[AuthContext] Retry attempt ${retryCount} for session fetch`);
+                // Add exponential backoff
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+              }
+
+              // Set a shorter timeout for each attempt
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => {
+                console.warn(`[AuthContext] Session fetch attempt ${retryCount + 1} timed out after 15 seconds`);
+                controller.abort();
+              }, 15000);
+
+              try {
+                // Use a more direct approach with fetch to have better control
+                const sessionResult = await supabase.auth.getSession();
+                clearTimeout(timeoutId);
+
+                if (sessionResult.error) {
+                  console.warn(`[AuthContext] Session fetch attempt ${retryCount + 1} failed:`, sessionResult.error);
+                  sessionError = sessionResult.error;
+                } else {
+                  session = sessionResult.data.session;
+                  console.log(`[AuthContext] Session fetch succeeded on attempt ${retryCount + 1}:`,
+                    session ? "Session exists" : "No session");
+                  sessionError = null;
+                  break;
+                }
+              } catch (fetchError) {
+                clearTimeout(timeoutId);
+                console.warn(`[AuthContext] Session fetch attempt ${retryCount + 1} exception:`, fetchError);
+                sessionError = fetchError;
+              }
+            } catch (attemptError) {
+              console.warn(`[AuthContext] Session fetch retry ${retryCount + 1} outer error:`, attemptError);
+              sessionError = attemptError;
+            }
+
+            retryCount++;
+          }
+
+          // If we still don't have a session after retries, try one last approach
+          if (!session && retryCount >= maxRetries) {
+            console.log("[AuthContext] All session fetch retries failed, trying alternative approach...");
+
+            // Try to get user directly as a last resort
+            try {
+              const userResult = await supabase.auth.getUser();
+              if (userResult.data?.user) {
+                console.log("[AuthContext] Successfully retrieved user without session");
+                // We have a user but no session, create a minimal context
+                setUser(userResult.data.user);
+
+                // Proceed to fetch profile
+                await fetchProfile(userResult.data.user.id);
+                return; // Exit early since we've handled everything
+              }
+            } catch (userError) {
+              console.error("[AuthContext] Failed to get user as fallback:", userError);
             }
           }
         } catch (outerError) {
