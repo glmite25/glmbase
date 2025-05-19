@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { syncProfilesToMembers } from "@/utils/syncProfilesToMembers";
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query-config';
+import { checkProfileMemberSync, manualSyncProfileToMember } from "@/utils/diagnosticTools";
 
 interface SyncProfilesButtonProps {
   onSyncComplete?: () => void;
@@ -23,19 +24,48 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
 
     // Set a timeout to ensure the button doesn't stay in loading state forever
     const syncTimeout = setTimeout(() => {
-      console.log("Sync operation timed out after 30 seconds");
+      console.log("Sync operation timed out after 45 seconds");
       setIsSyncing(false);
       toast({
         variant: "destructive",
         title: "Sync timed out",
         description: "The operation took too long. Please try again.",
       });
-    }, 30000); // 30 second timeout
+    }, 45000); // 45 second timeout
 
     try {
+      // First, run diagnostics to check the current state
+      console.log("Running pre-sync diagnostics...");
+      const preSyncDiagnostics = await checkProfileMemberSync();
+      console.log("Pre-sync diagnostics:", preSyncDiagnostics);
+
+      // Start the sync process
       console.log("Starting sync process...");
       const result = await syncProfilesToMembers();
       console.log("Sync result:", result);
+
+      // Run post-sync diagnostics
+      console.log("Running post-sync diagnostics...");
+      const postSyncDiagnostics = await checkProfileMemberSync();
+      console.log("Post-sync diagnostics:", postSyncDiagnostics);
+
+      // If we found missing members, try to manually sync them
+      if (postSyncDiagnostics.missingMembers && postSyncDiagnostics.missingMembers.length > 0) {
+        console.log(`Found ${postSyncDiagnostics.missingMembers.length} profiles still missing from members table. Attempting manual sync...`);
+
+        const manualSyncResults = [];
+        for (const missingMember of postSyncDiagnostics.missingMembers) {
+          console.log(`Manually syncing profile: ${missingMember.profileId}`);
+          const syncResult = await manualSyncProfileToMember(missingMember.profileId);
+          manualSyncResults.push(syncResult);
+        }
+
+        console.log("Manual sync results:", manualSyncResults);
+
+        // Update the result message to include manual sync info
+        result.message += ` Additionally, manually synced ${manualSyncResults.filter(r => r.success).length} profiles.`;
+        result.added = (result.added || 0) + manualSyncResults.filter(r => r.success).length;
+      }
 
       // Clear the timeout since we got a response
       clearTimeout(syncTimeout);
@@ -75,8 +105,8 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
           setTimeout(() => {
             console.log("Forcing page refresh to ensure all data is updated");
             window.location.reload();
-          }, 500);
-        }, 1000);
+          }, 1000);
+        }, 2000);
       } else {
         console.error("Sync failed:", result);
         toast({

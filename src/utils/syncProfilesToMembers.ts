@@ -2,6 +2,51 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
 
+// Define a more robust function to check if a member exists
+const checkMemberExists = async (email: string, userId: string | null) => {
+  try {
+    // Build a query to check by email (case-insensitive) or userId
+    let query = supabase.from("members").select("id, email, userid");
+
+    if (email) {
+      // First try exact match
+      const { data: exactMatch } = await query
+        .eq("email", email.toLowerCase())
+        .maybeSingle();
+
+      if (exactMatch) return true;
+
+      // Then try case-insensitive match
+      const { data: allMembers } = await supabase
+        .from("members")
+        .select("email");
+
+      const exists = (allMembers || []).some(m =>
+        m.email && m.email.toLowerCase() === email.toLowerCase()
+      );
+
+      if (exists) return true;
+    }
+
+    // Check by userId if provided
+    if (userId) {
+      const { data: userMatch } = await supabase
+        .from("members")
+        .select("id")
+        .eq("userid", userId)
+        .maybeSingle();
+
+      if (userMatch) return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error in checkMemberExists:", error);
+    // If there's an error, assume the member doesn't exist
+    return false;
+  }
+};
+
 /**
  * Syncs users from the profiles table to the members table
  * This ensures that all authenticated users appear in the members list
@@ -61,22 +106,40 @@ export const syncProfilesToMembers = async () => {
     }
 
     // Step 3: Filter profiles that don't exist in members table
-    const profilesToAdd = profiles.filter(profile => {
-      if (!profile.email) {
-        console.log(`Skipping profile with no email: ${profile.id}`);
-        return false;
+    const profilesToAdd = [];
+
+    // Check each profile more thoroughly
+    for (const profile of profiles) {
+      if (!profile.email && !profile.id) {
+        console.log(`Skipping profile with no email or id: ${JSON.stringify(profile)}`);
+        continue;
       }
 
-      const lowerEmail = profile.email.toLowerCase();
+      const lowerEmail = profile.email?.toLowerCase() || '';
       const emailExists = existingEmails.has(lowerEmail);
       const userIdExists = existingUserIds.has(profile.id);
-      const exists = emailExists || userIdExists;
+      let exists = emailExists || userIdExists;
 
-      // Log more details for debugging, especially for specific users we're looking for
-      const isTargetUser = profile.full_name?.toLowerCase().includes('biodun') ||
-                          profile.email?.toLowerCase().includes('biodun') ||
-                          profile.email?.toLowerCase().includes('popsabey1');
+      // Double-check with a direct database query for important users
+      const isTargetUser =
+        profile.full_name?.toLowerCase().includes('biodun') ||
+        profile.email?.toLowerCase().includes('biodun') ||
+        profile.email?.toLowerCase().includes('popsabey1');
 
+      if (isTargetUser || !exists) {
+        // For target users or users that don't seem to exist, do an extra check
+        console.log(`Performing extra existence check for: ${profile.email} (${profile.full_name || 'No name'})`);
+        const memberExistsInDb = await checkMemberExists(profile.email || '', profile.id);
+
+        if (memberExistsInDb) {
+          exists = true;
+          console.log(`Extra check confirmed user exists in members table: ${profile.email}`);
+        } else {
+          console.log(`Extra check confirmed user DOES NOT exist in members table: ${profile.email}`);
+        }
+      }
+
+      // Log details for debugging
       if (isTargetUser) {
         console.log(`IMPORTANT - Found target user: ${profile.email} (${profile.full_name || 'No name'})`);
         console.log(`Target user exists in members? ${exists} (Email match: ${emailExists}, User ID match: ${userIdExists})`);
@@ -87,8 +150,10 @@ export const syncProfilesToMembers = async () => {
         console.log(`Checking profile ${profile.email} (${profile.full_name || 'No name'}): exists in members? ${exists}`);
       }
 
-      return !exists;
-    });
+      if (!exists) {
+        profilesToAdd.push(profile);
+      }
+    }
 
     console.log(`Found ${profilesToAdd.length} profiles to add to members table`);
 

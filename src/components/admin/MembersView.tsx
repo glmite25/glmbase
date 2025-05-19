@@ -14,6 +14,7 @@ import { DeleteMemberDialog } from "./members/DeleteMemberDialog";
 import { PaginatedMembersTable } from "./members/PaginatedMembersTable";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 import { SyncProfilesButton } from "./dashboard/SyncProfilesButton";
+import { CheckUserButton } from "./dashboard/CheckUserButton";
 import {
   useMembers,
   useCreateMember,
@@ -189,6 +190,7 @@ export default function MembersView() {
           </div>
           <div className="flex items-center gap-2">
             <SyncProfilesButton onSyncComplete={handleSyncComplete} />
+            <CheckUserButton />
             <AddMemberDialog
               onAddMember={handleAddMember}
               pastors={pastors.map(p => ({

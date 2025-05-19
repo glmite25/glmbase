@@ -31,15 +31,24 @@ export async function fetchPaginatedMembers(
 
     // Add timestamp to avoid caching issues
     const timestamp = new Date().getTime();
+    console.log(`Using timestamp for cache busting: ${timestamp}`);
+
+    // First, try to get a count of all members to verify the database is accessible
+    const countCheck = await supabase
+      .from('members')
+      .select('id', { count: 'exact', head: true });
+
+    console.log(`Database check - total members count: ${countCheck.count || 'unknown'}`);
+
+    if (countCheck.error) {
+      console.error("Error checking members count:", countCheck.error);
+    }
 
     // Start building the query - get newest members first
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false }); // Get newest members first
-
-    // Note: .options() method is not available in this Supabase version
-    // We'll use the timestamp in our logging instead
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {
@@ -73,7 +82,23 @@ export async function fetchPaginatedMembers(
 
     if (error) {
       console.error("Error fetching members:", error);
-      throw error;
+
+      // Try a simpler query as a fallback
+      console.log("Trying fallback query without filters...");
+      const fallbackQuery = await supabase
+        .from('members')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (fallbackQuery.error) {
+        console.error("Fallback query also failed:", fallbackQuery.error);
+        throw error; // Throw the original error
+      } else {
+        console.log("Fallback query succeeded!");
+        data = fallbackQuery.data;
+        count = fallbackQuery.count;
+      }
     }
 
     console.log(`Fetched ${data?.length || 0} members out of ${count || 0} total`);
@@ -84,14 +109,29 @@ export async function fetchPaginatedMembers(
 
       // Check for specific users we're looking for
       const targetUsers = data.filter(m =>
-        m.email?.toLowerCase().includes('popsabey1') ||
-        m.fullname?.toLowerCase().includes('biodun')
+        (m.email && m.email.toLowerCase().includes('popsabey1')) ||
+        (m.fullname && m.fullname.toLowerCase().includes('biodun'))
       );
 
       if (targetUsers.length > 0) {
         console.log("Found target users in results:", targetUsers);
       } else {
         console.log("Target users not found in this page of results");
+
+        // Check if these users exist in the database at all
+        console.log("Checking if target users exist in the database...");
+        const targetCheck = await supabase
+          .from('members')
+          .select('id, email, fullname')
+          .or('email.ilike.%popsabey1%,fullname.ilike.%biodun%');
+
+        if (targetCheck.error) {
+          console.error("Error checking for target users:", targetCheck.error);
+        } else if (targetCheck.data && targetCheck.data.length > 0) {
+          console.log("Target users found in database but not in current page:", targetCheck.data);
+        } else {
+          console.log("Target users not found in database at all");
+        }
       }
     }
 
