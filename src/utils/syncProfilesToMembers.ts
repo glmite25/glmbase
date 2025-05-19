@@ -10,19 +10,14 @@ export const syncProfilesToMembers = async () => {
   try {
     console.log("Starting sync of profiles to members table");
 
-    // Step 1: Get all profiles with a fresh request (no caching)
-    const timestamp = new Date().getTime(); // Add timestamp to avoid caching
+    // Step 1: Get all profiles with a fresh request
+    const timestamp = new Date().getTime(); // Add timestamp for logging
+    console.log(`Sync profiles timestamp: ${timestamp}`);
+
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
-      .order('created_at', { ascending: false }) // Get newest profiles first
-      .options({
-        headers: {
-          'cache-control': 'no-cache',
-          'pragma': 'no-cache',
-          'x-request-timestamp': timestamp.toString()
-        }
-      });
+      .order('created_at', { ascending: false }); // Get newest profiles first
 
     if (profilesError) throw profilesError;
 
@@ -36,16 +31,11 @@ export const syncProfilesToMembers = async () => {
 
     // Step 2: Get all existing members by email to avoid duplicates
     // Use a more robust query to ensure we get all members
+    console.log(`Fetching existing members with timestamp: ${timestamp}`);
+
     const { data: existingMembers, error: membersError } = await supabase
       .from("members")
-      .select("email, fullname, id, userid")
-      .options({
-        headers: {
-          'cache-control': 'no-cache',
-          'pragma': 'no-cache',
-          'x-request-timestamp': timestamp.toString()
-        }
-      });
+      .select("email, fullname, id, userid");
 
     if (membersError) {
       console.error("Error fetching existing members:", membersError);

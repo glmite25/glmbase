@@ -57,28 +57,26 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
           description: result.message,
         });
 
-        // If a refresh is needed or we added new members, do a more aggressive refresh
-        if (result.refreshNeeded || result.added > 0) {
-          console.log("Performing additional data refresh steps");
+        // Always do an aggressive refresh to ensure we see the latest data
+        console.log("Performing additional data refresh steps");
 
-          // Invalidate all queries to ensure everything is fresh
-          await queryClient.invalidateQueries();
+        // Invalidate all queries to ensure everything is fresh
+        await queryClient.invalidateQueries();
 
-          // Call onSyncComplete again after a short delay
+        // Call onSyncComplete again after a short delay
+        setTimeout(() => {
+          console.log("Calling onSyncComplete again to ensure data is refreshed");
+          if (onSyncComplete) {
+            onSyncComplete();
+          }
+
+          // Force a page refresh after a short delay as a last resort
+          // This ensures the UI shows the latest data from the database
           setTimeout(() => {
-            console.log("Calling onSyncComplete again to ensure data is refreshed");
-            if (onSyncComplete) {
-              onSyncComplete();
-            }
-
-            // Force a page refresh after a short delay as a last resort
-            // This ensures the UI shows the latest data from the database
-            setTimeout(() => {
-              console.log("Forcing page refresh to ensure all data is updated");
-              window.location.reload();
-            }, 500);
-          }, 1000);
-        }
+            console.log("Forcing page refresh to ensure all data is updated");
+            window.location.reload();
+          }, 500);
+        }, 1000);
       } else {
         console.error("Sync failed:", result);
         toast({

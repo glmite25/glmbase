@@ -74,18 +74,14 @@ export const useMembers = (
       // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
 
-      // Start building the query with cache-busting options
+      // Start building the query - get newest members first
       let query = supabase
         .from('members')
         .select('*')
-        .order('created_at', { ascending: false }) // Get newest members first
-        .options({
-          headers: {
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'x-request-timestamp': timestamp.toString()
-          }
-        });
+        .order('created_at', { ascending: false }); // Get newest members first
+
+      // Note: .options() method is not available in this Supabase version
+      console.log(`Cache-busting timestamp: ${timestamp}`);
 
       // Apply filters
       if (filters) {
@@ -173,18 +169,14 @@ export const useMember = (id: string) => {
       // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
 
+      // Note: .options() method is not available in this Supabase version
+      console.log(`Cache-busting timestamp for member fetch: ${timestamp}`);
+
       const { data, error } = await supabase
         .from('members')
         .select('*')
         .eq('id', id)
-        .single()
-        .options({
-          headers: {
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'x-request-timestamp': timestamp.toString()
-          }
-        });
+        .single();
 
       if (error) {
         console.error(`Error fetching member with ID ${id}:`, error);

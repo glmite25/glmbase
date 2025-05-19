@@ -69,19 +69,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Add timestamp to avoid caching issues
       const timestamp = new Date().getTime();
 
-      // Fetch the user profile from the profiles table with cache-busting
+      // Fetch the user profile from the profiles table
+      // Note: .options() method is not available in this Supabase version
+      console.log(`[AuthContext] Fetching profile with timestamp: ${timestamp}`);
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single()
-        .options({
-          headers: {
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'x-request-timestamp': timestamp.toString()
-          }
-        });
+        .single();
 
       if (error) {
         console.error("[AuthContext] Error fetching profile:", error);

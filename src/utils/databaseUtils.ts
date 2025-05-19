@@ -32,18 +32,14 @@ export async function fetchPaginatedMembers(
     // Add timestamp to avoid caching issues
     const timestamp = new Date().getTime();
 
-    // Start building the query with cache-busting options
+    // Start building the query - get newest members first
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false }) // Get newest members first
-      .options({
-        headers: {
-          'cache-control': 'no-cache',
-          'pragma': 'no-cache',
-          'x-request-timestamp': timestamp.toString()
-        }
-      });
+      .order('created_at', { ascending: false }); // Get newest members first
+
+    // Note: .options() method is not available in this Supabase version
+    // We'll use the timestamp in our logging instead
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {

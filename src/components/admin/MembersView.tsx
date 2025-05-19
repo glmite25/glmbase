@@ -121,9 +121,21 @@ export default function MembersView() {
   };
 
   const handleSyncComplete = () => {
-    // Invalidate and refetch both members and pastors queries
-    queryClient.invalidateQueries({ queryKey: queryKeys.members.list() });
-    queryClient.invalidateQueries({ queryKey: queryKeys.pastors.list() });
+    console.log("MembersView: handleSyncComplete called");
+
+    // Invalidate all queries to ensure fresh data
+    queryClient.invalidateQueries();
+
+    // Explicitly refetch the data
+    refetchMembers();
+    refetchPastors();
+
+    // Set a timeout to refetch again after a short delay
+    setTimeout(() => {
+      console.log("MembersView: Performing delayed refetch");
+      refetchMembers();
+      refetchPastors();
+    }, 1000);
   };
 
   const getAssignedPastorName = (pastorId: string) => {
