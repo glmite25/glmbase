@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
 
 /**
  * Syncs users from the profiles table to the members table
@@ -9,10 +10,19 @@ export const syncProfilesToMembers = async () => {
   try {
     console.log("Starting sync of profiles to members table");
 
-    // Step 1: Get all profiles
+    // Step 1: Get all profiles with a fresh request (no caching)
+    const timestamp = new Date().getTime(); // Add timestamp to avoid caching
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("*");
+      .select("*")
+      .order('created_at', { ascending: false }) // Get newest profiles first
+      .options({
+        headers: {
+          'cache-control': 'no-cache',
+          'pragma': 'no-cache',
+          'x-request-timestamp': timestamp.toString()
+        }
+      });
 
     if (profilesError) throw profilesError;
 
@@ -22,12 +32,20 @@ export const syncProfilesToMembers = async () => {
     }
 
     console.log(`Found ${profiles.length} profiles to check`);
+    console.log("First 3 profiles:", profiles.slice(0, 3));
 
     // Step 2: Get all existing members by email to avoid duplicates
     // Use a more robust query to ensure we get all members
     const { data: existingMembers, error: membersError } = await supabase
       .from("members")
-      .select("email, fullname, id");
+      .select("email, fullname, id, userid")
+      .options({
+        headers: {
+          'cache-control': 'no-cache',
+          'pragma': 'no-cache',
+          'x-request-timestamp': timestamp.toString()
+        }
+      });
 
     if (membersError) {
       console.error("Error fetching existing members:", membersError);
@@ -39,7 +57,13 @@ export const syncProfilesToMembers = async () => {
       .filter(m => m.email) // Filter out null emails
       .map(m => m.email.toLowerCase())); // Convert to lowercase for consistent comparison
 
+    // Also track user IDs to avoid duplicates
+    const existingUserIds = new Set((existingMembers || [])
+      .filter(m => m.userid) // Filter out null userids
+      .map(m => m.userid));
+
     console.log(`Found ${existingEmails.size} existing members with emails`);
+    console.log(`Found ${existingUserIds.size} existing members with user IDs`);
 
     // Log the first few existing members for debugging
     if (existingMembers && existingMembers.length > 0) {
@@ -54,15 +78,18 @@ export const syncProfilesToMembers = async () => {
       }
 
       const lowerEmail = profile.email.toLowerCase();
-      const exists = existingEmails.has(lowerEmail);
+      const emailExists = existingEmails.has(lowerEmail);
+      const userIdExists = existingUserIds.has(profile.id);
+      const exists = emailExists || userIdExists;
 
       // Log more details for debugging, especially for specific users we're looking for
       const isTargetUser = profile.full_name?.toLowerCase().includes('biodun') ||
-                          profile.email?.toLowerCase().includes('biodun');
+                          profile.email?.toLowerCase().includes('biodun') ||
+                          profile.email?.toLowerCase().includes('popsabey1');
 
       if (isTargetUser) {
         console.log(`IMPORTANT - Found target user: ${profile.email} (${profile.full_name || 'No name'})`);
-        console.log(`Target user exists in members? ${exists}`);
+        console.log(`Target user exists in members? ${exists} (Email match: ${emailExists}, User ID match: ${userIdExists})`);
         if (exists) {
           console.log("This user should be synced but isn't showing up in the frontend");
         }
@@ -76,7 +103,14 @@ export const syncProfilesToMembers = async () => {
     console.log(`Found ${profilesToAdd.length} profiles to add to members table`);
 
     if (profilesToAdd.length === 0) {
-      return { success: true, message: "All profiles are already in members table", added: 0 };
+      // Even if no new profiles to add, we'll force a refresh of the members data
+      // This helps when members exist but aren't showing in the UI
+      return {
+        success: true,
+        message: "All profiles are already in members table. Refreshed data.",
+        added: 0,
+        refreshNeeded: true
+      };
     }
 
     // Step 4: Prepare member records from profiles
@@ -86,6 +120,9 @@ export const syncProfilesToMembers = async () => {
 
       // Extract church units if available
       const churchUnits = profile.church_unit ? [profile.church_unit] : [];
+
+      // Use current timestamp for created_at and updated_at
+      const now = new Date().toISOString();
 
       return {
         fullname: fullName,
@@ -97,10 +134,10 @@ export const syncProfilesToMembers = async () => {
         phone: profile.phone || null,
         address: profile.address || null,
         isactive: true,
-        joindate: new Date().toISOString().split('T')[0],
+        joindate: now.split('T')[0],
         userid: profile.id, // Link to the auth user ID
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: now,
+        updated_at: now
       };
     });
 
@@ -112,7 +149,8 @@ export const syncProfilesToMembers = async () => {
       return {
         success: true,
         message: "No new members to add",
-        added: 0
+        added: 0,
+        refreshNeeded: true
       };
     }
 
@@ -163,7 +201,8 @@ export const syncProfilesToMembers = async () => {
       success: true,
       message: message,
       added: insertedMembers.length,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      refreshNeeded: true
     };
   } catch (error: any) {
     console.error("Error syncing profiles to members:", error);

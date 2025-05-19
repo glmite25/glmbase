@@ -23,14 +23,27 @@ export async function fetchPaginatedMembers(
   } = {}
 ) {
   try {
+    console.log(`Fetching members page ${page}, size ${pageSize} with filters:`, filters);
+
     // Calculate pagination parameters
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // Start building the query
+    // Add timestamp to avoid caching issues
+    const timestamp = new Date().getTime();
+
+    // Start building the query with cache-busting options
     let query = supabase
       .from('members')
-      .select('*', { count: 'exact' });
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false }) // Get newest members first
+      .options({
+        headers: {
+          'cache-control': 'no-cache',
+          'pragma': 'no-cache',
+          'x-request-timestamp': timestamp.toString()
+        }
+      });
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {
@@ -59,10 +72,31 @@ export async function fetchPaginatedMembers(
     query = query.range(from, to);
 
     // Execute the query
+    console.log("Executing members query...");
     const { data, error, count } = await query;
 
     if (error) {
+      console.error("Error fetching members:", error);
       throw error;
+    }
+
+    console.log(`Fetched ${data?.length || 0} members out of ${count || 0} total`);
+
+    // Log the first few members for debugging
+    if (data && data.length > 0) {
+      console.log("First member:", data[0]);
+
+      // Check for specific users we're looking for
+      const targetUsers = data.filter(m =>
+        m.email?.toLowerCase().includes('popsabey1') ||
+        m.fullname?.toLowerCase().includes('biodun')
+      );
+
+      if (targetUsers.length > 0) {
+        console.log("Found target users in results:", targetUsers);
+      } else {
+        console.log("Target users not found in this page of results");
+      }
     }
 
     return {

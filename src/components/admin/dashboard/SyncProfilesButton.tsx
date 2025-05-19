@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { syncProfilesToMembers } from "@/utils/syncProfilesToMembers";
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/react-query-config';
 
 interface SyncProfilesButtonProps {
   onSyncComplete?: () => void;
@@ -11,6 +13,7 @@ interface SyncProfilesButtonProps {
 export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSync = async () => {
     // Prevent multiple clicks
@@ -38,6 +41,10 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
       clearTimeout(syncTimeout);
 
       if (result.success) {
+        // Invalidate all member-related queries to force a refresh
+        console.log("Invalidating all member queries to force data refresh");
+        await queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+
         // Call onSyncComplete to refresh the data
         if (onSyncComplete) {
           console.log("Calling onSyncComplete to refresh data");
@@ -50,14 +57,28 @@ export function SyncProfilesButton({ onSyncComplete }: SyncProfilesButtonProps) 
           description: result.message,
         });
 
-        // Instead of reloading the page, just call onSyncComplete again after a short delay
-        // This is less disruptive than a full page reload
-        setTimeout(() => {
-          console.log("Calling onSyncComplete again to ensure data is refreshed");
-          if (onSyncComplete) {
-            onSyncComplete();
-          }
-        }, 1000);
+        // If a refresh is needed or we added new members, do a more aggressive refresh
+        if (result.refreshNeeded || result.added > 0) {
+          console.log("Performing additional data refresh steps");
+
+          // Invalidate all queries to ensure everything is fresh
+          await queryClient.invalidateQueries();
+
+          // Call onSyncComplete again after a short delay
+          setTimeout(() => {
+            console.log("Calling onSyncComplete again to ensure data is refreshed");
+            if (onSyncComplete) {
+              onSyncComplete();
+            }
+
+            // Force a page refresh after a short delay as a last resort
+            // This ensures the UI shows the latest data from the database
+            setTimeout(() => {
+              console.log("Forcing page refresh to ensure all data is updated");
+              window.location.reload();
+            }, 500);
+          }, 1000);
+        }
       } else {
         console.error("Sync failed:", result);
         toast({
