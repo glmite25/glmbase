@@ -61,66 +61,121 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Set a timeout for profile fetching
     const profileFetchTimeout = setTimeout(() => {
-      console.warn('[AuthContext] Profile fetch timed out after 15 seconds');
+      console.warn('[AuthContext] Profile fetch timed out after 30 seconds');
       setIsLoading(false);
-    }, 15000);
+    }, 30000); // Increased to 30 seconds
 
     try {
-      // Fetch the user profile from the profiles table
+      // Add timestamp to avoid caching issues
+      const timestamp = new Date().getTime();
+
+      // Fetch the user profile from the profiles table with cache-busting
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .single()
+        .options({
+          headers: {
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'x-request-timestamp': timestamp.toString()
+          }
+        });
 
       if (error) {
         console.error("[AuthContext] Error fetching profile:", error);
 
-        // Get user data directly from auth.users
-        const { data: userData, error: userError } = await supabase.auth.getUser();
+        // Get user data directly from auth.users as fallback
+        console.log("[AuthContext] Trying to get user data directly from auth as fallback");
+        let userData = null;
+        let userError = null;
+
+        try {
+          const result = await supabase.auth.getUser();
+          userData = result.data;
+          userError = result.error;
+        } catch (authError) {
+          console.error("[AuthContext] Error fetching user data from auth:", authError);
+          userError = authError;
+        }
 
         if (userError) {
           console.error("[AuthContext] Error fetching user data:", userError);
-          return;
         }
 
         // Create a minimal profile with user ID if we have it
         if (userId) {
           console.log('[AuthContext] Creating minimal profile with user ID:', userId);
+
+          // Try to get email from auth data if available
+          const email = userData?.user?.email || null;
+
           setProfile({
             id: userId,
-            email: null,
-            full_name: null,
+            email: email,
+            full_name: userData?.user?.user_metadata?.full_name || null,
             updated_at: null,
-            church_unit: null,
-            assigned_pastor: null,
-            phone: null,
+            church_unit: userData?.user?.user_metadata?.church_unit || null,
+            assigned_pastor: userData?.user?.user_metadata?.assigned_pastor || null,
+            phone: userData?.user?.user_metadata?.phone || null,
             genotype: null,
-            address: null,
+            address: userData?.user?.user_metadata?.address || null,
             date_of_birth: null
           });
+
+          // Check superuser status by email if we have it
+          if (email) {
+            const isSuperAdminByEmail = checkSuperUserStatus(email.toLowerCase());
+            if (isSuperAdminByEmail) {
+              console.log('[AuthContext] User is a superadmin by email!');
+              setSuperUserStatus(true);
+              setIsSuperUser(true);
+              setIsAdmin(true);
+            }
+          }
         }
 
+        // Check localStorage for superuser status as a fallback
+        const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+        if (storedSuperUserStatus) {
+          console.log('[AuthContext] Superuser status found in localStorage');
+          setIsSuperUser(true);
+          setIsAdmin(true);
+        }
+
+        setIsLoading(false);
         return;
       }
 
       console.log("[AuthContext] Profile data retrieved:", data);
 
-      // Get user data to access metadata
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-
-      if (userError) {
-        console.error("[AuthContext] Error fetching user data:", userError);
+      // Get user data to access metadata with error handling
+      let userData = null;
+      try {
+        const result = await supabase.auth.getUser();
+        userData = result.data;
+        if (result.error) {
+          console.error("[AuthContext] Error fetching user data:", result.error);
+        }
+      } catch (authError) {
+        console.error("[AuthContext] Exception fetching user data:", authError);
       }
 
-      // Fetch user roles
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
+      // Fetch user roles with error handling
+      let roleData = null;
+      try {
+        const result = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
 
-      if (roleError) {
-        console.error("[AuthContext] Error fetching user roles:", roleError);
+        roleData = result.data;
+        if (result.error) {
+          console.error("[AuthContext] Error fetching user roles:", result.error);
+        }
+      } catch (roleError) {
+        console.error("[AuthContext] Exception fetching user roles:", roleError);
       }
 
       console.log('[AuthContext] Role data retrieved:', roleData);
@@ -178,6 +233,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsSuperUser(finalSuperUserStatus);
     } catch (error) {
       console.error("[AuthContext] Error in fetchProfile:", error);
+
+      // Check localStorage for superuser status as a fallback
+      const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+      if (storedSuperUserStatus) {
+        console.log('[AuthContext] Error in fetchProfile but superuser status found in localStorage');
+        setIsSuperUser(true);
+        setIsAdmin(true);
+      }
     } finally {
       clearTimeout(profileFetchTimeout);
       setIsLoading(false);
@@ -189,10 +252,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Add a safety timeout to prevent infinite loading
     const authTimeoutId = setTimeout(() => {
       if (isLoading) {
-        console.warn("[AuthContext] Auth initialization timed out after 45 seconds");
+        console.warn("[AuthContext] Auth initialization timed out after 60 seconds");
         setIsLoading(false);
       }
-    }, 45000); // Increased from 30 seconds to 45 seconds
+    }, 60000); // Increased to 60 seconds for better reliability
 
     const initializeAuth = async () => {
       try {
@@ -204,45 +267,87 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Continue with auth initialization even if trigger check fails
         }
 
+        // Check for stored superuser status early
         const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
         if (storedSuperUserStatus) {
+          console.log("[AuthContext] Found superuser status in localStorage");
           setIsSuperUser(true);
         }
-        console.log("[AuthContext] Initial superuser check from localStorage:", storedSuperUserStatus);
 
-        // Add timeout for Supabase session fetch with increased timeout
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Session fetch timeout")), 25000) // Increased from 15 seconds to 25 seconds
-        );
+        // Try to get session with a more robust approach
+        let session = null;
+        let sessionError = null;
 
         try {
-          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          console.log("[AuthContext] Attempting to fetch session...");
 
-        console.log("[AuthContext] Initial session check:", session ? "Session exists" : "No session", session);
-        setSession(session);
-        setUser(session?.user ?? null);
+          // First attempt: Use Promise.race with a longer timeout
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => {
+              console.warn("[AuthContext] Session fetch taking longer than expected (45s)");
+              reject(new Error("Session fetch timeout"));
+            }, 45000) // Increased to 45 seconds
+          );
 
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+          try {
+            // Use Promise.race but handle the timeout more gracefully
+            const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+            session = result.data.session;
+            console.log("[AuthContext] Session fetched successfully:", session ? "Session exists" : "No session");
+          } catch (raceError) {
+            console.warn("[AuthContext] Session fetch race failed:", raceError);
+            sessionError = raceError;
+
+            // Second attempt: Try to get session directly without timeout
+            console.log("[AuthContext] Trying direct session fetch as fallback...");
+            try {
+              const directResult = await supabase.auth.getSession();
+              session = directResult.data.session;
+              console.log("[AuthContext] Direct session fetch succeeded:", session ? "Session exists" : "No session");
+              sessionError = null; // Clear the error since we succeeded
+            } catch (directError) {
+              console.error("[AuthContext] Direct session fetch also failed:", directError);
+              sessionError = directError;
+            }
+          }
+        } catch (outerError) {
+          console.error("[AuthContext] Outer session fetch error:", outerError);
+          sessionError = outerError;
+        }
+
+        // Process the session result (whether successful or not)
+        if (session) {
+          console.log("[AuthContext] Using fetched session");
+          setSession(session);
+          setUser(session.user ?? null);
+
+          if (session.user) {
+            await fetchProfile(session.user.id);
+          } else {
+            setIsLoading(false);
+          }
         } else {
+          console.warn("[AuthContext] No session available", sessionError ? `(Error: ${sessionError.message})` : "");
+
+          // If we have a stored superuser status, use that
           if (storedSuperUserStatus) {
             console.log("[AuthContext] No session but superuser status found in localStorage");
             setIsSuperUser(true);
           }
-          setIsLoading(false);
-        }
-        } catch (sessionError) {
-          console.error("[AuthContext] Error fetching session:", sessionError);
-          // If session fetch fails, try to continue with stored superuser status
-          if (storedSuperUserStatus) {
-            console.log("[AuthContext] Session fetch failed but superuser status found in localStorage");
-            setIsSuperUser(true);
-          }
+
           setIsLoading(false);
         }
       } catch (error) {
         console.error("[AuthContext] Error initializing auth:", error);
+
+        // Check for stored superuser status as a fallback
+        const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+        if (storedSuperUserStatus) {
+          console.log("[AuthContext] Error in auth but superuser status found in localStorage");
+          setIsSuperUser(true);
+        }
+
         // Ensure we're not stuck in loading state
         setIsLoading(false);
       }
@@ -250,27 +355,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("[AuthContext] Auth state changed:", event, session ? "Session exists" : "No session");
-        setSession(session);
-        setUser(session?.user ?? null);
+    // Set up auth state change listener with error handling
+    let subscription: { unsubscribe: () => void } | null = null;
 
-        if (event === "SIGNED_IN" && session?.user) {
-          await fetchProfile(session.user.id);
-        } else if (event === "SIGNED_OUT") {
-          setProfile(null);
-          setIsAdmin(false);
-          setIsSuperUser(false);
-          clearSuperUserStatus();
+    try {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log("[AuthContext] Auth state changed:", event, session ? "Session exists" : "No session");
+          setSession(session);
+          setUser(session?.user ?? null);
+
+          if (event === "SIGNED_IN" && session?.user) {
+            await fetchProfile(session.user.id);
+          } else if (event === "SIGNED_OUT") {
+            setProfile(null);
+            setIsAdmin(false);
+            setIsSuperUser(false);
+            clearSuperUserStatus();
+          }
         }
-      }
-    );
+      );
+
+      subscription = data.subscription;
+    } catch (subError) {
+      console.error("[AuthContext] Error setting up auth state change listener:", subError);
+    }
 
     return () => {
       clearTimeout(authTimeoutId);
-      subscription.unsubscribe();
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          console.error("[AuthContext] Error unsubscribing from auth state changes:", error);
+        }
+      }
     };
   }, []);
 
