@@ -67,10 +67,12 @@ export const supabase = createClient<Database>(
           }, timeoutMs);
 
           try {
-            // Add cache-busting for all requests
-            const urlObj = new URL(url.toString());
-            urlObj.searchParams.append('_cb', Date.now().toString());
-            url = urlObj.toString() as any;
+            // Add cache-busting for non-auth requests only
+            if (!url.toString().includes('/auth/')) {
+              const urlObj = new URL(url.toString());
+              urlObj.searchParams.append('_cb', Date.now().toString());
+              url = urlObj.toString() as any;
+            }
 
             // Add the signal to the options
             const fetchOptions = {

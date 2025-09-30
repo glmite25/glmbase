@@ -63,7 +63,23 @@ const Header = () => {
             </Link>
           ))}
           {user ? (
-            <UserAvatar />
+            <div className="flex items-center space-x-4">
+              {(isAdmin || isSuperUser) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`border-2 transition-colors ${
+                    isSuperUser 
+                      ? "border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black" 
+                      : "border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                  }`}
+                  onClick={() => navigate("/admin")}
+                >
+                  {isSuperUser ? "Super Admin" : "Admin"}
+                </Button>
+              )}
+              <UserAvatar />
+            </div>
           ) : (
             <Button
               className="bg-[#ff0000] rounded-none px-10 py-6 rounded hover:bg-[#ff0000]/90 text-white"
@@ -103,8 +119,25 @@ const Header = () => {
               </Link>
             ))}
             {user ? (
-              <div className="flex flex-col items-center py-2">
-                <UserAvatar />
+              <div className="flex flex-col space-y-3">
+                {(isAdmin || isSuperUser) && (
+                  <Button
+                    className={`w-full ${
+                      isSuperUser 
+                        ? "bg-yellow-500 hover:bg-yellow-600 text-black" 
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                    }`}
+                    onClick={() => {
+                      navigate("/admin");
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    {isSuperUser ? "Super Admin Dashboard" : "Admin Dashboard"}
+                  </Button>
+                )}
+                <div className="flex justify-center py-2">
+                  <UserAvatar />
+                </div>
               </div>
             ) : (
               <Button

@@ -6,14 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardMembersTable from "./DashboardMembersTable";
 import ChurchUnitDistribution from "./ChurchUnitDistribution";
 import SupabaseConnectionTest from "./SupabaseConnectionTest";
-import { Shield, Users, UserCog, Database } from "lucide-react";
+import SuperAdminManagementButton from "./SuperAdminManagementButton";
+import { Shield, Users, UserCog, Crown } from "lucide-react";
 
 const SuperUserSection = () => {
   const navigate = useNavigate();
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -31,6 +32,25 @@ const SuperUserSection = () => {
                 <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")}>
                   View Admin Users
                 </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-yellow-600" />
+                <CardTitle>Super Admin</CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-md p-4">
+              <p className="text-gray-600">Manage super administrators who have full system access. Add or remove super admin privileges.</p>
+              <div className="mt-4 flex justify-end">
+                <SuperAdminManagementButton />
               </div>
             </div>
           </CardContent>

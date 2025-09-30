@@ -60,39 +60,23 @@ export const listSuperAdmins = async (): Promise<{ superAdmins: SuperAdmin[], er
       return { superAdmins: [], error };
     }
 
-    // Log the raw data for debugging
-    console.log('Raw super admins data:', data);
-    console.log('Data type:', typeof data);
-
-    // Handle different data formats
+    // The fixed function now returns a JSONB array directly
+    // Handle the response properly
     let superAdmins: SuperAdmin[] = [];
 
     if (Array.isArray(data)) {
       // If data is already an array, use it directly
       superAdmins = data;
-    } else if (data && typeof data === 'object') {
-      // If data is a JSON object, try to convert it to an array
-      try {
-        // If it's a JSON string, parse it
-        if (typeof data === 'string') {
-          superAdmins = JSON.parse(data);
-        } else {
-          // If it has array-like properties, convert to array
-          const keys = Object.keys(data).filter(k => !isNaN(Number(k)));
-          if (keys.length > 0) {
-            superAdmins = keys.map(k => data[k]);
-          } else if (data.length !== undefined) {
-            // Try to convert to array if it has a length property
-            superAdmins = Array.from({ length: data.length }, (_, i) => data[i]);
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing super admins data:', e);
-      }
+    } else if (data === null || data === undefined) {
+      // Handle null/undefined as empty array
+      superAdmins = [];
+    } else {
+      // If it's some other format, try to handle it
+      console.warn('Unexpected data format from list_super_admins:', typeof data, data);
+      superAdmins = [];
     }
 
-    console.log('Processed super admins:', superAdmins);
-
+    console.log('Super admins loaded:', superAdmins.length);
     return { superAdmins, error: null };
   } catch (error: any) {
     console.error('Exception listing super admins:', error);

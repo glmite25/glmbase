@@ -60,6 +60,11 @@ const Footer = () => {
                   Contact Us
                 </Link>
               </li>
+              <li>
+                <Link to="/admin-access" className="text-yellow-400 hover:text-yellow-300 transition-colors text-sm">
+                  Admin Access
+                </Link>
+              </li>
             </ul>
           </div>
           

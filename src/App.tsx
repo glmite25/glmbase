@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
+import FloatingAdminButton from "@/components/FloatingAdminButton";
 import { PageLoader } from "@/components/ui/loading-spinner";
 import { useEffect, useState, lazy, Suspense } from "react";
 import AOS from 'aos';
@@ -24,6 +25,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const AdminAccess = lazy(() => import("./pages/AdminAccess"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 
 // Component to conditionally render the header
@@ -47,7 +49,9 @@ const AppContent = () => {
   return (
     <div className="flex flex-col min-h-screen overflow-hidden">
       {/* Only render the Header when not on admin routes */}
-      {/* {!isAdminRoute && <Header />} */}
+      {!isAdminRoute && <Header />}
+      {/* Floating Admin Button - shows on all non-admin pages */}
+      {!isAdminRoute && <FloatingAdminButton />}
       <main className={`flex-grow ${isAdminRoute ? 'pt-0' : ''}`}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -62,6 +66,7 @@ const AppContent = () => {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin-access" element={<AdminAccess />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/members" element={<AdminDashboard />} />
             <Route path="/admin/pastors" element={<AdminDashboard />} />

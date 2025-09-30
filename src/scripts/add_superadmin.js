@@ -6,8 +6,9 @@
  * 2. Run: node src/scripts/add_superadmin.js your-email@example.com
  */
 
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Get email from command line arguments
 const email = process.argv[2];

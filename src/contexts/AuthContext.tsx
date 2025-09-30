@@ -399,7 +399,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setIsLoading(false);
           }
         } else {
-          console.warn("[AuthContext] No session available", sessionError ? `(Error: ${sessionError.message})` : "");
+          console.log("[AuthContext] No active session - user needs to sign in");
 
           // If we have a stored superuser status, use that
           if (storedSuperUserStatus) {

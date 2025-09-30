@@ -56,24 +56,40 @@ export const AuthForm = () => {
   useEffect(() => {
     const fetchPastors = async () => {
       try {
+        // First check if the members table exists
         const { data, error } = await supabase
           .from('members')
           .select('id, fullname')
-          .eq('category', 'Pastors');
+          .eq('category', 'Pastors')
+          .limit(10); // Add limit to prevent large queries
 
         if (error) {
-          console.error('Error fetching pastors:', error);
+          console.warn('Members table not available yet:', error.message);
+          // Set default pastors if table doesn't exist
+          setPastors([
+            { id: 'default-1', name: 'Pastor Lawrence Ojide' },
+            { id: 'default-2', name: 'Pastor John Doe' }
+          ]);
           return;
         }
 
-        if (data) {
+        if (data && data.length > 0) {
           setPastors(data.map(pastor => ({
             id: pastor.id,
             name: pastor.fullname
           })));
+        } else {
+          // Set default pastors if no pastors found
+          setPastors([
+            { id: 'default-1', name: 'Pastor Lawrence Ojide' }
+          ]);
         }
       } catch (error) {
-        console.error('Error fetching pastors:', error);
+        console.warn('Error fetching pastors, using defaults:', error);
+        // Fallback to default pastors
+        setPastors([
+          { id: 'default-1', name: 'Pastor Lawrence Ojide' }
+        ]);
       }
     };
 
