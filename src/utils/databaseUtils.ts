@@ -52,25 +52,25 @@ export async function fetchPaginatedMembers(
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {
-      const term = filters.searchTerm.toLowerCase();
-      query = query.or(`fullname.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
+      const term = `%${filters.searchTerm.trim()}%`;
+      query = query.or(`fullname.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
     }
 
     if (filters.category) {
-      query = query.eq('category', filters.category);
+      query = query.eq('category', filters.category as any);
     }
 
     if (filters.churchUnit) {
-      // Try to match either the primary church unit or in the array of church units
-      query = query.or(`churchunit.eq.${filters.churchUnit},churchunits.cs.{${filters.churchUnit}}`);
+      // For now, just match the primary church unit
+      query = query.eq('churchunit', filters.churchUnit as any);
     }
 
     if (filters.pastorId) {
-      query = query.eq('assignedto', filters.pastorId);
+      query = query.eq('assignedto', filters.pastorId as any);
     }
 
     if (filters.isActive !== undefined) {
-      query = query.eq('isactive', filters.isActive);
+      query = query.eq('isactive', filters.isActive as any);
     }
 
     // Apply pagination
@@ -108,7 +108,7 @@ export async function fetchPaginatedMembers(
       console.log("First member:", data[0]);
 
       // Check for specific users we're looking for
-      const targetUsers = data.filter(m =>
+      const targetUsers = data.filter((m: any) =>
         (m.email && m.email.toLowerCase().includes('popsabey1')) ||
         (m.fullname && m.fullname.toLowerCase().includes('biodun'))
       );
@@ -172,17 +172,17 @@ export async function fetchPaginatedPastors(
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' })
-      .eq('category', 'Pastors');
+      .eq('category', 'Pastors' as any);
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {
-      const term = filters.searchTerm.toLowerCase();
-      query = query.ilike('fullname', `%${term}%`);
+      const term = `%${filters.searchTerm.trim()}%`;
+      query = query.ilike('fullname', term);
     }
 
     if (filters.churchUnit) {
-      // Try to match either the primary church unit or in the array of church units
-      query = query.or(`churchunit.eq.${filters.churchUnit},churchunits.cs.{${filters.churchUnit}}`);
+      // For now, just match the primary church unit
+      query = query.eq('churchunit', filters.churchUnit as any);
     }
 
     // Apply pagination
@@ -235,12 +235,12 @@ export async function fetchPaginatedUsers(
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {
-      const term = filters.searchTerm.toLowerCase();
-      query = query.or(`email.ilike.%${term}%,full_name.ilike.%${term}%`);
+      const term = `%${filters.searchTerm.trim()}%`;
+      query = query.or(`email.ilike.${term},full_name.ilike.${term}`);
     }
 
     if (filters.role) {
-      query = query.eq('highest_role', filters.role);
+      query = query.eq('highest_role', filters.role as any);
     }
 
     // Apply pagination

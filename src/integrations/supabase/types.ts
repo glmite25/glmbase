@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      members: {
+        Row: {
+          id: string
+          fullname: string | null
+          email: string | null
+          phone: string | null
+          category: string | null
+          churchunit: string | null
+          churchunits: string[] | null
+          assignedto: string | null
+          isactive: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          fullname?: string | null
+          email?: string | null
+          phone?: string | null
+          category?: string | null
+          churchunit?: string | null
+          churchunits?: string[] | null
+          assignedto?: string | null
+          isactive?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          fullname?: string | null
+          email?: string | null
+          phone?: string | null
+          category?: string | null
+          churchunit?: string | null
+          churchunits?: string[] | null
+          assignedto?: string | null
+          isactive?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           email: string | null
@@ -53,7 +95,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_roles_view: {
+        Row: {
+          id: string | null
+          email: string | null
+          full_name: string | null
+          highest_role: string | null
+          created_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
