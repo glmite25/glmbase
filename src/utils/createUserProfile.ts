@@ -1,8 +1,71 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Creates or updates a user profile in the profiles table
- * This is a utility function to ensure consistent profile creation
+ * Creates or updates a member record in the members table
+ */
+const createMemberRecord = async (
+  userId: string,
+  email: string,
+  fullName: string,
+  churchUnit?: string,
+  assignedPastor?: string,
+  phone?: string,
+  address?: string
+) => {
+  try {
+    console.log(`Creating/updating member record for user ${userId}`);
+
+    // Determine category based on email (admin users are pastors)
+    const adminEmails = ['ojidelawrence@gmail.com', 'admin@gospellabourministry.com'];
+    const category = adminEmails.includes(email.toLowerCase()) ? 'Pastors' : 'Members';
+
+    const memberData = {
+      user_id: userId,
+      email: email,
+      fullname: fullName,
+      phone: phone || null,
+      address: address || null,
+      church_unit: churchUnit || null,
+      assigned_pastor: assignedPastor || null,
+      category: category,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log("Member data to insert:", memberData);
+
+    const { error: memberError } = await supabase
+      .from('members')
+      .upsert(memberData, { onConflict: 'user_id' });
+
+    if (memberError) {
+      console.error("Error creating/updating member record:", memberError);
+      return {
+        success: false,
+        message: memberError.message || "Error creating member record",
+        error: memberError
+      };
+    }
+
+    console.log("Member record created/updated successfully");
+    return {
+      success: true,
+      message: "Member record created/updated successfully"
+    };
+  } catch (error: any) {
+    console.error("Exception in createMemberRecord:", error);
+    return {
+      success: false,
+      message: error.message || "Unknown error creating member record",
+      error
+    };
+  }
+};
+
+/**
+ * Creates or updates a user profile in the profiles table and ensures member record exists
+ * This is a utility function to ensure consistent profile and member creation
  *
  * @param userId The user ID from auth.users
  * @param email The user's email address
@@ -96,9 +159,17 @@ export const createUserProfile = async (
     }
 
     console.log("Profile created/updated successfully");
+
+    // Also create/update member record
+    const memberResult = await createMemberRecord(userId, normalizedEmail, sanitizedFullName, churchUnit, assignedPastor, phone, address);
+    
+    if (!memberResult.success) {
+      console.warn("Member record creation failed, but profile was created:", memberResult.message);
+    }
+
     return {
       success: true,
-      message: "Profile created/updated successfully"
+      message: "Profile and member record created/updated successfully"
     };
   } catch (error: any) {
     console.error("Exception in createUserProfile:", error);

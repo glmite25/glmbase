@@ -12,6 +12,7 @@ import { PageLoader } from "@/components/ui/loading-spinner";
 const AdminSidebar = lazy(() => import("@/components/admin/AdminSidebar"));
 const DashboardHeader = lazy(() => import("@/components/admin/dashboard/DashboardHeader"));
 const DashboardContent = lazy(() => import("@/components/admin/dashboard/DashboardContent"));
+const AdminStats = lazy(() => import("@/components/admin/dashboard/AdminStats"));
 
 const AdminDashboard = () => {
   const { user, isAdmin, isSuperUser, isLoading } = useAuth();
@@ -197,6 +198,12 @@ const AdminDashboard = () => {
             />
           </Suspense>
         </div>
+        
+        {/* Admin Statistics */}
+        <Suspense fallback={<div className="grid grid-cols-4 gap-4 mb-8">{Array.from({length: 8}).map((_, i) => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-md"></div>)}</div>}>
+          <AdminStats />
+        </Suspense>
+        
         <Suspense fallback={<PageLoader />}>
           <DashboardContent />
         </Suspense>

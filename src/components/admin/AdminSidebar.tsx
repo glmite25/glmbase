@@ -19,7 +19,16 @@ import {
   Video,
   Speaker,
   UserCog,
-  User
+  User,
+  Heart,
+  MessageSquare,
+  DollarSign,
+  BookOpen,
+  UserPlus,
+  Mail,
+  BarChart3,
+  Database,
+  Zap
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -61,12 +70,32 @@ const AdminSidebar = () => {
     {
       name: "Sermons",
       path: "/admin/sermons",
-      icon: <FileText size={20} />
+      icon: <BookOpen size={20} />
+    },
+    {
+      name: "Testimonies",
+      path: "/admin/testimonies",
+      icon: <Heart size={20} />
+    },
+    {
+      name: "Prayer Requests",
+      path: "/admin/prayers",
+      icon: <MessageSquare size={20} />
+    },
+    {
+      name: "Visitors",
+      path: "/admin/visitors",
+      icon: <UserPlus size={20} />
     }
   ];
 
   // Super user specific menu items
   const superUserMenuItems = [
+    {
+      name: "Analytics",
+      path: "/admin/analytics",
+      icon: <BarChart3 size={20} />
+    },
     {
       name: "User Management",
       path: "/admin/users",
@@ -81,6 +110,46 @@ const AdminSidebar = () => {
       name: "Pastors",
       path: "/admin/pastors",
       icon: <UserCog size={20} />
+    },
+    {
+      name: "Events",
+      path: "/admin/events",
+      icon: <Calendar size={20} />
+    },
+    {
+      name: "Sermons",
+      path: "/admin/sermons",
+      icon: <BookOpen size={20} />
+    },
+    {
+      name: "Testimonies",
+      path: "/admin/testimonies",
+      icon: <Heart size={20} />
+    },
+    {
+      name: "Prayer Requests",
+      path: "/admin/prayers",
+      icon: <MessageSquare size={20} />
+    },
+    {
+      name: "Financial Records",
+      path: "/admin/finances",
+      icon: <DollarSign size={20} />
+    },
+    {
+      name: "Visitors",
+      path: "/admin/visitors",
+      icon: <UserPlus size={20} />
+    },
+    {
+      name: "Communications",
+      path: "/admin/communications",
+      icon: <Mail size={20} />
+    },
+    {
+      name: "System Settings",
+      path: "/admin/system",
+      icon: <Database size={20} />
     }
   ];
 
@@ -168,13 +237,12 @@ const AdminSidebar = () => {
             <Link
               key={item.name}
               to={item.path}
-              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                location.pathname === item.path
-                  ? isSuperUser
-                    ? "bg-yellow-50 text-yellow-600"
-                    : "bg-church-red/10 text-church-red"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
+              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === item.path
+                ? isSuperUser
+                  ? "bg-yellow-50 text-yellow-600"
+                  : "bg-church-red/10 text-church-red"
+                : "text-gray-700 hover:bg-gray-100"
+                }`}
             >
               <span className="mr-3">{item.icon}</span>
               {item.name}
@@ -196,11 +264,10 @@ const AdminSidebar = () => {
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    location.pathname === item.path
-                      ? "bg-yellow-50 text-yellow-600"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === item.path
+                    ? "bg-yellow-50 text-yellow-600"
+                    : "text-gray-700 hover:bg-gray-100"
+                    }`}
                 >
                   <span className="mr-3">{item.icon}</span>
                   {item.name}

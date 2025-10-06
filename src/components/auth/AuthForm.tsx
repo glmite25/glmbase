@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +10,17 @@ import { AuthAlert } from "./AuthAlert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Phone, MapPin, Mail, User } from "lucide-react";
+import { Loader2, Phone, MapPin, Mail, User, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const AuthForm = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const returnTo = searchParams.get('returnTo');
+  const isAdminLogin = returnTo === '/admin';
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -38,6 +46,13 @@ export const AuthForm = () => {
     signUp,
     resetPassword
   } = useAuthentication();
+
+  // Redirect if user is already logged in and trying to access admin
+  useEffect(() => {
+    if (user && returnTo) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [user, returnTo, navigate]);
 
   const churchUnits = [
     { id: "3hmedia", name: "3H Media" },
@@ -206,7 +221,7 @@ export const AuthForm = () => {
       });
       signUp(email, password, fullName, selectedUnit, selectedPastor, phone, address);
     } else {
-      signIn(email, password);
+      signIn(email, password, returnTo || undefined);
     }
   };
 
@@ -249,14 +264,23 @@ export const AuthForm = () => {
     <div className="container mx-auto flex min-h-screen items-center justify-center py-8">
       <div className="w-full max-w-md space-y-6 rounded-lg border bg-white p-8 shadow-lg">
         <div className="text-center">
+          {isAdminLogin && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Shield className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+              <p className="text-sm text-blue-800 font-medium">Admin Access Required</p>
+              <p className="text-xs text-blue-600">Please sign in to access the admin dashboard</p>
+            </div>
+          )}
           <h2 className="text-2xl font-bold">
-            {isSignUp ? "Create an account" : "Welcome back"}
+            {isSignUp ? "Create an account" : isAdminLogin ? "Admin Login" : "Welcome back"}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {isSignUp
               ? formStep === 0
                 ? "Enter your basic information"
                 : "Complete your profile"
+              : isAdminLogin
+              ? "Sign in with your admin credentials"
               : "Please sign in to your account"
             }
           </p>

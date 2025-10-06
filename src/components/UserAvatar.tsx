@@ -22,6 +22,12 @@ export const UserAvatar = () => {
 
   if (!user) return null;
 
+  // Check for stored admin status as fallback
+  const storedAdminStatus = localStorage.getItem('glm-is-admin') === 'true';
+  const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+  const effectiveIsAdmin = isAdmin || storedAdminStatus;
+  const effectiveIsSuperUser = isSuperUser || storedSuperUserStatus;
+
   const getInitials = (name: string | null) => {
     if (!name) return "U";
     return name
@@ -106,13 +112,15 @@ export const UserAvatar = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {(isAdmin || isSuperUser) && (
+          {(effectiveIsAdmin || effectiveIsSuperUser) && (
             <DropdownMenuItem
               onClick={() => navigate("/admin")}
-              className="cursor-pointer"
+              className="cursor-pointer bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100"
             >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>{isSuperUser ? "Admin Dashboard" : "Dashboard"}</span>
+              <LayoutDashboard className="mr-2 h-4 w-4 text-blue-600" />
+              <span className="font-medium text-blue-700">
+                {effectiveIsSuperUser ? "Super Admin Dashboard" : "Admin Dashboard"}
+              </span>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
@@ -122,7 +130,7 @@ export const UserAvatar = () => {
             <User className="mr-2 h-4 w-4" />
             <span>My Profile</span>
           </DropdownMenuItem>
-          {(isAdmin || isSuperUser) && (
+          {(effectiveIsAdmin || effectiveIsSuperUser) && (
             <DropdownMenuItem
               onClick={() => navigate("/settings")}
               className="cursor-pointer"

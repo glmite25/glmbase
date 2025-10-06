@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             console.log('[AuthContext] User found:', session.user.email);
             setUser(session.user);
-            await fetchUserProfile(session.user.id);
+            await fetchUserProfile(session.user.id, session.user);
           } else {
             console.log('[AuthContext] No active session');
           }
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    const fetchUserProfile = async (userId: string) => {
+    const fetchUserProfile = async (userId: string, user?: any) => {
       try {
         console.log('[AuthContext] Fetching profile for:', userId);
         
@@ -77,7 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (profileError) {
           console.warn('[AuthContext] Profile fetch error:', profileError.message);
-          return;
         }
 
         if (mounted && profileData) {
@@ -85,36 +84,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('[AuthContext] Profile loaded:', profileData.email);
         }
 
-        // Check user roles
+        // Check user roles from database first
         const { data: rolesData, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId);
 
-        if (rolesError) {
-          console.warn('[AuthContext] Roles fetch error:', rolesError.message);
-          return;
-        }
+        let hasAdminRole = false;
+        let hasSuperUserRole = false;
 
-        if (mounted && rolesData) {
+        if (!rolesError && rolesData && rolesData.length > 0) {
           const roles = rolesData.map(r => r.role);
-          setIsAdmin(roles.includes('admin'));
-          setIsSuperUser(roles.includes('admin')); // For now, admin = super user
-          console.log('[AuthContext] User roles:', roles);
+          hasAdminRole = roles.includes('admin') || roles.includes('superuser' as any);
+          hasSuperUserRole = roles.includes('superuser' as any);
+          console.log('[AuthContext] Database roles found:', roles);
+        } else {
+          console.log('[AuthContext] No database roles found, checking fallback methods');
+          
+          // Fallback: Check if user is in a predefined admin list
+          const adminEmails = [
+            'ojidelawrence@gmail.com',
+            'admin@gospellabourministry.com',
+            'superadmin@gospellabourministry.com'
+          ];
+          
+          if (profileData?.email && adminEmails.includes(profileData.email.toLowerCase())) {
+            hasAdminRole = true;
+            hasSuperUserRole = profileData.email.toLowerCase() === 'ojidelawrence@gmail.com';
+            console.log('[AuthContext] Admin access granted via email whitelist');
+            
+            // Store in localStorage for persistence
+            localStorage.setItem('glm-is-admin', 'true');
+            if (hasSuperUserRole) {
+              localStorage.setItem('glm-is-superuser', 'true');
+            }
+          }
         }
 
-        // Check localStorage for stored admin status
-        const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
-        const storedAdminStatus = localStorage.getItem('glm-is-admin') === 'true';
-        
-        if (storedSuperUserStatus || storedAdminStatus) {
-          setIsAdmin(true);
-          setIsSuperUser(storedSuperUserStatus);
-          console.log('[AuthContext] Using stored admin status');
+        if (mounted) {
+          setIsAdmin(hasAdminRole);
+          setIsSuperUser(hasSuperUserRole);
+          console.log('[AuthContext] Final admin status:', { hasAdminRole, hasSuperUserRole });
         }
 
       } catch (error) {
         console.error('[AuthContext] Profile fetch error:', error);
+        
+        // Emergency fallback for critical admin email
+        if (mounted && user?.email === 'ojidelawrence@gmail.com') {
+          setIsAdmin(true);
+          setIsSuperUser(true);
+          localStorage.setItem('glm-is-admin', 'true');
+          localStorage.setItem('glm-is-superuser', 'true');
+          console.log('[AuthContext] Emergency admin access granted');
+        }
       }
     };
 
@@ -129,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            await fetchUserProfile(session.user.id);
+            await fetchUserProfile(session.user.id, session.user);
           } else {
             setUser(null);
             setProfile(null);

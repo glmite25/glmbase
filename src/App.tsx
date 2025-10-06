@@ -5,7 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
-// import FloatingAdminButton from "@/components/FloatingAdminButton";
+import FloatingAdminButton from "@/components/FloatingAdminButton";
 import { PageLoader } from "@/components/ui/loading-spinner";
 import { useEffect, useState, lazy, Suspense } from "react";
 import AOS from 'aos';
@@ -51,7 +51,7 @@ const AppContent = () => {
       {/* Only render the Header when not on admin routes */}
       {!isAdminRoute && <Header />}
       {/* Floating Admin Button - shows on all non-admin pages */}
-      {/* {!isAdminRoute && <FloatingAdminButton />} */}
+      {!isAdminRoute && <FloatingAdminButton />}
       <main className={`flex-grow ${isAdminRoute ? 'pt-0' : ''}`}>
         <Suspense fallback={<PageLoader />}>
           <Routes>

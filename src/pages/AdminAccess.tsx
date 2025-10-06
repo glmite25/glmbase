@@ -19,20 +19,32 @@ const AdminAccess = () => {
     const effectiveIsSuperUser = isSuperUser || storedSuperUserStatus;
 
     useEffect(() => {
-        // If user is confirmed admin/superuser, redirect to admin dashboard
-        if (!loading && user && (effectiveIsAdmin || effectiveIsSuperUser)) {
-            navigate("/admin");
+        // If user is confirmed admin/superuser, redirect to admin dashboard immediately
+        if (user && (effectiveIsAdmin || effectiveIsSuperUser)) {
+            console.log('Admin user detected, redirecting to dashboard');
+            navigate("/admin", { replace: true });
         }
-    }, [user, effectiveIsAdmin, effectiveIsSuperUser, loading, navigate]);
+    }, [user, effectiveIsAdmin, effectiveIsSuperUser, navigate]);
 
     const handleForceAccess = () => {
         if (user) {
-            // Force access for testing - store admin status
-            localStorage.setItem('glm-is-admin', 'true');
-            if (user.email === 'ojidelawrence@gmail.com') {
-                localStorage.setItem('glm-is-superuser', 'true');
+            // Grant admin access based on email whitelist
+            const adminEmails = [
+                'ojidelawrence@gmail.com',
+                'admin@gospellabourministry.com',
+                'superadmin@gospellabourministry.com'
+            ];
+            
+            if (adminEmails.includes(user.email?.toLowerCase() || '')) {
+                localStorage.setItem('glm-is-admin', 'true');
+                if (user.email?.toLowerCase() === 'ojidelawrence@gmail.com') {
+                    localStorage.setItem('glm-is-superuser', 'true');
+                }
+                // Force page reload to update auth context
+                window.location.href = '/admin';
+            } else {
+                alert('Access denied. Your email is not in the admin whitelist.');
             }
-            navigate("/admin");
         }
     };
 

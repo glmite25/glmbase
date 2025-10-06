@@ -8,6 +8,8 @@ import { getSuperUserStatus } from "@/utils/superuser-fix";
 // Lazy load components
 const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
 const MembersView = lazy(() => import("@/components/admin/MembersView"));
+const MembersManager = lazy(() => import("@/components/admin/members/MembersManager"));
+const SermonsManager = lazy(() => import("@/components/admin/sermons/SermonsManager"));
 const PastorsPage = lazy(() => import("@/components/admin/pastors/PastorsPage"));
 const PastorDetail = lazy(() => import("@/components/admin/pastors/PastorDetail"));
 const UnitMembersView = lazy(() => import("@/components/admin/units/UnitMembersView"));
@@ -55,7 +57,7 @@ const DashboardContent = () => {
     if (path === "/admin/users") {
       return <UserManagement />;
     } else if (path === "/admin/members") {
-      return <MembersView />;
+      return <MembersManager />;
     } else if (path === "/admin/pastors") {
       return <PastorsPage />;
     } else if (path.startsWith("/admin/pastors/") && path !== "/admin/pastors") {
@@ -63,7 +65,21 @@ const DashboardContent = () => {
     } else if (path === "/admin/events") {
       return <PlaceholderCard title="Events Management" description="Manage church events" />;
     } else if (path === "/admin/sermons") {
-      return <PlaceholderCard title="Sermons Management" description="Manage church sermons" />;
+      return <SermonsManager />;
+    } else if (path === "/admin/testimonies") {
+      return <PlaceholderCard title="Testimonies Management" description="Manage member testimonies" />;
+    } else if (path === "/admin/prayers") {
+      return <PlaceholderCard title="Prayer Requests" description="Manage prayer requests" />;
+    } else if (path === "/admin/visitors") {
+      return <PlaceholderCard title="Visitors Management" description="Manage church visitors" />;
+    } else if (path === "/admin/finances") {
+      return <PlaceholderCard title="Financial Records" description="Manage financial records" />;
+    } else if (path === "/admin/communications") {
+      return <PlaceholderCard title="Communications" description="Manage member communications" />;
+    } else if (path === "/admin/analytics") {
+      return <PlaceholderCard title="Analytics Dashboard" description="View detailed analytics and reports" />;
+    } else if (path === "/admin/system") {
+      return <PlaceholderCard title="System Settings" description="Manage system configuration" />;
     } else if (path === "/admin/settings") {
       return <PlaceholderCard title="Settings" description="Manage church settings" />;
     } else if (path === "/admin/profile") {

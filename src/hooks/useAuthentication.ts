@@ -49,7 +49,7 @@ export const useAuthentication = () => {
     });
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, returnTo?: string) => {
     setIsLoading(true);
     clearErrors();
 
@@ -139,16 +139,17 @@ export const useAuthentication = () => {
         throw error;
       }
 
-      // Success - reset login attempts and navigate to home
+      // Success - reset login attempts and navigate
       setLoginAttempts(0);
-      console.log("[signIn] Login successful, navigating to home");
+      console.log("[signIn] Login successful, navigating to:", returnTo || "/");
 
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
 
-      navigate("/");
+      // Navigate to returnTo URL or home
+      navigate(returnTo || "/");
     } catch (error: any) {
       console.error("[signIn] Authentication error:", error.message);
       // Error already set in the flow above
