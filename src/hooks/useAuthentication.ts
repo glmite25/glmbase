@@ -385,6 +385,7 @@ export const useAuthentication = () => {
   return {
     isLoading,
     errorMessage,
+    setErrorMessage,
     passwordValidation,
     loginLocked,
     lockoutEndTime,

@@ -28,6 +28,7 @@ export const AuthForm = () => {
   const {
     isLoading,
     errorMessage,
+    setErrorMessage,
     passwordValidation,
     loginLocked,
     lockoutEndTime,
@@ -61,14 +62,15 @@ export const AuthForm = () => {
           .from('members')
           .select('id, fullname')
           .eq('category', 'Pastors')
-          .limit(10); // Add limit to prevent large queries
+          .limit(10);
 
         if (error) {
-          console.warn('Members table not available yet:', error.message);
-          // Set default pastors if table doesn't exist
+          console.warn('Members table query failed:', error.message);
+          // Set default pastors if table query fails
           setPastors([
             { id: 'default-1', name: 'Pastor Lawrence Ojide' },
-            { id: 'default-2', name: 'Pastor John Doe' }
+            { id: 'default-2', name: 'Pastor John Doe' },
+            { id: 'default-3', name: 'Pastor Sarah Johnson' }
           ]);
           return;
         }

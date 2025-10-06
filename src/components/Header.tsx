@@ -76,20 +76,49 @@ const Header = () => {
           )}
         </nav>
 
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden text-gray-50 focus:outline-none"
-          onClick={toggleMenu}
-          aria-label="Toggle menu"
-        >
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile Menu Button and User Avatar */}
+        <div className="md:hidden flex items-center space-x-3">
+          {user && <UserAvatar />}
+          <button
+            className="text-gray-50 focus:outline-none"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation Drawer */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t animate-fade-in">
           <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+            {/* User section at top for mobile */}
+            {user ? (
+              <div className="border-b border-gray-200 pb-4 mb-2">
+                <div className="flex items-center space-x-3 px-4 py-2">
+                  <UserAvatar />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                    <p className="text-xs text-gray-500">Logged in</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="border-b border-gray-200 pb-4 mb-2">
+                <Button
+                  className="bg-[#FF0000] hover:bg-[#FF0000]/90 text-white w-full"
+                  onClick={() => {
+                    navigate("/auth");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Login
+                </Button>
+              </div>
+            )}
+            
+            {/* Navigation items */}
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -104,23 +133,6 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            {user ? (
-              <div className="flex flex-col space-y-3">
-                <div className="flex justify-center py-2">
-                  <UserAvatar />
-                </div>
-              </div>
-            ) : (
-              <Button
-                className="bg-[#FF0000] hover:bg-[#FF0000]/90 text-white w-full"
-                onClick={() => {
-                  navigate("/auth");
-                  setIsMenuOpen(false);
-                }}
-              >
-                Login
-              </Button>
-            )}
           </div>
         </div>
       )}

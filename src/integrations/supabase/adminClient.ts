@@ -49,10 +49,15 @@ export const adminSupabase = createClient<Database>(
           }, timeoutMs);
           
           try {
-            // Add cache-busting for all requests
-            const urlObj = new URL(url.toString());
-            urlObj.searchParams.append('_cb', Date.now().toString());
-            url = urlObj.toString() as any;
+            // Add cache-busting only for specific requests that need it
+            // Skip cache-busting for REST API calls as they can cause parsing errors
+            if (!url.toString().includes('/rest/v1/') && 
+                !url.toString().includes('/storage/v1/') &&
+                !url.toString().includes('/auth/')) {
+              const urlObj = new URL(url.toString());
+              urlObj.searchParams.append('_cb', Date.now().toString());
+              url = urlObj.toString() as any;
+            }
             
             // Add the signal to the options
             const fetchOptions = {
