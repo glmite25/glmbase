@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Creates or updates a member record in the members table
+ * Using the correct column names from the database schema
  */
 const createMemberRecord = async (
   userId: string,
@@ -19,16 +20,16 @@ const createMemberRecord = async (
     const adminEmails = ['ojidelawrence@gmail.com', 'admin@gospellabourministry.com'];
     const category = adminEmails.includes(email.toLowerCase()) ? 'Pastors' : 'Members';
 
+    // Use the correct column names from the database schema
     const memberData = {
-      user_id: userId,
+      id: userId, // Use id instead of user_id
       email: email,
       fullname: fullName,
       phone: phone || null,
-      address: address || null,
-      church_unit: churchUnit || null,
-      assigned_pastor: assignedPastor || null,
       category: category,
-      status: 'active',
+      churchunit: churchUnit || null, // Use churchunit instead of church_unit
+      assignedto: assignedPastor || null, // Use assignedto instead of assigned_pastor
+      isactive: true, // Use isactive instead of status
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -37,7 +38,7 @@ const createMemberRecord = async (
 
     const { error: memberError } = await supabase
       .from('members')
-      .upsert(memberData, { onConflict: 'user_id' });
+      .upsert(memberData, { onConflict: 'id' }); // Use id for conflict resolution
 
     if (memberError) {
       console.error("Error creating/updating member record:", memberError);
@@ -102,17 +103,11 @@ export const createUserProfile = async (
     // Ensure fullName is not empty
     const sanitizedFullName = fullName?.trim() || email.split('@')[0];
 
-    // Create a complete profile record with all required fields
+    // Create a profile record with only the fields that exist in the schema
     const profileData = {
       id: userId,
       email: normalizedEmail,
       full_name: sanitizedFullName,
-      church_unit: churchUnit || null,
-      assigned_pastor: assignedPastor || null,
-      phone: phone || null,
-      genotype: null, // Ensure all fields from the schema are included
-      address: address || null,
-      role: 'user', // Set default role
       updated_at: new Date().toISOString(),
     };
 

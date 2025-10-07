@@ -16,7 +16,9 @@
     "admin:test": "node quick-admin-test.js",
     "admin:fix": "node quick-admin-fix.js",
     "superadmin:diagnose": "node run-superadmin-diagnostics.js",
-    "superadmin:quick-check": "node run-superadmin-diagnostics.js --quick"
+    "superadmin:quick-check": "node run-superadmin-diagnostics.js --quick",
+    "auth:verify": "node scripts/test-auth-verification.js",
+    "auth:test": "node test-authentication-verification.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
