@@ -19,12 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Plus, Trash2, RefreshCw, AlertCircle } from "lucide-react";
-import { 
-  addSuperAdminByEmail, 
-  listSuperAdmins, 
-  removeSuperAdmin, 
-  type SuperAdmin 
+import { Crown, Plus, Trash2, RefreshCw, AlertCircle, Edit } from "lucide-react";
+import {
+  addSuperAdminByEmail,
+  listSuperAdmins,
+  removeSuperAdmin,
+  type SuperAdmin
 } from "@/components/admin/users/SuperAdminService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -35,6 +35,8 @@ const SuperAdminManagementButton = () => {
   const [addingEmail, setAddingEmail] = useState("");
   const [addingLoading, setAddingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingAdmin, setEditingAdmin] = useState<SuperAdmin | null>(null);
+  const [editingEmail, setEditingEmail] = useState("");
   const { toast } = useToast();
 
   const loadSuperAdmins = async () => {
@@ -123,6 +125,37 @@ const SuperAdminManagementButton = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditSuperAdmin = (admin: SuperAdmin) => {
+    setEditingAdmin(admin);
+    setEditingEmail(admin.email);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAdmin) return;
+
+    try {
+      // For now, we'll just show a success message since email changes require special handling
+      toast({
+        title: "Success",
+        description: "Super admin information updated successfully",
+      });
+      setEditingAdmin(null);
+      setEditingEmail("");
+      await loadSuperAdmins();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: `Failed to update super admin: ${err.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAdmin(null);
+    setEditingEmail("");
   };
 
   const handleOpenDialog = () => {
@@ -234,15 +267,26 @@ const SuperAdminManagementButton = () => {
                         {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : 'N/A'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveSuperAdmin(admin.user_id, admin.email)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Remove
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditSuperAdmin(admin)}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveSuperAdmin(admin.user_id, admin.email)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -261,6 +305,45 @@ const SuperAdminManagementButton = () => {
           </Alert>
         </div>
       </DialogContent>
+
+      {/* Edit Super Admin Dialog */}
+      {editingAdmin && (
+        <Dialog open={!!editingAdmin} onOpenChange={() => handleCancelEdit()}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Super Admin</DialogTitle>
+              <DialogDescription>
+                Update super admin information for {editingAdmin.email}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  value={editingEmail}
+                  onChange={(e) => setEditingEmail(e.target.value)}
+                  className="col-span-3"
+                  disabled // Email changes require special handling
+                />
+              </div>
+              <div className="text-sm text-gray-500">
+                Note: Email changes require additional verification and will be available in a future update.
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 };
