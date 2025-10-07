@@ -51,7 +51,9 @@
   - Ensure role hierarchy and permissions are correct
   - _Requirements: 2.3, 3.3_
 
-- [-] 6. Update RLS policies for superadmin access
+- [x] 6. Update RLS policies for superadmin access
+
+
 
 
 
