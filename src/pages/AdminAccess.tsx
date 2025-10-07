@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Crown, User, AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminAccess = () => {
-    const { user, isAdmin, isSuperUser, loading } = useAuth();
+    const { user, isAdmin, isSuperUser, isLoading } = useAuth();
     const navigate = useNavigate();
     const [forceCheck, setForceCheck] = useState(false);
+    const { toast } = useToast();
 
     // Check localStorage for stored admin status
     const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
@@ -20,11 +22,11 @@ const AdminAccess = () => {
 
     useEffect(() => {
         // If user is confirmed admin/superuser, redirect to admin dashboard immediately
-        if (user && (effectiveIsAdmin || effectiveIsSuperUser)) {
+        if (!isLoading && user && (effectiveIsAdmin || effectiveIsSuperUser)) {
             console.log('Admin user detected, redirecting to dashboard');
             navigate("/admin", { replace: true });
         }
-    }, [user, effectiveIsAdmin, effectiveIsSuperUser, navigate]);
+    }, [user, effectiveIsAdmin, effectiveIsSuperUser, isLoading, navigate]);
 
     const handleForceAccess = () => {
         if (user) {
@@ -43,7 +45,11 @@ const AdminAccess = () => {
                 // Force page reload to update auth context
                 window.location.href = '/admin';
             } else {
-                alert('Access denied. Your email is not in the admin whitelist.');
+                toast({
+                    variant: "destructive",
+                    title: "Access Denied",
+                    description: "Your email is not authorized for admin access. Please contact an administrator.",
+                });
             }
         }
     };
@@ -53,12 +59,21 @@ const AdminAccess = () => {
         window.location.reload();
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
-                    <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                    <p>Checking authentication...</p>
+                    <div className="bg-white rounded-lg p-8 shadow-sm border max-w-md">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <RefreshCw className="h-6 w-6 text-blue-600 animate-spin" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Verifying Access
+                        </h2>
+                        <p className="text-gray-600">
+                            Please wait while we check your admin permissions...
+                        </p>
+                    </div>
                 </div>
             </div>
         );

@@ -4,13 +4,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { 
   Users, 
-  Calendar, 
   Settings, 
   Shield, 
   UserCog, 
-  BarChart3,
   Database,
-  UserPlus,
   Activity
 } from "lucide-react";
 
@@ -34,13 +31,6 @@ const DefaultDashboard = () => {
       color: "bg-purple-500",
     },
     {
-      title: "Events",
-      description: "Manage church events",
-      icon: Calendar,
-      path: "/admin/events",
-      color: "bg-green-500",
-    },
-    {
       title: "Settings",
       description: "Configure system settings",
       icon: Settings,
@@ -56,13 +46,6 @@ const DefaultDashboard = () => {
       icon: Shield,
       path: "/admin/users",
       color: "bg-red-500",
-    },
-    {
-      title: "Analytics",
-      description: "View detailed reports",
-      icon: BarChart3,
-      path: "/admin/analytics",
-      color: "bg-indigo-500",
     },
     {
       title: "System Settings",
@@ -126,7 +109,7 @@ const DefaultDashboard = () => {
                 <p className="text-sm text-gray-600">Access Level</p>
                 <p className="text-lg font-bold text-purple-600">Full</p>
               </div>
-              <UserPlus className="h-8 w-8 text-purple-600" />
+              <Shield className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -138,7 +121,7 @@ const DefaultDashboard = () => {
                 <p className="text-sm text-gray-600">Last Login</p>
                 <p className="text-lg font-bold text-gray-600">Today</p>
               </div>
-              <Calendar className="h-8 w-8 text-gray-600" />
+              <Activity className="h-8 w-8 text-gray-600" />
             </div>
           </CardContent>
         </Card>

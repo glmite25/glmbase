@@ -10,10 +10,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "db:migrate": "node scripts/run-migrations.js",
-    "admin:setup": "node run-admin-setup.js",
+    "admin:setup": "node final-admin-setup.js",
     "admin:verify": "node verify-admin-system.js",
     "admin:complete": "node complete-admin-setup.js",
-    "admin:test": "node quick-admin-test.js"
+    "admin:test": "node quick-admin-test.js",
+    "admin:fix": "node quick-admin-fix.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

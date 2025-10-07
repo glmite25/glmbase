@@ -3,32 +3,20 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  Calendar,
-  FileText,
   Settings,
   ChevronRight,
   Shield,
   UserCheck,
   X,
   Church,
-  Music,
-  Film,
   Camera,
   Headphones,
+  Film,
   ShieldCheck,
-  Video,
   Speaker,
   UserCog,
   User,
-  Heart,
-  MessageSquare,
-  DollarSign,
-  BookOpen,
-  UserPlus,
-  Mail,
-  BarChart3,
-  Database,
-  Zap
+  Database
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -61,41 +49,11 @@ const AdminSidebar = () => {
       name: "Pastors",
       path: "/admin/pastors",
       icon: <UserCog size={20} />
-    },
-    {
-      name: "Events",
-      path: "/admin/events",
-      icon: <Calendar size={20} />
-    },
-    {
-      name: "Sermons",
-      path: "/admin/sermons",
-      icon: <BookOpen size={20} />
-    },
-    {
-      name: "Testimonies",
-      path: "/admin/testimonies",
-      icon: <Heart size={20} />
-    },
-    {
-      name: "Prayer Requests",
-      path: "/admin/prayers",
-      icon: <MessageSquare size={20} />
-    },
-    {
-      name: "Visitors",
-      path: "/admin/visitors",
-      icon: <UserPlus size={20} />
     }
   ];
 
   // Super user specific menu items
   const superUserMenuItems = [
-    {
-      name: "Analytics",
-      path: "/admin/analytics",
-      icon: <BarChart3 size={20} />
-    },
     {
       name: "User Management",
       path: "/admin/users",
@@ -110,41 +68,6 @@ const AdminSidebar = () => {
       name: "Pastors",
       path: "/admin/pastors",
       icon: <UserCog size={20} />
-    },
-    {
-      name: "Events",
-      path: "/admin/events",
-      icon: <Calendar size={20} />
-    },
-    {
-      name: "Sermons",
-      path: "/admin/sermons",
-      icon: <BookOpen size={20} />
-    },
-    {
-      name: "Testimonies",
-      path: "/admin/testimonies",
-      icon: <Heart size={20} />
-    },
-    {
-      name: "Prayer Requests",
-      path: "/admin/prayers",
-      icon: <MessageSquare size={20} />
-    },
-    {
-      name: "Financial Records",
-      path: "/admin/finances",
-      icon: <DollarSign size={20} />
-    },
-    {
-      name: "Visitors",
-      path: "/admin/visitors",
-      icon: <UserPlus size={20} />
-    },
-    {
-      name: "Communications",
-      path: "/admin/communications",
-      icon: <Mail size={20} />
     },
     {
       name: "System Settings",

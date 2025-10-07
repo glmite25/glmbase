@@ -59,13 +59,13 @@ const AdminDashboard = () => {
     };
   }, []);
 
-  // Set a timeout to show a message if loading takes too long
+  // Set a timeout to show continue option if loading takes too long
   useEffect(() => {
     if (isLoading && !loadingTimeout && !forceLoaded) {
       loadingTimeoutRef.current = setTimeout(() => {
-        console.warn('Auth loading timeout reached after 5 seconds');
+        console.log('Auth loading taking longer than expected, showing continue option');
         setLoadingTimeout(true);
-      }, 5000);
+      }, 2000); // Reduced to 2 seconds for faster response
     } else if (!isLoading && loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
@@ -87,19 +87,34 @@ const AdminDashboard = () => {
         return;
       }
 
-      // If we're in a timeout state or forced loaded, check what we have
+      // Check for admin status with multiple fallbacks
       const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
+      const storedAdminStatus = localStorage.getItem('glm-is-admin') === 'true';
+      
+      // Admin email whitelist
+      const adminEmails = ['ojidelawrence@gmail.com', 'admin@gospellabourministry.com'];
+      const isAdminEmail = user?.email && adminEmails.includes(user.email.toLowerCase());
 
-      if (!user && !storedSuperUserStatus) {
+      const hasAdminAccess = isAdmin || isSuperUser || storedSuperUserStatus || storedAdminStatus || isAdminEmail;
+
+      if (!user && !storedSuperUserStatus && !storedAdminStatus) {
         console.log('No user found, redirecting to auth page');
         navigate("/auth");
         return;
       }
 
-      if (!isAdmin && !isSuperUser && !storedSuperUserStatus) {
-        console.log('User is not admin or superuser, redirecting to auth page');
+      if (user && !hasAdminAccess) {
+        console.log('User is not admin, redirecting to auth page');
         navigate("/auth");
         return;
+      }
+
+      // If user has admin email but no stored status, grant access
+      if (user && isAdminEmail && !storedAdminStatus) {
+        localStorage.setItem('glm-is-admin', 'true');
+        if (user.email?.toLowerCase() === 'ojidelawrence@gmail.com') {
+          localStorage.setItem('glm-is-superuser', 'true');
+        }
       }
 
       console.log('User is authorized to access admin dashboard');
@@ -112,38 +127,55 @@ const AdminDashboard = () => {
   const handleForceContinue = () => {
     setForceLoaded(true);
     toast({
-      title: "Continuing with limited functionality",
-      description: "Some features may not be available until authentication completes.",
+      title: "Loading admin dashboard",
+      description: "Continuing to admin dashboard...",
     });
   };
 
   // Show loading state
   if ((isLoading && !forceLoaded) || (loadingTimeout && !forceLoaded)) {
     return (
-      <div className="flex flex-col min-h-screen items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          {loadingTimeout ? (
-            <>
-              <p className="text-lg font-medium">Still loading authentication state...</p>
-              <p className="text-sm text-gray-500 max-w-md">
-                This is taking longer than expected. There might be an issue with the authentication service.
-              </p>
-              <Button
-                onClick={handleForceContinue}
-                className="mt-4 flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Continue Anyway
-              </Button>
-            </>
-          ) : (
-            <>
-              <div className="flex justify-center">
-                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-              </div>
-              <p>Loading authentication state...</p>
-            </>
-          )}
+      <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-gray-50">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="bg-white rounded-lg p-8 shadow-sm border">
+            {loadingTimeout ? (
+              <>
+                <div className="flex justify-center mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <RefreshCw className="h-6 w-6 text-blue-600 animate-spin" />
+                  </div>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Loading Admin Dashboard
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  We're setting up your admin access. This may take a moment.
+                </p>
+                <Button
+                  onClick={handleForceContinue}
+                  className="flex items-center gap-2"
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Continue
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <RefreshCw className="h-6 w-6 text-blue-600 animate-spin" />
+                  </div>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Preparing Admin Dashboard
+                </h2>
+                <p className="text-gray-600">
+                  Please wait while we verify your admin access...
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );

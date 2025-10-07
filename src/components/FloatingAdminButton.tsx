@@ -27,6 +27,11 @@ const FloatingAdminButton = () => {
   const effectiveIsAdmin = isAdmin || storedAdminStatus;
   const effectiveIsSuperUser = isSuperUser || storedSuperUserStatus;
 
+  // Only show floating button for admin users
+  if (!user || (!effectiveIsAdmin && !effectiveIsSuperUser)) {
+    return null;
+  }
+
   const handleAdminAccess = () => {
     if (user && (effectiveIsAdmin || effectiveIsSuperUser)) {
       navigate("/admin");

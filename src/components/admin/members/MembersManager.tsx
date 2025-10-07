@@ -7,14 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Users, 
-  UserPlus, 
-  Edit, 
-  Trash2, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  Users,
+  UserPlus,
+  Edit,
+  Trash2,
+  Mail,
+  Phone,
+  MapPin,
   Calendar,
   Search,
   Filter,
@@ -53,20 +53,18 @@ import {
 
 interface Member {
   id: string;
-  user_id: string | null;
+  user_id?: string | null;
   email: string;
   fullname: string;
-  phone: string | null;
-  address: string | null;
-  church_unit: string | null;
-  assigned_pastor: string | null;
+  phone?: string | null;
+  address?: string | null;
+  churchunit?: string | null;
+  churchunits?: string[];
+  assignedto?: string | null;
   category: string;
-  status: string;
+  isactive: boolean;
   created_at: string;
   updated_at: string;
-  auth_email?: string;
-  last_sign_in_at?: string;
-  email_confirmed_at?: string;
 }
 
 const MembersManager = () => {
@@ -85,19 +83,22 @@ const MembersManager = () => {
     email: "",
     phone: "",
     address: "",
-    church_unit: "",
-    assigned_pastor: "",
+    churchunit: "",
+    assignedto: "",
     category: "Members",
-    status: "active",
+    isactive: true,
   });
 
   const churchUnits = [
-    "3H Media", "3H Music", "3H Movies", "3H Security", 
+    "3H Media", "3H Music", "3H Movies", "3H Security",
     "Discipleship", "Praise Feet", "Cloven Tongues", "Auxano Group"
   ];
 
   const categories = ["Members", "Pastors", "Deacons", "Elders"];
-  const statuses = ["active", "inactive", "pending"];
+  const statuses = [
+    { value: true, label: "Active" },
+    { value: false, label: "Inactive" }
+  ];
 
   useEffect(() => {
     fetchMembers();
@@ -106,31 +107,17 @@ const MembersManager = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      
-      // Fetch members with auth user information
+
+      // Fetch members data
       const { data, error } = await supabase
         .from('members')
-        .select(`
-          *,
-          auth_users:user_id (
-            email,
-            last_sign_in_at,
-            email_confirmed_at
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Transform the data to flatten auth user info
-      const membersWithAuth = data?.map(member => ({
-        ...member,
-        auth_email: member.auth_users?.email,
-        last_sign_in_at: member.auth_users?.last_sign_in_at,
-        email_confirmed_at: member.auth_users?.email_confirmed_at,
-      })) || [];
-
-      setMembers(membersWithAuth);
+      // Set members data directly
+      setMembers(data || []);
     } catch (error) {
       console.error('Error fetching members:', error);
       toast({
@@ -145,7 +132,7 @@ const MembersManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (editingMember) {
         const { error } = await supabase
@@ -224,10 +211,10 @@ const MembersManager = () => {
       email: member.email,
       phone: member.phone || "",
       address: member.address || "",
-      church_unit: member.church_unit || "",
-      assigned_pastor: member.assigned_pastor || "",
+      churchunit: member.churchunit || "",
+      assignedto: member.assignedto || "",
       category: member.category,
-      status: member.status,
+      isactive: member.isactive,
     });
     setIsDialogOpen(true);
   };
@@ -238,10 +225,10 @@ const MembersManager = () => {
       email: "",
       phone: "",
       address: "",
-      church_unit: "",
-      assigned_pastor: "",
+      churchunit: "",
+      assignedto: "",
       category: "Members",
-      status: "active",
+      isactive: true,
     });
     setEditingMember(null);
   };
@@ -250,27 +237,24 @@ const MembersManager = () => {
     try {
       setLoading(true);
       toast({
-        title: "Syncing...",
-        description: "Synchronizing members with authentication users",
+        title: "Refreshing...",
+        description: "Refreshing member data",
       });
 
-      // This would trigger the database function to sync users
-      const { error } = await supabase.rpc('sync_auth_users_to_members');
-      
-      if (error) throw error;
+      // Simply refresh the members data for now
+      // In the future, this could call a database function to sync with auth users
+      await fetchMembers();
 
       toast({
         title: "Success",
-        description: "Members synchronized with authentication users",
+        description: "Member data refreshed successfully",
       });
-
-      fetchMembers();
     } catch (error) {
-      console.error('Error syncing members:', error);
+      console.error('Error refreshing members:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to sync members with auth users",
+        description: "Failed to refresh member data",
       });
     } finally {
       setLoading(false);
@@ -284,9 +268,9 @@ const MembersManager = () => {
         member.fullname,
         member.email,
         member.phone || '',
-        member.church_unit || '',
+        member.churchunit || '',
         member.category,
-        member.status,
+        member.isactive ? 'Active' : 'Inactive',
         new Date(member.created_at).toLocaleDateString()
       ])
     ].map(row => row.join(',')).join('\n');
@@ -302,11 +286,13 @@ const MembersManager = () => {
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (member.phone && member.phone.includes(searchTerm));
+      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.phone && member.phone.includes(searchTerm));
     const matchesCategory = categoryFilter === "all" || member.category === categoryFilter;
-    const matchesStatus = statusFilter === "all" || member.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "active" && member.isactive === true) ||
+      (statusFilter === "inactive" && member.isactive === false);
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const getStatusColor = (status: string) => {
@@ -393,10 +379,10 @@ const MembersManager = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="church_unit">Church Unit</Label>
+                    <Label htmlFor="churchunit">Church Unit</Label>
                     <Select
-                      value={formData.church_unit}
-                      onValueChange={(value) => setFormData({ ...formData, church_unit: value })}
+                      value={formData.churchunit}
+                      onValueChange={(value) => setFormData({ ...formData, churchunit: value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select church unit" />
@@ -442,29 +428,26 @@ const MembersManager = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="isactive">Status</Label>
                     <Select
-                      value={formData.status}
-                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                      value={formData.isactive.toString()}
+                      onValueChange={(value) => setFormData({ ...formData, isactive: value === 'true' })}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {statuses.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="true">Active</SelectItem>
+                        <SelectItem value="false">Inactive</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="assigned_pastor">Assigned Pastor</Label>
+                    <Label htmlFor="assignedto">Assigned Pastor</Label>
                     <Input
-                      id="assigned_pastor"
-                      value={formData.assigned_pastor}
-                      onChange={(e) => setFormData({ ...formData, assigned_pastor: e.target.value })}
+                      id="assignedto"
+                      value={formData.assignedto}
+                      onChange={(e) => setFormData({ ...formData, assignedto: e.target.value })}
                     />
                   </div>
                 </div>
@@ -501,7 +484,7 @@ const MembersManager = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Members</p>
-                <p className="text-2xl font-bold">{members.filter(m => m.status === 'active').length}</p>
+                <p className="text-2xl font-bold">{members.filter(m => m.isactive === true).length}</p>
               </div>
               <UserCheck className="h-8 w-8 text-green-600" />
             </div>
@@ -563,11 +546,8 @@ const MembersManager = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            {statuses.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </SelectItem>
-            ))}
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -597,15 +577,15 @@ const MembersManager = () => {
                   <TableCell className="font-medium">{member.fullname}</TableCell>
                   <TableCell>{member.email}</TableCell>
                   <TableCell>{member.phone || '-'}</TableCell>
-                  <TableCell>{member.church_unit || '-'}</TableCell>
+                  <TableCell>{member.churchunit || '-'}</TableCell>
                   <TableCell>
                     <Badge className={getCategoryColor(member.category)}>
                       {member.category}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(member.status)}>
-                      {member.status}
+                    <Badge className={getStatusColor(member.isactive ? 'active' : 'inactive')}>
+                      {member.isactive ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
                   <TableCell>

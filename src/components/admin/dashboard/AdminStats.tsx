@@ -47,58 +47,34 @@ const AdminStats = () => {
     try {
       setLoading(true);
 
-      // Fetch all stats in parallel
+      // Fetch stats from existing tables only
       const [
         membersResult,
         activeMembersResult,
-        eventsResult,
-        upcomingEventsResult,
-        donationsResult,
-        monthlyDonationsResult,
-        sermonsResult,
-        recentSermonsResult,
-        prayerRequestsResult,
-        activePrayerRequestsResult,
-        testimoniesResult,
-        approvedTestimoniesResult,
-        visitorsResult,
-        recentVisitorsResult,
+        pastorsResult,
+        recentMembersResult,
       ] = await Promise.all([
         supabase.from('members').select('id', { count: 'exact', head: true }),
-        supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('events').select('id', { count: 'exact', head: true }),
-        supabase.from('events').select('id', { count: 'exact', head: true }).gte('date', new Date().toISOString().split('T')[0]),
-        supabase.from('financial_records').select('amount').eq('status', 'completed'),
-        supabase.from('financial_records').select('amount').eq('status', 'completed').gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]),
-        supabase.from('sermons').select('id', { count: 'exact', head: true }),
-        supabase.from('sermons').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-        supabase.from('prayer_requests').select('id', { count: 'exact', head: true }),
-        supabase.from('prayer_requests').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('testimonies').select('id', { count: 'exact', head: true }),
-        supabase.from('testimonies').select('id', { count: 'exact', head: true }).eq('is_approved', true),
-        supabase.from('visitors').select('id', { count: 'exact', head: true }),
-        supabase.from('visitors').select('id', { count: 'exact', head: true }).gte('visit_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        supabase.from('members').select('id', { count: 'exact', head: true }).eq('isactive', true),
+        supabase.from('members').select('id', { count: 'exact', head: true }).eq('category', 'Pastors'),
+        supabase.from('members').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
-
-      // Calculate totals
-      const totalDonations = donationsResult.data?.reduce((sum, record) => sum + (record.amount || 0), 0) || 0;
-      const monthlyDonations = monthlyDonationsResult.data?.reduce((sum, record) => sum + (record.amount || 0), 0) || 0;
 
       setStats({
         totalMembers: membersResult.count || 0,
         activeMembers: activeMembersResult.count || 0,
-        totalEvents: eventsResult.count || 0,
-        upcomingEvents: upcomingEventsResult.count || 0,
-        totalDonations,
-        monthlyDonations,
-        totalSermons: sermonsResult.count || 0,
-        recentSermons: recentSermonsResult.count || 0,
-        prayerRequests: prayerRequestsResult.count || 0,
-        activePrayerRequests: activePrayerRequestsResult.count || 0,
-        testimonies: testimoniesResult.count || 0,
-        approvedTestimonies: approvedTestimoniesResult.count || 0,
-        visitors: visitorsResult.count || 0,
-        recentVisitors: recentVisitorsResult.count || 0,
+        totalEvents: 0, // Will be implemented when events table is added
+        upcomingEvents: 0,
+        totalDonations: 0, // Will be implemented when financial_records table is added
+        monthlyDonations: 0,
+        totalSermons: 0, // Will be implemented when sermons table is added
+        recentSermons: 0,
+        prayerRequests: 0, // Will be implemented when prayer_requests table is added
+        activePrayerRequests: 0,
+        testimonies: 0, // Will be implemented when testimonies table is added
+        approvedTestimonies: 0,
+        visitors: 0, // Will be implemented when visitors table is added
+        recentVisitors: recentMembersResult.count || 0, // Using recent members as proxy
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -107,12 +83,7 @@ const AdminStats = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  // Removed formatCurrency function as it's not needed for current stats
 
   const statCards = [
     {
@@ -124,67 +95,35 @@ const AdminStats = () => {
       bgColor: "bg-blue-50",
     },
     {
-      title: "Events",
-      value: stats.totalEvents,
-      subtitle: `${stats.upcomingEvents} upcoming`,
-      icon: Calendar,
+      title: "Active Members",
+      value: stats.activeMembers,
+      subtitle: "currently active",
+      icon: UserCheck,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "Total Donations",
-      value: formatCurrency(stats.totalDonations),
-      subtitle: `${formatCurrency(stats.monthlyDonations)} this month`,
-      icon: DollarSign,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-    {
-      title: "Sermons",
-      value: stats.totalSermons,
-      subtitle: `${stats.recentSermons} recent`,
-      icon: BookOpen,
+      title: "New Members",
+      value: stats.recentVisitors,
+      subtitle: "last 30 days",
+      icon: TrendingUp,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
     },
     {
-      title: "Prayer Requests",
-      value: stats.prayerRequests,
-      subtitle: `${stats.activePrayerRequests} active`,
-      icon: MessageSquare,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-    },
-    {
-      title: "Testimonies",
-      value: stats.testimonies,
-      subtitle: `${stats.approvedTestimonies} approved`,
+      title: "Activity Rate",
+      value: stats.totalMembers > 0 ? `${Math.round((stats.activeMembers / stats.totalMembers) * 100)}%` : "0%",
+      subtitle: "member activity",
       icon: Heart,
       color: "text-red-600",
       bgColor: "bg-red-50",
-    },
-    {
-      title: "Visitors",
-      value: stats.visitors,
-      subtitle: `${stats.recentVisitors} recent`,
-      icon: UserCheck,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50",
-    },
-    {
-      title: "Growth Rate",
-      value: stats.activeMembers > 0 ? `${Math.round((stats.recentVisitors / stats.activeMembers) * 100)}%` : "0%",
-      subtitle: "visitor to member ratio",
-      icon: TrendingUp,
-      color: "text-teal-600",
-      bgColor: "bg-teal-50",
     },
   ];
 
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="pb-2">
               <div className="h-4 bg-gray-200 rounded w-3/4"></div>

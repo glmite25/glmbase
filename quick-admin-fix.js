@@ -1,160 +1,78 @@
+#!/usr/bin/env node
+
 /**
- * Quick Admin Fix - Bypass database setup and create admin access
- * This creates a minimal setup to get admin access working
+ * Quick Admin Fix Script
+ * This script provides immediate admin access without complex setup
  */
 
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-dotenv.config();
+console.log('🔧 Quick Admin Fix for Gospel Labour Ministry\n');
 
-const SUPERADMIN_EMAIL = 'ojidelawrence@gmail.com';
-const SUPERADMIN_PASSWORD = 'Fa-#8rC6DRTkd$5';
+console.log('📋 Steps to fix admin access:');
+console.log('');
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+console.log('1️⃣ Database Setup:');
+console.log('   • Go to your Supabase project dashboard');
+console.log('   • Open SQL Editor');
+console.log('   • Run the file: simple-database-setup.sql');
+console.log('   • This will create/update the necessary tables');
+console.log('');
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing Supabase configuration');
-  process.exit(1);
-}
+console.log('2️⃣ Clear Browser Data:');
+console.log('   • Open browser developer tools (F12)');
+console.log('   • Go to Application/Storage tab');
+console.log('   • Clear localStorage and sessionStorage');
+console.log('   • Or use: localStorage.clear(); sessionStorage.clear();');
+console.log('');
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+console.log('3️⃣ Force Admin Access:');
+console.log('   • Open browser console (F12)');
+console.log('   • Run these commands:');
+console.log('     localStorage.setItem("glm-is-admin", "true");');
+console.log('     localStorage.setItem("glm-is-superuser", "true");');
+console.log('   • Refresh the page');
+console.log('');
 
-async function quickAdminFix() {
-  console.log('🚀 Quick Admin Fix - Gospel Labour Ministry CMS');
-  console.log('===============================================\n');
-  
-  try {
-    // Step 1: Create/update user in auth
-    console.log('1️⃣ Setting up authentication...');
-    
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-    if (listError) {
-      console.error('❌ Error accessing auth system:', listError.message);
-      throw listError;
-    }
-    
-    let user = users.users.find(u => u.email?.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
-    
-    if (!user) {
-      console.log('👤 Creating new user...');
-      
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: SUPERADMIN_EMAIL,
-        password: SUPERADMIN_PASSWORD,
-        email_confirm: true,
-        user_metadata: {
-          full_name: 'Lawrence Ojide',
-          role: 'superuser'
-        }
-      });
-      
-      if (createError) {
-        console.error('❌ Error creating user:', createError.message);
-        throw createError;
-      }
-      
-      console.log('✅ User created successfully');
-      user = newUser.user;
-    } else {
-      console.log('✅ User found in auth system');
-      
-      // Update password and metadata
-      const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
-        password: SUPERADMIN_PASSWORD,
-        email_confirm: true,
-        user_metadata: {
-          ...user.user_metadata,
-          full_name: 'Lawrence Ojide',
-          role: 'superuser'
-        }
-      });
-      
-      if (updateError) {
-        console.log('⚠️  Could not update user:', updateError.message);
-      } else {
-        console.log('✅ User updated');
-      }
-    }
-    
-    // Step 2: Try to create profile (skip if table doesn't exist)
-    console.log('\n2️⃣ Setting up profile...');
-    
-    try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          email: SUPERADMIN_EMAIL.toLowerCase(),
-          full_name: 'Lawrence Ojide',
-          role: 'superuser',
-          updated_at: new Date().toISOString()
-        });
-      
-      if (profileError) {
-        console.log('⚠️  Profile table may not exist, skipping...');
-      } else {
-        console.log('✅ Profile created/updated');
-      }
-    } catch (error) {
-      console.log('⚠️  Profile setup skipped (table may not exist)');
-    }
-    
-    // Step 3: Try to create user role (skip if table doesn't exist)
-    console.log('\n3️⃣ Setting up user roles...');
-    
-    try {
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: user.id,
-          role: 'superuser'
-        });
-      
-      if (roleError) {
-        console.log('⚠️  User roles table may not exist, skipping...');
-      } else {
-        console.log('✅ User role assigned');
-      }
-    } catch (error) {
-      console.log('⚠️  User roles setup skipped (table may not exist)');
-    }
-    
-    // Success summary
-    console.log('\n🎉 QUICK ADMIN FIX COMPLETE!');
-    console.log('============================');
-    console.log(`✅ ${SUPERADMIN_EMAIL} can now log in`);
-    console.log('\n🔑 Login Credentials:');
-    console.log(`Email: ${SUPERADMIN_EMAIL}`);
-    console.log(`Password: ${SUPERADMIN_PASSWORD}`);
-    console.log('\n📋 Next Steps:');
-    console.log('1. Go to: http://localhost:7070/auth');
-    console.log('2. Sign in with the credentials above');
-    console.log('3. Go to: http://localhost:7070/admin-access');
-    console.log('4. Click "Force Super Admin Access (Testing)"');
-    console.log('5. You should be redirected to the admin dashboard');
-    
-    console.log('\n💡 Note: Some database tables may not exist yet.');
-    console.log('   The admin interface will work with limited functionality.');
-    console.log('   You can set up the full database later if needed.');
-    
-  } catch (error) {
-    console.error('\n❌ Quick admin fix failed:', error.message);
-    console.log('\n🔧 Manual Setup Instructions:');
-    console.log('1. Go to your Supabase dashboard');
-    console.log('2. Navigate to Authentication → Users');
-    console.log('3. Create a new user with email: ojidelawrence@gmail.com');
-    console.log('4. Set password to: Fa-#8rC6DRTkd$5');
-    console.log('5. Confirm the email address');
-    console.log('6. Try logging in at http://localhost:7070/auth');
-    process.exit(1);
-  }
-}
+console.log('4️⃣ Login Process:');
+console.log('   • Go to: http://localhost:5173/auth');
+console.log('   • Login with: ojidelawrence@gmail.com');
+console.log('   • Password: AdminPassword123!');
+console.log('   • After login, admin buttons should appear');
+console.log('');
 
-// Run the fix
-quickAdminFix();
+console.log('5️⃣ Access Admin Dashboard:');
+console.log('   • Click admin button in header');
+console.log('   • Or go directly to: http://localhost:5173/admin');
+console.log('   • If still loading, click "Continue" button');
+console.log('');
+
+console.log('🔍 Troubleshooting:');
+console.log('   • If admin page is blank: Click "Continue" button');
+console.log('   • If no admin buttons: Clear localStorage and login again');
+console.log('   • If database errors: Run simple-database-setup.sql again');
+console.log('   • Check browser console for any error messages');
+console.log('');
+
+console.log('✅ Expected Result:');
+console.log('   • Admin button visible in header');
+console.log('   • Floating admin button (bottom right)');
+console.log('   • Working admin dashboard with sidebar');
+console.log('   • Members management page accessible');
+console.log('');
+
+console.log('🎯 Quick Test:');
+console.log('   1. Start app: npm run dev');
+console.log('   2. Open: http://localhost:5173');
+console.log('   3. Login with admin credentials');
+console.log('   4. Look for admin buttons');
+console.log('   5. Access /admin page');
+console.log('');
+
+console.log('💡 If problems persist:');
+console.log('   • Check Supabase project is running');
+console.log('   • Verify environment variables in .env');
+console.log('   • Ensure database tables exist');
+console.log('   • Try incognito/private browser window');
+
+console.log('\n🚀 Your admin system should work after these steps!');
+
+process.exit(0);

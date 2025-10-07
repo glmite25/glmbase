@@ -60,22 +60,6 @@ const DashboardContent = () => {
       return <PastorsPage />;
     } else if (path.startsWith("/admin/pastors/") && path !== "/admin/pastors") {
       return <PastorDetail />;
-    } else if (path === "/admin/events") {
-      return <PlaceholderCard title="Events Management" description="Manage church events" />;
-    } else if (path === "/admin/sermons") {
-      return <PlaceholderCard title="Sermons Management" description="Sermons feature not implemented" />;
-    } else if (path === "/admin/testimonies") {
-      return <PlaceholderCard title="Testimonies Management" description="Manage member testimonies" />;
-    } else if (path === "/admin/prayers") {
-      return <PlaceholderCard title="Prayer Requests" description="Manage prayer requests" />;
-    } else if (path === "/admin/visitors") {
-      return <PlaceholderCard title="Visitors Management" description="Manage church visitors" />;
-    } else if (path === "/admin/finances") {
-      return <PlaceholderCard title="Financial Records" description="Manage financial records" />;
-    } else if (path === "/admin/communications") {
-      return <PlaceholderCard title="Communications" description="Manage member communications" />;
-    } else if (path === "/admin/analytics") {
-      return <PlaceholderCard title="Analytics Dashboard" description="View detailed analytics and reports" />;
     } else if (path === "/admin/system") {
       return <PlaceholderCard title="System Settings" description="Manage system configuration" />;
     } else if (path === "/admin/settings") {

@@ -44,19 +44,9 @@ const AdminStatsSimple = () => {
         supabase.from('members').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
-      // Try to fetch events if table exists
+      // Events table not implemented yet
       let eventsCount = 0;
       let upcomingEventsCount = 0;
-      
-      try {
-        const eventsResult = await supabase.from('events').select('id', { count: 'exact', head: true });
-        const upcomingEventsResult = await supabase.from('events').select('id', { count: 'exact', head: true }).gte('date', new Date().toISOString().split('T')[0]);
-        
-        eventsCount = eventsResult.count || 0;
-        upcomingEventsCount = upcomingEventsResult.count || 0;
-      } catch (error) {
-        console.log('Events table not available:', error);
-      }
 
       setStats({
         totalMembers: membersResult.count || 0,
