@@ -3,27 +3,25 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import { PageLoader } from "@/components/ui/loading-spinner";
-import { getSuperUserStatus } from "@/utils/superuser-fix";
+// Removed superuser-fix import as it's not needed
 
 // Lazy load components
 const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
-const MembersView = lazy(() => import("@/components/admin/MembersView"));
+// MembersView removed - using MembersManager instead
 const MembersManager = lazy(() => import("@/components/admin/members/MembersManager"));
-const SermonsManager = lazy(() => import("@/components/admin/sermons/SermonsManager"));
+// Sermons functionality removed per user request
 const PastorsPage = lazy(() => import("@/components/admin/pastors/PastorsPage"));
 const PastorDetail = lazy(() => import("@/components/admin/pastors/PastorDetail"));
 const UnitMembersView = lazy(() => import("@/components/admin/units/UnitMembersView"));
 const UserProfileView = lazy(() => import("@/components/admin/profile/UserProfileView"));
 const PlaceholderCard = lazy(() => import("./PlaceholderCard"));
-const StatsCardGrid = lazy(() => import("./StatsCardGrid"));
-const SuperUserSection = lazy(() => import("./SuperUserSection"));
-const AdminSection = lazy(() => import("./AdminSection"));
+const DefaultDashboard = lazy(() => import("./DefaultDashboard"));
 
 const DashboardContent = () => {
   const { isSuperUser } = useAuth();
 
-  // Additional check for superuser status using our utility function
-  const storedSuperUserStatus = getSuperUserStatus();
+  // Check for stored admin status as fallback
+  const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
   const effectiveSuperUser = isSuperUser || storedSuperUserStatus;
 
   console.log('DashboardContent rendering with:', {
@@ -65,7 +63,7 @@ const DashboardContent = () => {
     } else if (path === "/admin/events") {
       return <PlaceholderCard title="Events Management" description="Manage church events" />;
     } else if (path === "/admin/sermons") {
-      return <SermonsManager />;
+      return <PlaceholderCard title="Sermons Management" description="Sermons feature not implemented" />;
     } else if (path === "/admin/testimonies") {
       return <PlaceholderCard title="Testimonies Management" description="Manage member testimonies" />;
     } else if (path === "/admin/prayers") {
@@ -91,12 +89,7 @@ const DashboardContent = () => {
       return <UnitMembersView unitId={unitId || ""} unitName={displayName} />;
     } else {
       // Default dashboard
-      return (
-        <>
-          <StatsCardGrid />
-          {effectiveSuperUser ? <SuperUserSection /> : <AdminSection />}
-        </>
-      );
+      return <DefaultDashboard />;
     }
   };
 

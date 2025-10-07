@@ -31,8 +31,18 @@ This will automatically:
 4. **Direct URL Access** - Navigate to `/admin` directly
 
 ### Admin Roles
-- **Admin**: Can manage members, events, sermons
-- **Super Admin**: Full system access including user management
+- **Admin**: Can manage members, events, sermons, testimonies, prayer requests, visitors
+- **Super Admin**: Full system access including user management, financial records, analytics, system settings
+
+### New Admin Features
+- **Real-time Statistics Dashboard** - Live stats on members, events, donations, sermons
+- **Advanced Members Management** - Full CRUD operations with auth synchronization
+- **Sermons Management** - Upload, organize, and manage sermon content
+- **User-Member Synchronization** - Automatic sync between auth users and members table
+- **Comprehensive Analytics** - Detailed insights and reporting
+- **Financial Management** - Track donations, expenses, and financial records
+- **Visitor Management** - Track and follow up with church visitors
+- **Communication Tools** - Manage member communications and outreach
 
 ## 🔧 How It Works
 
@@ -51,15 +61,38 @@ These emails automatically get admin access:
 ### Database Tables
 - `profiles` - User profile information
 - `user_roles` - Role assignments (admin, superuser)
+- `members` - Church members (synced with auth users)
+- `sermons` - Sermon content and metadata
+- `testimonies` - Member testimonies
+- `prayer_requests` - Prayer requests from members
+- `financial_records` - Donations and financial transactions
+- `visitors` - Church visitor records
+- `communication_logs` - Member communication history
+- `system_settings` - Application configuration
+- `audit_logs` - System activity tracking
+
+### User-Member Synchronization
+- **Automatic Sync**: All new user registrations automatically create member records
+- **Real-time Updates**: Profile changes sync between auth and members tables
+- **Data Integrity**: Triggers ensure consistency between systems
+- **Mock Data Cleanup**: Removes any test data not linked to real users
 
 ## 🎯 Admin Dashboard Features
 
 ### Navigation
-- **Members Management** - View and manage church members
+- **Dashboard** - Overview with real-time statistics
+- **Analytics** - Detailed reports and insights (Super Admin)
+- **Members Management** - Complete member database with auth sync
+- **Pastors Management** - Manage pastoral staff
 - **Events Management** - Create and manage church events
-- **Sermons Management** - Upload and organize sermons
-- **User Management** - Manage user accounts and roles
-- **System Settings** - Configure application settings
+- **Sermons Management** - Upload, organize, and manage sermons
+- **Testimonies** - Approve and manage member testimonies
+- **Prayer Requests** - Manage and respond to prayer requests
+- **Financial Records** - Track donations and expenses (Super Admin)
+- **Visitors** - Manage visitor records and follow-ups
+- **Communications** - Member outreach and messaging
+- **User Management** - Manage user accounts and roles (Super Admin)
+- **System Settings** - Configure application settings (Super Admin)
 
 ### Church Units Management
 - 3H Media
@@ -111,6 +144,27 @@ The admin interface is fully responsive:
 - Responsive admin buttons
 - Mobile navigation menu
 
+## 🔄 User-Member Synchronization
+
+### How It Works
+1. **New Registration**: When a user registers, a member record is automatically created
+2. **Profile Updates**: Changes to user profiles sync to member records
+3. **Data Consistency**: Database triggers ensure data stays in sync
+4. **Mock Data Removal**: Setup script removes any test data not linked to real users
+
+### Sync Features
+- **Automatic Creation**: All auth users get member records
+- **Real-time Updates**: Profile changes immediately sync
+- **Category Assignment**: Admin emails automatically get "Pastors" category
+- **Status Management**: Active/inactive status based on auth status
+- **Data Validation**: Ensures email consistency between systems
+
+### Manual Sync
+If sync gets out of alignment, use the admin dashboard:
+1. Go to Members Management
+2. Click "Sync with Auth" button
+3. System will reconcile any differences
+
 ## 🔄 Updates and Maintenance
 
 ### Adding New Admins
@@ -122,6 +176,11 @@ The admin interface is fully responsive:
 1. Delete from `user_roles` table
 2. Remove from email whitelist
 3. Clear user's localStorage
+
+### Database Maintenance
+- **Regular Backups**: System creates automatic backups
+- **Audit Logs**: All admin actions are logged
+- **Performance Monitoring**: Built-in query optimization
 
 ## 📞 Support
 

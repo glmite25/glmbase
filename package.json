@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "db:migrate": "node scripts/run-migrations.js"
+    "db:migrate": "node scripts/run-migrations.js",
+    "admin:setup": "node run-admin-setup.js",
+    "admin:verify": "node verify-admin-system.js",
+    "admin:complete": "node complete-admin-setup.js",
+    "admin:test": "node quick-admin-test.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

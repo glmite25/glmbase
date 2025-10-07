@@ -12,7 +12,7 @@ import { PageLoader } from "@/components/ui/loading-spinner";
 const AdminSidebar = lazy(() => import("@/components/admin/AdminSidebar"));
 const DashboardHeader = lazy(() => import("@/components/admin/dashboard/DashboardHeader"));
 const DashboardContent = lazy(() => import("@/components/admin/dashboard/DashboardContent"));
-const AdminStats = lazy(() => import("@/components/admin/dashboard/AdminStats"));
+const AdminStats = lazy(() => import("@/components/admin/dashboard/AdminStatsSimple"));
 
 const AdminDashboard = () => {
   const { user, isAdmin, isSuperUser, isLoading } = useAuth();
