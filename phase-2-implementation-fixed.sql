@@ -24,11 +24,9 @@ CREATE INDEX IF NOT EXISTS idx_members_unit_category ON public.members(churchuni
 CREATE INDEX IF NOT EXISTS idx_members_active_fullname ON public.members(isactive, fullname) WHERE isactive = true;
 CREATE INDEX IF NOT EXISTS idx_members_unit_leaders ON public.members(churchunit, category) WHERE category = 'Pastors' AND isactive = true;
 
-SELECT 'Performance indexes created successfully!' as status;--
- ========================================
--- DATA VALIDATION CONSTRAINTS
--- ========================================
+SELECT 'Performance indexes created successfully!' as status;
 
+-- DATA VALIDATION CONSTRAINTS
 SELECT 'Implementing Data Validation Constraints...' as status;
 
 -- Email validation
@@ -61,11 +59,9 @@ ALTER TABLE public.members DROP CONSTRAINT IF EXISTS valid_active_status;
 ALTER TABLE public.members ADD CONSTRAINT valid_active_status 
     CHECK (isactive IS NOT NULL);
 
-SELECT 'Data validation constraints implemented successfully!' as status;-- ======
-==================================
--- CHURCH-SPECIFIC MATERIALIZED VIEWS
--- ========================================
+SELECT 'Data validation constraints implemented successfully!' as status;
 
+-- CHURCH-SPECIFIC MATERIALIZED VIEWS
 SELECT 'Creating Church-Specific Analytics Views...' as status;
 
 -- Drop existing views if they exist
@@ -125,11 +121,9 @@ CREATE INDEX IF NOT EXISTS idx_church_unit_stats_unit ON public.church_unit_stat
 CREATE INDEX IF NOT EXISTS idx_pastoral_care_stats_pastor ON public.pastoral_care_stats(pastor_name);
 CREATE INDEX IF NOT EXISTS idx_member_category_stats_category ON public.member_category_stats(category);
 
-SELECT 'Church analytics views created successfully!' as status;-- =======
-=================================
--- HELPER FUNCTIONS FOR COMMON QUERIES
--- ========================================
+SELECT 'Church analytics views created successfully!' as status;
 
+-- HELPER FUNCTIONS FOR COMMON QUERIES
 SELECT 'Creating Helper Functions...' as status;
 
 -- Function to get member count by category
@@ -218,11 +212,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-SELECT 'Helper functions created successfully!' as status;-
-- ========================================
--- GRANT PERMISSIONS
--- ========================================
+SELECT 'Helper functions created successfully!' as status;
 
+-- GRANT PERMISSIONS
 SELECT 'Setting up Permissions...' as status;
 
 -- Grant permissions on materialized views
@@ -238,10 +230,7 @@ GRANT EXECUTE ON FUNCTION public.get_pastor_workload() TO authenticated;
 
 SELECT 'Permissions configured successfully!' as status;
 
--- ========================================
 -- VERIFICATION AND SUMMARY
--- ========================================
-
 SELECT 'PHASE 2 IMPLEMENTATION COMPLETED!' as status;
 
 -- Show performance improvements
