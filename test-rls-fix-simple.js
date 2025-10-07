@@ -15,6 +15,7 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const SUPERADMIN_EMAIL = 'ojidelawrence@gmail.com';
 const SUPERADMIN_PASSWORD = 'Fa-#8rC6DRTkd$5';
+const SUPERADMIN_ID = '47c693aa-e85c-4450-8d35-250aa4c61587';
 
 async function testRLSFix() {
     console.log('🔍 Testing RLS Fix\n');
@@ -102,6 +103,23 @@ async function testRLSFix() {
         console.log('❌ Superuser function failed:', superuserError.message);
     } else {
         console.log(`✅ Superuser function result: ${isSuperuser}`);
+        
+        if (isSuperuser) {
+            console.log('🎉 User is correctly identified as superuser!');
+        } else {
+            console.log('⚠️  User is not identified as superuser - check role assignment');
+        }
+    }
+
+    // Test direct function call with user ID
+    console.log('\n5. Testing superuser function with specific ID...');
+    const { data: directTest, error: directError } = await serviceClient
+        .rpc('is_superuser', { user_id: SUPERADMIN_ID });
+
+    if (directError) {
+        console.log('❌ Direct superuser test failed:', directError.message);
+    } else {
+        console.log(`✅ Direct test is_superuser('${SUPERADMIN_ID}') = ${directTest}`);
     }
 
     await authClient.auth.signOut();
