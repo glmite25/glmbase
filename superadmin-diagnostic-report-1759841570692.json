@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-10-07T12:52:50.692Z",
+  "email": "ojidelawrence@gmail.com",
+  "summary": {
+    "totalIssues": 2,
+    "totalWarnings": 1,
+    "totalSuccesses": 4
+  },
+  "issues": [
+    {
+      "message": "Exception checking auth.users table",
+      "details": "supabase.auth.admin.getUserByEmail is not a function",
+      "timestamp": "2025-10-07T12:52:43.959Z"
+    },
+    {
+      "message": "Authentication test failed",
+      "details": "Database error granting user",
+      "timestamp": "2025-10-07T12:52:50.691Z"
+    }
+  ],
+  "warnings": [
+    {
+      "message": "Could not check RLS policies",
+      "details": "Could not find the table 'public.pg_policies' in the schema cache",
+      "timestamp": "2025-10-07T12:52:49.087Z"
+    }
+  ],
+  "successes": [
+    {
+      "message": "Found profiles record",
+      "details": null,
+      "timestamp": "2025-10-07T12:52:45.692Z"
+    },
+    {
+      "message": "Profile has correct superuser role",
+      "details": null,
+      "timestamp": "2025-10-07T12:52:45.692Z"
+    },
+    {
+      "message": "Found members record",
+      "details": null,
+      "timestamp": "2025-10-07T12:52:46.621Z"
+    },
+    {
+      "message": "Member is active",
+      "details": null,
+      "timestamp": "2025-10-07T12:52:46.622Z"
+    }
+  ],
+  "recommendations": [
+    "Reset password for superadmin account"
+  ]
+}
