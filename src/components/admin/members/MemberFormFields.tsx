@@ -82,11 +82,9 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="Members">Members</SelectItem>
                 <SelectItem value="Pastors">Pastors</SelectItem>
-                <SelectItem value="Workers">Workers</SelectItem>
-                <SelectItem value="Visitors">Visitors</SelectItem>
-                <SelectItem value="Partners">Partners</SelectItem>
+                <SelectItem value="Members">Members</SelectItem>
+                <SelectItem value="MINT">MINT</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
