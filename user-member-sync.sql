@@ -44,8 +44,8 @@ BEGIN
       NEW.raw_user_meta_data->>'church_unit',
       NEW.raw_user_meta_data->>'assigned_pastor',
       CASE 
-        WHEN NEW.email = 'ojidelawrence@gmail.com' THEN 'Pastors'
-        ELSE 'Members'
+        WHEN NEW.email = 'ojidelawrence@gmail.com' THEN 'Pastors'::public.member_category
+        ELSE 'Members'::public.member_category
       END,
       'active',
       NEW.created_at,
@@ -123,8 +123,8 @@ SELECT
   u.raw_user_meta_data->>'church_unit',
   u.raw_user_meta_data->>'assigned_pastor',
   CASE 
-    WHEN u.email = 'ojidelawrence@gmail.com' THEN 'Pastors'
-    ELSE 'Members'
+    WHEN u.email = 'ojidelawrence@gmail.com' THEN 'Pastors'::public.member_category
+    ELSE 'Members'::public.member_category
   END,
   'active',
   u.created_at,

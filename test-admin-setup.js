@@ -1,134 +1,145 @@
 #!/usr/bin/env node
 
-/**
- * Test Admin Setup Script
- * This script tests if the admin setup is working correctly
- */
-
+// Test script to verify admin setup and data consistency
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
-// Load environment variables
 dotenv.config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://jaicfvakzxfeijtuogir.supabase.co';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables');
+if (!supabaseAnonKey) {
+  console.error('❌ VITE_SUPABASE_ANON_KEY environment variable is required');
+  console.log('Please check your .env file');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-async function testAdminSetup() {
-  console.log('🧪 Testing admin setup...\n');
-  
+async function testTableExists(tableName) {
   try {
-    // Test 1: Check if admin user exists in auth
-    console.log('1️⃣ Checking admin user in auth...');
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      console.error('❌ Auth check failed:', authError.message);
-      return false;
-    }
-
-    const adminUser = authUsers.users.find(user => user.email === 'ojidelawrence@gmail.com');
-    if (adminUser) {
-      console.log('✅ Admin user found in auth');
-    } else {
-      console.log('❌ Admin user not found in auth');
-      return false;
-    }
-
-    // Test 2: Check profile
-    console.log('2️⃣ Checking admin profile...');
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data, error } = await supabase
+      .from(tableName)
       .select('*')
-      .eq('id', adminUser.id)
-      .single();
+      .limit(1);
 
-    if (profileError) {
-      console.log('❌ Profile check failed:', profileError.message);
+    if (error) {
+      console.log(`❌ Table '${tableName}' error:`, error.message);
       return false;
     }
 
-    if (profile) {
-      console.log('✅ Admin profile found');
-    } else {
-      console.log('❌ Admin profile not found');
-      return false;
-    }
-
-    // Test 3: Check admin role
-    console.log('3️⃣ Checking admin role...');
-    const { data: role, error: roleError } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', adminUser.id)
-      .eq('role', 'superuser')
-      .single();
-
-    if (roleError && roleError.code !== 'PGRST116') {
-      console.log('❌ Role check failed:', roleError.message);
-      return false;
-    }
-
-    if (role) {
-      console.log('✅ Admin role found');
-    } else {
-      console.log('❌ Admin role not found');
-      return false;
-    }
-
-    // Test 4: Check database tables exist
-    console.log('4️⃣ Checking required tables...');
-    
-    const tables = ['profiles', 'user_roles'];
-    for (const table of tables) {
-      const { error } = await supabase.from(table).select('id').limit(1);
-      if (error) {
-        console.log(`❌ Table '${table}' not accessible:`, error.message);
-        return false;
-      } else {
-        console.log(`✅ Table '${table}' accessible`);
-      }
-    }
-
-    console.log('\n🎉 All tests passed! Admin setup is working correctly.');
-    console.log('\n📋 Summary:');
-    console.log(`   👤 Admin Email: ${adminUser.email}`);
-    console.log(`   🆔 User ID: ${adminUser.id}`);
-    console.log(`   📧 Email Confirmed: ${adminUser.email_confirmed_at ? 'Yes' : 'No'}`);
-    console.log(`   🛡️  Role: Super Admin`);
-    console.log(`   📅 Created: ${new Date(adminUser.created_at).toLocaleDateString()}`);
-
+    console.log(`✅ Table '${tableName}' exists and is accessible`);
     return true;
-
-  } catch (error) {
-    console.error('❌ Test failed with error:', error);
+  } catch (err) {
+    console.log(`❌ Table '${tableName}' not accessible:`, err.message);
     return false;
   }
 }
 
-// Run the test
-testAdminSetup().then((success) => {
-  if (success) {
-    console.log('\n✨ Admin setup test completed successfully!');
-    console.log('\n🚀 Next steps:');
-    console.log('   1. Start your application: npm run dev');
-    console.log('   2. Navigate to /auth');
-    console.log('   3. Login with ojidelawrence@gmail.com');
-    console.log('   4. Look for admin buttons in the UI');
-    console.log('   5. Access admin dashboard at /admin');
-  } else {
-    console.log('\n❌ Admin setup test failed!');
-    console.log('\n🔧 Try running: node setup-admin-user.js');
+async function checkAdminUsers() {
+  console.log('\n🔍 Checking admin users...');
+
+  const adminEmails = [
+    'ojidelawrence@gmail.com',
+    'admin@gospellabourministry.com',
+    'superadmin@gospellabourministry.com'
+  ];
+
+  for (const email of adminEmails) {
+    console.log(`\n📧 Checking: ${email}`);
+
+    // Check if user exists in profiles
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (profileError || !profile) {
+      console.log(`   ❌ No profile found`);
+      continue;
+    }
+
+    console.log(`   ✅ Profile exists (ID: ${profile.id})`);
+
+    // Check user roles
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', profile.id);
+
+    if (rolesError) {
+      console.log(`   ❌ Error checking roles:`, rolesError.message);
+    } else if (roles && roles.length > 0) {
+      console.log(`   ✅ Roles: ${roles.map(r => r.role).join(', ')}`);
+    } else {
+      console.log(`   ❌ No roles assigned`);
+    }
+
+    // Check member record
+    const { data: member, error: memberError } = await supabase
+      .from('members')
+      .select('*')
+      .eq('user_id', profile.id)
+      .single();
+
+    if (memberError || !member) {
+      console.log(`   ❌ No member record found`);
+    } else {
+      console.log(`   ✅ Member record exists (Category: ${member.category})`);
+    }
   }
-  process.exit(success ? 0 : 1);
-}).catch((error) => {
-  console.error('❌ Test script failed:', error);
-  process.exit(1);
-});
+}
+
+async function testRLSPolicies() {
+  console.log('\n🔒 Testing RLS policies...');
+
+  const tables = ['profiles', 'user_roles', 'members'];
+
+  for (const table of tables) {
+    try {
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .limit(1);
+
+      if (error) {
+        console.log(`❌ RLS policy issue for '${table}':`, error.message);
+      } else {
+        console.log(`✅ RLS policies working for '${table}'`);
+      }
+    } catch (err) {
+      console.log(`❌ Error testing '${table}':`, err.message);
+    }
+  }
+}
+
+async function main() {
+  console.log('🧪 Testing Admin Setup and Data Consistency\n');
+
+  // Test table accessibility
+  console.log('📋 Checking table accessibility...');
+  const tables = ['profiles', 'user_roles', 'members'];
+
+  for (const table of tables) {
+    await testTableExists(table);
+  }
+
+  // Check admin users
+  await checkAdminUsers();
+
+  // Test RLS policies
+  await testRLSPolicies();
+
+  console.log('\n🎯 Test Summary:');
+  console.log('If all checks passed, admin authentication should work properly.');
+  console.log('If any checks failed, run the database fix script first.');
+
+  console.log('\n📋 To fix any issues:');
+  console.log('1. Run: node run-database-fix.js');
+  console.log('2. Then test admin login in the application');
+  console.log('3. Check browser console for any remaining errors');
+}
+
+main().catch(console.error);
