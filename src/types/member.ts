@@ -1,7 +1,7 @@
 
 import * as z from "zod";
 
-export type MemberCategory = 'Sons' | 'Pastors' | 'MINT' | 'Others';
+export type MemberCategory = 'Members' | 'Pastors' | 'Workers' | 'Visitors' | 'Partners';
 
 /**
  * Member interface representing a church member
@@ -39,7 +39,7 @@ export const memberSchema = z.object({
   email: z.string().email({ message: "Valid email is required" }),
   phone: z.string().optional(),
   address: z.string().optional(),
-  category: z.enum(["Sons", "Pastors", "MINT", "Others"]),
+  category: z.enum(["Members", "Pastors", "Workers", "Visitors", "Partners"]),
   assignedTo: z.string().optional(),
   churchUnits: z.array(z.string()).optional(),
   churchUnit: z.string().optional(), // Legacy field for backward compatibility

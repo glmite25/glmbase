@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,16 +58,7 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
     },
   });
 
-  const churchUnits = [
-    { id: "3hmedia", name: "3H Media" },
-    { id: "3hmusic", name: "3H Music" },
-    { id: "3hmovies", name: "3H Movies" },
-    { id: "3hsecurity", name: "3H Security" },
-    { id: "discipleship", name: "Discipleship" },
-    { id: "praisefeet", name: "Praise Feet" },
-    { id: "cloventongues", name: "Cloven Tongues" },
-    { id: "auxano", name: "Auxano Group" },
-  ];
+  const churchUnits = OFFICIAL_CHURCH_UNITS;
 
   const auxanoGroups = [
     { id: "group_a", name: "Group A" },

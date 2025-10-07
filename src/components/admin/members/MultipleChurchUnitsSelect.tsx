@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
 interface ChurchUnit {
   id: string;
@@ -40,16 +41,8 @@ export function MultipleChurchUnitsSelect({
     setSelectedValues(value);
   }, [value]);
 
-  const churchUnits: ChurchUnit[] = [
-    { id: "3hmedia", name: "3H Media" },
-    { id: "3hmusic", name: "3H Music" },
-    { id: "3hmovies", name: "3H Movies" },
-    { id: "3hsecurity", name: "3H Security" },
-    { id: "discipleship", name: "Discipleship" },
-    { id: "praisefeet", name: "Praise Feet" },
-    { id: "cloventongues", name: "Cloven Tongues" },
-    { id: "auxano", name: "Auxano Group" },
-  ];
+  // Use official church units from constants
+  const churchUnits = OFFICIAL_CHURCH_UNITS;
 
   const toggleValue = (unitId: string) => {
     const newValues = selectedValues.includes(unitId)

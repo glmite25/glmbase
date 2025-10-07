@@ -40,7 +40,7 @@ export function EditMemberDialog({
       email: "",
       phone: "",
       address: "",
-      category: "Sons",
+      category: "Members",
       assignedTo: "none",
       churchUnits: [],
       notes: "",

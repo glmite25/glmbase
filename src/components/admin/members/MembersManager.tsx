@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CHURCH_UNIT_NAMES } from "@/constants/churchUnits";
 import {
   Users,
   UserPlus,
@@ -89,10 +90,7 @@ const MembersManager = () => {
     isactive: true,
   });
 
-  const churchUnits = [
-    "3H Media", "3H Music", "3H Movies", "3H Security",
-    "Discipleship", "Praise Feet", "Cloven Tongues", "Auxano Group"
-  ];
+  const churchUnits = CHURCH_UNIT_NAMES;
 
   const categories = ["Members", "Pastors", "Deacons", "Elders"];
   const statuses = [

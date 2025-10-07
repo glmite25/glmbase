@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Phone, MapPin, Mail, User, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
 export const AuthForm = () => {
   const navigate = useNavigate();
@@ -54,16 +55,7 @@ export const AuthForm = () => {
     }
   }, [user, returnTo, navigate]);
 
-  const churchUnits = [
-    { id: "3hmedia", name: "3H Media" },
-    { id: "3hmusic", name: "3H Music" },
-    { id: "3hmovies", name: "3H Movies" },
-    { id: "3hsecurity", name: "3H Security" },
-    { id: "discipleship", name: "Discipleship" },
-    { id: "praisefeet", name: "Praise Feet" },
-    { id: "cloventongues", name: "Cloven Tongues" },
-    { id: "auxano", name: "Auxano Group" },
-  ];
+  const churchUnits = OFFICIAL_CHURCH_UNITS;
 
   // Fetch pastors dynamically from the database instead of using hardcoded values
   const [pastors, setPastors] = useState<{ id: string; name: string }[]>([]);

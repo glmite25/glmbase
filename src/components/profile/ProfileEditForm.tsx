@@ -5,6 +5,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
 import {
   Form,
@@ -48,16 +49,10 @@ const genotypeOptions = [
   { value: "unknown", label: "Unknown" },
 ];
 
-const churchUnits = [
-  { value: "3hmedia", label: "3H Media" },
-  { value: "3hmusic", label: "3H Music" },
-  { value: "3hmovies", label: "3H Movies" },
-  { value: "3hsecurity", label: "3H Security" },
-  { value: "discipleship", label: "Discipleship" },
-  { value: "praisefeet", label: "Praise Feet" },
-  { value: "cloventongues", label: "Cloven Tongues" },
-  { value: "auxano", label: "Auxano Group" },
-];
+const churchUnits = OFFICIAL_CHURCH_UNITS.map(unit => ({
+  value: unit.id,
+  label: unit.name
+}));
 
 export function ProfileEditForm() {
   const { user, profile } = useAuth();

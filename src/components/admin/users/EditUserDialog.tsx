@@ -10,6 +10,7 @@ import { type AdminUser } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 import { MultipleChurchUnitsSelect } from "../../admin/members/MultipleChurchUnitsSelect";
 import { addUserRoleSafe, removeUserRoleSafe } from "@/utils/roleManagement";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
 import {
   Dialog,
@@ -69,16 +70,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
     },
   });
 
-  const churchUnits = [
-    { id: "3hmedia", name: "3H Media" },
-    { id: "3hmusic", name: "3H Music" },
-    { id: "3hmovies", name: "3H Movies" },
-    { id: "3hsecurity", name: "3H Security" },
-    { id: "discipleship", name: "Discipleship" },
-    { id: "praisefeet", name: "Praise Feet" },
-    { id: "cloventongues", name: "Cloven Tongues" },
-    { id: "auxano", name: "Auxano Group" },
-  ];
+  const churchUnits = OFFICIAL_CHURCH_UNITS;
 
   const pastors = [
     { id: "timileyin_fadeyi", name: "Timileyin Fadeyi" },

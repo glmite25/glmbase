@@ -18,6 +18,7 @@ import {
   User,
   Database
 } from "lucide-react";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -76,44 +77,26 @@ const AdminSidebar = () => {
     }
   ];
 
-  // Church units menu items (only for super users)
-  const churchUnitsMenuItems = [
-    {
-      name: "3HMedia",
-      path: "/admin/units/3hmedia",
-      icon: <Camera size={20} />
-    },
-    {
-      name: "3HMusic",
-      path: "/admin/units/3hmusic",
-      icon: <Headphones size={20} />
-    },
-    {
-      name: "3HMovies",
-      path: "/admin/units/3hmovies",
-      icon: <Film size={20} />
-    },
-    {
-      name: "3HSecurity",
-      path: "/admin/units/3hsecurity",
-      icon: <ShieldCheck size={20} />
-    },
-    {
-      name: "Discipleship",
-      path: "/admin/units/discipleship",
-      icon: <Users size={20} />
-    },
-    {
-      name: "Praise Feet",
-      path: "/admin/units/praisefeet",
-      icon: <Speaker size={20} />
-    },
-    {
-      name: "Cloven Tongues",
-      path: "/admin/units/cloventongues",
-      icon: <Church size={20} />
+  // Helper function to get appropriate icon for each church unit
+  function getIconForChurchUnit(unitId: string) {
+    switch (unitId) {
+      case "3hmedia": return <Camera size={20} />;
+      case "3hmusic": return <Headphones size={20} />;
+      case "3hmovies": return <Film size={20} />;
+      case "3hsecurity": return <ShieldCheck size={20} />;
+      case "discipleship": return <Users size={20} />;
+      case "praisefeet": return <Speaker size={20} />;
+      case "cloventongues": return <Church size={20} />;
+      default: return <Users size={20} />;
     }
-  ];
+  }
+
+  // Church units menu items (only for super users)
+  const churchUnitsMenuItems = OFFICIAL_CHURCH_UNITS.map(unit => ({
+    name: unit.name,
+    path: `/admin/units/${unit.id}`,
+    icon: getIconForChurchUnit(unit.id)
+  }));
 
   // Profile menu item for all
   const profileMenuItem = {
