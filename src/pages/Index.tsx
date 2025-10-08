@@ -31,10 +31,10 @@ const Index = () => {
   // Format sermons for display
   const formattedSermons = recentSermons.map(sermon => ({
     id: sermon.id,
-    title: sermon.title,
-    speaker: sermon.speaker,
-    date: new Date(sermon.sermon_date).toLocaleDateString(),
-    type: sermon.sermon_type,
+    title: sermon.title || 'Untitled Sermon',
+    speaker: sermon.speaker || 'Unknown Speaker',
+    date: sermon.sermon_date ? new Date(sermon.sermon_date).toLocaleDateString() : 'Date TBD',
+    type: sermon.sermon_type || 'sermon',
     image: sermon.image_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
   }));
 
@@ -426,7 +426,7 @@ const Index = () => {
                         {/* Content */}
                         <div className="w-full md:w-2/3">
                           <div className="text-church-red text-sm font-medium mb-2">
-                            {sermon.type.replace('_', ' ').toUpperCase()}
+                            {sermon.type ? sermon.type.replace('_', ' ').toUpperCase() : 'SERMON'}
                           </div>
                           <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
                             {sermon.title}
