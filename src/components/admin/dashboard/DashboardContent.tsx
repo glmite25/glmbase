@@ -14,6 +14,7 @@ const PastorsPage = lazy(() => import("@/components/admin/pastors/PastorsPage"))
 const PastorDetail = lazy(() => import("@/components/admin/pastors/PastorDetail"));
 const UnitMembersView = lazy(() => import("@/components/admin/units/UnitMembersView"));
 const UserProfileView = lazy(() => import("@/components/admin/profile/UserProfileView"));
+const ProfileSyncManager = lazy(() => import("@/components/admin/ProfileSyncManager"));
 const PlaceholderCard = lazy(() => import("./PlaceholderCard"));
 const DefaultDashboard = lazy(() => import("./DefaultDashboard"));
 
@@ -61,7 +62,7 @@ const DashboardContent = () => {
     } else if (path.startsWith("/admin/pastors/") && path !== "/admin/pastors") {
       return <PastorDetail />;
     } else if (path === "/admin/system") {
-      return <PlaceholderCard title="System Settings" description="Manage system configuration" />;
+      return <ProfileSyncManager />;
     } else if (path === "/admin/settings") {
       return <PlaceholderCard title="Settings" description="Manage church settings" />;
     } else if (path === "/admin/profile") {

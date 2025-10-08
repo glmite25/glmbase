@@ -20,7 +20,7 @@ export const usePastors = (filters?: PastorFilters) => {
     queryFn: async (): Promise<Pastor[]> => {
       // Execute query with simplified approach to avoid type issues
       const { data, error } = await supabase
-        .from('members')
+        .from('members_enhanced')
         .select('*')
         .eq('category', 'Pastors');
 
@@ -62,7 +62,7 @@ export const usePastor = (id: string) => {
     queryKey: queryKeys.pastors.detail(id),
     queryFn: async (): Promise<Pastor> => {
       const { data, error } = await supabase
-        .from('members')
+        .from('members_enhanced')
         .select('*')
         .eq('id', id)
         .eq('category', 'Pastors')
