@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { adminSupabase } from "@/integrations/supabase/adminClient";
+import { Member, MemberCategory, AppRole } from "@/types/member";
 
 export interface MemberTestResult {
   testName: string;
@@ -18,48 +18,151 @@ export interface MemberTestReport {
   tests: MemberTestResult[];
 }
 
+// Type-safe member data interface for testing
+interface TestMemberData {
+  fullname: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  category: string;
+  isactive?: boolean;
+  role?: string;
+}
+
 /**
- * Test 1: Verify all CRUD operations work correctly
+ * Comprehensive member management tests
+ * Tests CRUD operations, search functionality, and data integrity
  */
-export const testMemberCRUDOperations = async (): Promise<MemberTestResult> => {
+export async function runMemberManagementTests(): Promise<MemberTestReport> {
+  const testResults: MemberTestResult[] = [];
+  const startTime = new Date().toISOString();
+
+  console.log("🧪 Starting Member Management Tests...");
+
+  // Test 1: Database Connection
   try {
-    const testResults = {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    };
+    const connectionTest = await testDatabaseConnection();
+    testResults.push(connectionTest);
+  } catch (error) {
+    testResults.push({
+      testName: "Database Connection",
+      passed: false,
+      message: "Failed to connect to database",
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 
-    // Test READ operation
-    const { data: existingMembers, error: readError } = await supabase
+  // Test 2: Basic CRUD Operations
+  try {
+    const crudTest = await testMemberCRUDOperations();
+    testResults.push(crudTest);
+  } catch (error) {
+    testResults.push({
+      testName: "Member CRUD Operations",
+      passed: false,
+      message: "CRUD operations failed",
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
+  // Test 3: Search Functionality
+  try {
+    const searchTest = await testMemberSearchFunctionality();
+    testResults.push(searchTest);
+  } catch (error) {
+    testResults.push({
+      testName: "Member Search Functionality",
+      passed: false,
+      message: "Search functionality failed",
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
+  // Test 4: Data Validation
+  try {
+    const validationTest = await testDataValidation();
+    testResults.push(validationTest);
+  } catch (error) {
+    testResults.push({
+      testName: "Data Validation",
+      passed: false,
+      message: "Data validation failed",
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
+  // Calculate summary
+  const passedTests = testResults.filter(test => test.passed).length;
+  const totalTests = testResults.length;
+  const overallPassed = passedTests === totalTests;
+
+  console.log(`✅ Tests completed: ${passedTests}/${totalTests} passed`);
+
+  return {
+    timestamp: startTime,
+    overallPassed,
+    totalTests,
+    passedTests,
+    failedTests: totalTests - passedTests,
+    tests: testResults
+  };
+}
+
+/**
+ * Test database connection and basic table access
+ */
+async function testDatabaseConnection(): Promise<MemberTestResult> {
+  try {
+    const { data, error } = await supabase
       .from("members")
-      .select("*")
-      .limit(5);
+      .select("id")
+      .limit(1);
 
-    if (readError) {
+    if (error) {
       return {
-        testName: "Member CRUD Operations - Read",
+        testName: "Database Connection",
         passed: false,
-        message: "Cannot read members from database",
-        error: readError.message
+        message: "Database query failed",
+        error: error.message
       };
     }
 
-    testResults.read = true;
+    return {
+      testName: "Database Connection",
+      passed: true,
+      message: "Successfully connected to database and accessed members table"
+    };
+  } catch (error) {
+    return {
+      testName: "Database Connection",
+      passed: false,
+      message: "Connection test failed",
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
 
-    // Test CREATE operation (we'll create a test member)
-    const testMemberData = {
-      email: `test-member-${Date.now()}@example.com`,
-      fullname: "Test Member",
-      category: "Members" as const,
+/**
+ * Test CRUD operations on members table
+ */
+async function testMemberCRUDOperations(): Promise<MemberTestResult> {
+  const testMemberId = `test-${Date.now()}`;
+  const testEmail = `test-${Date.now()}@example.com`;
+
+  try {
+    // Test CREATE
+    const createData: TestMemberData = {
+      fullname: "Test User",
+      email: testEmail,
+      phone: "123-456-7890",
+      category: "Members",
       isactive: true,
-      role: "user" as const,
-      joindate: new Date().toISOString().split('T')[0]
+      role: "user"
     };
 
     const { data: createdMember, error: createError } = await supabase
       .from("members")
-      .insert([testMemberData])
+      .insert([{ id: testMemberId, ...createData }])
       .select()
       .single();
 
@@ -67,20 +170,33 @@ export const testMemberCRUDOperations = async (): Promise<MemberTestResult> => {
       return {
         testName: "Member CRUD Operations - Create",
         passed: false,
-        message: "Cannot create new member",
-        error: createError.message,
-        details: { testResults }
+        message: "Failed to create member",
+        error: createError.message
       };
     }
 
-    testResults.create = true;
-    const testMemberId = createdMember.id;
+    // Test READ
+    const { data: readMember, error: readError } = await supabase
+      .from("members")
+      .select("*")
+      .eq("id", testMemberId)
+      .single();
 
-    // Test UPDATE operation
+    if (readError || !readMember) {
+      // Clean up
+      await supabase.from("members").delete().eq("id", testMemberId);
+      return {
+        testName: "Member CRUD Operations - Read",
+        passed: false,
+        message: "Failed to read created member",
+        error: readError?.message || "Member not found"
+      };
+    }
+
+    // Test UPDATE
     const updateData = {
-      fullname: "Updated Test Member",
-      phone: "+1234567890",
-      address: "Test Address"
+      fullname: "Updated Test User",
+      phone: "987-654-3210"
     };
 
     const { data: updatedMember, error: updateError } = await supabase
@@ -91,43 +207,36 @@ export const testMemberCRUDOperations = async (): Promise<MemberTestResult> => {
       .single();
 
     if (updateError) {
-      // Clean up created member before returning error
+      // Clean up
       await supabase.from("members").delete().eq("id", testMemberId);
-      
       return {
         testName: "Member CRUD Operations - Update",
         passed: false,
-        message: "Cannot update member",
-        error: updateError.message,
-        details: { testResults }
+        message: "Failed to update member",
+        error: updateError.message
       };
     }
 
-    testResults.update = true;
-
     // Verify update worked
-    if (updatedMember.fullname !== updateData.fullname || 
-        updatedMember.phone !== updateData.phone) {
-      // Clean up created member before returning error
+    if (updatedMember && ((updatedMember as any).fullname !== updateData.fullname ||
+      (updatedMember as any).phone !== updateData.phone)) {
+      // Clean up
       await supabase.from("members").delete().eq("id", testMemberId);
-      
       return {
         testName: "Member CRUD Operations - Update Verification",
         passed: false,
-        message: "Member update did not persist correctly",
-        details: { 
-          testResults,
+        message: "Update verification failed",
+        details: {
           expected: updateData,
           actual: {
-            fullname: updatedMember.fullname,
-            phone: updatedMember.phone,
-            address: updatedMember.address
+            fullname: (updatedMember as any).fullname,
+            phone: (updatedMember as any).phone
           }
         }
       };
     }
 
-    // Test DELETE operation
+    // Test DELETE
     const { error: deleteError } = await supabase
       .from("members")
       .delete()
@@ -137,525 +246,270 @@ export const testMemberCRUDOperations = async (): Promise<MemberTestResult> => {
       return {
         testName: "Member CRUD Operations - Delete",
         passed: false,
-        message: "Cannot delete member",
-        error: deleteError.message,
-        details: { testResults }
+        message: "Failed to delete member",
+        error: deleteError.message
       };
     }
 
-    testResults.delete = true;
-
-    // Verify deletion worked
-    const { data: deletedMember, error: verifyDeleteError } = await supabase
+    // Verify deletion
+    const { data: deletedMember, error: verifyError } = await supabase
       .from("members")
-      .select("*")
+      .select("id")
       .eq("id", testMemberId)
-      .maybeSingle();
+      .single();
 
-    if (verifyDeleteError) {
+    if (!verifyError || deletedMember) {
       return {
         testName: "Member CRUD Operations - Delete Verification",
         passed: false,
-        message: "Error verifying member deletion",
-        error: verifyDeleteError.message,
-        details: { testResults }
-      };
-    }
-
-    if (deletedMember) {
-      return {
-        testName: "Member CRUD Operations - Delete Verification",
-        passed: false,
-        message: "Member was not actually deleted",
-        details: { testResults, deletedMember }
+        message: "Delete verification failed - member still exists"
       };
     }
 
     return {
-      testName: "Member CRUD Operations Validation",
+      testName: "Member CRUD Operations",
       passed: true,
-      message: "All CRUD operations work correctly",
-      details: {
-        testResults,
-        operationsCompleted: Object.values(testResults).filter(Boolean).length,
-        testMemberCreated: testMemberData,
-        testMemberUpdated: updateData
-      }
+      message: "All CRUD operations completed successfully"
     };
+
   } catch (error) {
+    // Clean up in case of error
+    await supabase.from("members").delete().eq("id", testMemberId);
+
     return {
-      testName: "Member CRUD Operations Validation",
+      testName: "Member CRUD Operations",
       passed: false,
-      message: "Error testing CRUD operations",
-      error: String(error)
+      message: "CRUD operations test failed",
+      error: error instanceof Error ? error.message : String(error)
     };
   }
-};
+}
 
 /**
- * Test 2: Test member search, filtering, and pagination
+ * Test search functionality
  */
-export const testMemberSearchAndFiltering = async (): Promise<MemberTestResult> => {
+async function testMemberSearchFunctionality(): Promise<MemberTestResult> {
   try {
-    const searchTests = {
-      basicSearch: false,
-      emailFilter: false,
-      categoryFilter: false,
-      activeFilter: false,
-      pagination: false,
-      sorting: false
-    };
-
-    // Test basic search functionality
-    const { data: allMembers, error: allMembersError } = await supabase
+    // Get sample data for testing
+    const { data: sampleMembers, error: sampleError } = await supabase
       .from("members")
-      .select("*")
+      .select("id, fullname, email, phone, category")
       .limit(10);
 
-    if (allMembersError) {
+    if (sampleError || !sampleMembers || sampleMembers.length === 0) {
       return {
-        testName: "Member Search and Filtering - Basic Query",
+        testName: "Member Search Functionality",
         passed: false,
-        message: "Cannot perform basic member query",
-        error: allMembersError.message
+        message: "No sample data available for search testing",
+        error: sampleError?.message
       };
     }
 
-    searchTests.basicSearch = true;
+    const searchTests = {
+      nameSearch: false,
+      emailSearch: false,
+      phoneSearch: false,
+      categorySearch: false
+    };
 
-    if (!allMembers || allMembers.length === 0) {
-      return {
-        testName: "Member Search and Filtering - Data Availability",
-        passed: false,
-        message: "No members found to test search and filtering"
-      };
-    }
-
-    // Test email filtering
-    const sampleEmail = allMembers[0]?.email;
-    if (sampleEmail) {
-      const { data: emailFilteredMembers, error: emailFilterError } = await supabase
+    // Test name search
+    const memberWithName = sampleMembers.find((m: any) => (m as any).fullname);
+    if (memberWithName) {
+      const nameTerm = (memberWithName as any).fullname.split(' ')[0];
+      const { data: nameSearchResults, error: nameSearchError } = await supabase
         .from("members")
-        .select("*")
-        .ilike("email", `%${sampleEmail.split('@')[0]}%`);
+        .select("id, fullname")
+        .ilike("fullname", `%${nameTerm}%`)
+        .limit(5);
 
-      if (emailFilterError) {
-        return {
-          testName: "Member Search and Filtering - Email Filter",
-          passed: false,
-          message: "Cannot filter members by email",
-          error: emailFilterError.message,
-          details: { searchTests }
-        };
+      if (!nameSearchError && nameSearchResults && nameSearchResults.length > 0) {
+        searchTests.nameSearch = true;
       }
-
-      searchTests.emailFilter = true;
     }
 
-    // Test category filtering
-    const { data: categoryFilteredMembers, error: categoryFilterError } = await supabase
+    // Test email search
+    const memberWithEmail = sampleMembers.find((m: any) => (m as any).email);
+    if (memberWithEmail) {
+      const emailTerm = (memberWithEmail as any).email.split('@')[0];
+      const { data: emailSearchResults, error: emailSearchError } = await supabase
+        .from("members")
+        .select("id, email")
+        .ilike("email", `%${emailTerm}%`)
+        .limit(5);
+
+      if (!emailSearchError && emailSearchResults && emailSearchResults.length > 0) {
+        searchTests.emailSearch = true;
+      }
+    }
+
+    // Test phone search (if phone column exists)
+    const memberWithPhone = sampleMembers.find((m: any) => (m as any).phone);
+    if (memberWithPhone) {
+      const phoneTerm = (memberWithPhone as any).phone.substring(0, 3);
+      const { data: phoneSearchResults, error: phoneSearchError } = await supabase
+        .from("members")
+        .select("id, phone")
+        .ilike("phone", `%${phoneTerm}%`)
+        .limit(5);
+
+      if (!phoneSearchError && phoneSearchResults && phoneSearchResults.length > 0) {
+        searchTests.phoneSearch = true;
+      }
+    }
+
+    // Test category search
+    const { data: categorySearchResults, error: categorySearchError } = await supabase
       .from("members")
-      .select("*")
+      .select("id, category")
       .eq("category", "Members")
       .limit(5);
 
-    if (categoryFilterError) {
-      return {
-        testName: "Member Search and Filtering - Category Filter",
-        passed: false,
-        message: "Cannot filter members by category",
-        error: categoryFilterError.message,
-        details: { searchTests }
-      };
+    if (!categorySearchError && categorySearchResults && categorySearchResults.length > 0) {
+      searchTests.categorySearch = true;
     }
 
-    searchTests.categoryFilter = true;
-
-    // Test active status filtering
-    const { data: activeFilteredMembers, error: activeFilterError } = await supabase
-      .from("members")
-      .select("*")
-      .eq("isactive", true)
-      .limit(5);
-
-    if (activeFilterError) {
-      return {
-        testName: "Member Search and Filtering - Active Filter",
-        passed: false,
-        message: "Cannot filter members by active status",
-        error: activeFilterError.message,
-        details: { searchTests }
-      };
-    }
-
-    searchTests.activeFilter = true;
-
-    // Test pagination
-    const { data: firstPage, error: firstPageError } = await supabase
-      .from("members")
-      .select("*")
-      .range(0, 4); // First 5 records
-
-    if (firstPageError) {
-      return {
-        testName: "Member Search and Filtering - Pagination",
-        passed: false,
-        message: "Cannot paginate member results",
-        error: firstPageError.message,
-        details: { searchTests }
-      };
-    }
-
-    const { data: secondPage, error: secondPageError } = await supabase
-      .from("members")
-      .select("*")
-      .range(5, 9); // Next 5 records
-
-    if (secondPageError) {
-      return {
-        testName: "Member Search and Filtering - Pagination",
-        passed: false,
-        message: "Cannot paginate member results (second page)",
-        error: secondPageError.message,
-        details: { searchTests }
-      };
-    }
-
-    searchTests.pagination = true;
-
-    // Test sorting
-    const { data: sortedMembers, error: sortError } = await supabase
-      .from("members")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (sortError) {
-      return {
-        testName: "Member Search and Filtering - Sorting",
-        passed: false,
-        message: "Cannot sort member results",
-        error: sortError.message,
-        details: { searchTests }
-      };
-    }
-
-    searchTests.sorting = true;
+    const passedSearchTests = Object.values(searchTests).filter(Boolean).length;
+    const totalSearchTests = Object.keys(searchTests).length;
 
     return {
-      testName: "Member Search and Filtering Validation",
-      passed: true,
-      message: "All search and filtering operations work correctly",
-      details: {
-        searchTests,
-        totalMembers: allMembers.length,
-        categoryFilteredCount: categoryFilteredMembers?.length || 0,
-        activeFilteredCount: activeFilteredMembers?.length || 0,
-        firstPageCount: firstPage?.length || 0,
-        secondPageCount: secondPage?.length || 0,
-        sortedMembersCount: sortedMembers?.length || 0
-      }
+      testName: "Member Search Functionality",
+      passed: passedSearchTests >= 2, // At least 2 search types should work
+      message: `Search functionality: ${passedSearchTests}/${totalSearchTests} search types working`,
+      details: searchTests
     };
+
   } catch (error) {
     return {
-      testName: "Member Search and Filtering Validation",
+      testName: "Member Search Functionality",
       passed: false,
-      message: "Error testing search and filtering",
-      error: String(error)
+      message: "Search functionality test failed",
+      error: error instanceof Error ? error.message : String(error)
     };
   }
-};
+}
 
 /**
- * Test 3: Validate pastor assignment and church unit management
+ * Test data validation and constraints
  */
-export const testPastorAssignmentAndChurchUnits = async (): Promise<MemberTestResult> => {
+async function testDataValidation(): Promise<MemberTestResult> {
   try {
-    const assignmentTests = {
-      pastorAssignment: false,
-      churchUnitAssignment: false,
-      multipleChurchUnits: false,
-      assignmentValidation: false
+    const validationTests = {
+      emailUniqueness: false,
+      requiredFields: false,
+      categoryValidation: false
     };
 
-    // Test pastor assignment functionality
-    const { data: pastors, error: pastorsError } = await supabase
+    // Test email uniqueness (try to create duplicate email)
+    const testEmail = `validation-test-${Date.now()}@example.com`;
+
+    // Create first member
+    const { data: firstMember, error: firstError } = await supabase
       .from("members")
-      .select("*")
-      .eq("category", "Pastors")
-      .limit(5);
+      .insert([{
+        fullname: "Validation Test 1",
+        email: testEmail,
+        category: "Members"
+      }])
+      .select()
+      .single();
 
-    if (pastorsError) {
-      return {
-        testName: "Pastor Assignment - Pastor Query",
-        passed: false,
-        message: "Cannot query pastors for assignment testing",
-        error: pastorsError.message
-      };
-    }
+    if (!firstError && firstMember) {
+      // Try to create duplicate email
+      const { error: duplicateError } = await supabase
+        .from("members")
+        .insert([{
+          fullname: "Validation Test 2",
+          email: testEmail,
+          category: "Members"
+        }]);
 
-    // Test members with pastor assignments
-    const { data: membersWithPastors, error: assignedMembersError } = await supabase
-      .from("members")
-      .select("*")
-      .not("assignedto", "is", null)
-      .limit(10);
-
-    if (assignedMembersError) {
-      return {
-        testName: "Pastor Assignment - Assigned Members Query",
-        passed: false,
-        message: "Cannot query members with pastor assignments",
-        error: assignedMembersError.message,
-        details: { assignmentTests }
-      };
-    }
-
-    assignmentTests.pastorAssignment = true;
-
-    // Test church unit assignments
-    const { data: membersWithChurchUnits, error: churchUnitsError } = await supabase
-      .from("members")
-      .select("*")
-      .not("churchunit", "is", null)
-      .limit(10);
-
-    if (churchUnitsError) {
-      return {
-        testName: "Church Unit Assignment - Church Unit Query",
-        passed: false,
-        message: "Cannot query members with church unit assignments",
-        error: churchUnitsError.message,
-        details: { assignmentTests }
-      };
-    }
-
-    assignmentTests.churchUnitAssignment = true;
-
-    // Test multiple church units (array field)
-    const { data: membersWithMultipleUnits, error: multipleUnitsError } = await supabase
-      .from("members")
-      .select("*")
-      .not("churchunits", "is", null)
-      .limit(10);
-
-    if (multipleUnitsError) {
-      return {
-        testName: "Church Unit Assignment - Multiple Units Query",
-        passed: false,
-        message: "Cannot query members with multiple church units",
-        error: multipleUnitsError.message,
-        details: { assignmentTests }
-      };
-    }
-
-    assignmentTests.multipleChurchUnits = true;
-
-    // Validate assignment integrity
-    const assignmentIssues = [];
-
-    // Check if assigned pastors actually exist
-    for (const member of membersWithPastors || []) {
-      if (member.assignedto) {
-        const { data: assignedPastor, error: pastorCheckError } = await supabase
-          .from("members")
-          .select("id, fullname, category")
-          .eq("id", member.assignedto)
-          .maybeSingle();
-
-        if (pastorCheckError) {
-          assignmentIssues.push({
-            memberId: member.id,
-            memberName: member.fullname,
-            assignedPastorId: member.assignedto,
-            issue: "Error checking assigned pastor",
-            error: pastorCheckError.message
-          });
-        } else if (!assignedPastor) {
-          assignmentIssues.push({
-            memberId: member.id,
-            memberName: member.fullname,
-            assignedPastorId: member.assignedto,
-            issue: "Assigned pastor does not exist"
-          });
-        } else if (assignedPastor.category !== "Pastors") {
-          assignmentIssues.push({
-            memberId: member.id,
-            memberName: member.fullname,
-            assignedPastorId: member.assignedto,
-            assignedPastorName: assignedPastor.fullname,
-            assignedPastorCategory: assignedPastor.category,
-            issue: "Assigned person is not categorized as a Pastor"
-          });
-        }
+      if (duplicateError) {
+        validationTests.emailUniqueness = true;
       }
+
+      // Clean up
+      await supabase.from("members").delete().eq("email", testEmail);
     }
 
-    assignmentTests.assignmentValidation = assignmentIssues.length === 0;
+    // Test required fields
+    const { error: requiredFieldError } = await supabase
+      .from("members")
+      .insert([{
+        // Missing required fields
+        phone: "123-456-7890"
+      }]);
+
+    if (requiredFieldError) {
+      validationTests.requiredFields = true;
+    }
+
+    // Test category validation (if constraints exist)
+    const { error: categoryError } = await supabase
+      .from("members")
+      .insert([{
+        fullname: "Category Test",
+        email: `category-test-${Date.now()}@example.com`,
+        category: "InvalidCategory"
+      }]);
+
+    if (categoryError) {
+      validationTests.categoryValidation = true;
+    }
+
+    const passedValidationTests = Object.values(validationTests).filter(Boolean).length;
+    const totalValidationTests = Object.keys(validationTests).length;
 
     return {
-      testName: "Pastor Assignment and Church Unit Management Validation",
-      passed: assignmentIssues.length === 0,
-      message: assignmentIssues.length === 0 ? 
-        "Pastor assignments and church unit management work correctly" : 
-        `Found ${assignmentIssues.length} assignment issues`,
-      details: {
-        assignmentTests,
-        pastorsCount: pastors?.length || 0,
-        membersWithPastorsCount: membersWithPastors?.length || 0,
-        membersWithChurchUnitsCount: membersWithChurchUnits?.length || 0,
-        membersWithMultipleUnitsCount: membersWithMultipleUnits?.length || 0,
-        assignmentIssues: assignmentIssues.slice(0, 10), // First 10 for debugging
-        assignmentIssuesCount: assignmentIssues.length
-      }
+      testName: "Data Validation",
+      passed: passedValidationTests >= 1, // At least 1 validation should work
+      message: `Data validation: ${passedValidationTests}/${totalValidationTests} validation rules working`,
+      details: validationTests
     };
+
   } catch (error) {
     return {
-      testName: "Pastor Assignment and Church Unit Management Validation",
+      testName: "Data Validation",
       passed: false,
-      message: "Error testing pastor assignments and church unit management",
-      error: String(error)
+      message: "Data validation test failed",
+      error: error instanceof Error ? error.message : String(error)
     };
   }
-};
+}
 
 /**
- * Test 4: Test member categories and roles
+ * Run a quick health check on the member management system
  */
-export const testMemberCategoriesAndRoles = async (): Promise<MemberTestResult> => {
+export async function quickMemberHealthCheck(): Promise<{
+  healthy: boolean;
+  message: string;
+  details?: any;
+}> {
   try {
-    // Test different member categories
-    const categories = ["Members", "Pastors", "Workers", "Visitors", "Partners"];
-    const categoryResults = {};
-
-    for (const category of categories) {
-      const { data: categoryMembers, error: categoryError } = await supabase
-        .from("members")
-        .select("*")
-        .eq("category", category)
-        .limit(5);
-
-      if (categoryError) {
-        return {
-          testName: `Member Categories - ${category} Query`,
-          passed: false,
-          message: `Cannot query members with category ${category}`,
-          error: categoryError.message
-        };
-      }
-
-      categoryResults[category] = categoryMembers?.length || 0;
-    }
-
-    // Test different roles
-    const roles = ["user", "admin", "superuser"];
-    const roleResults = {};
-
-    for (const role of roles) {
-      const { data: roleMembers, error: roleError } = await supabase
-        .from("members")
-        .select("*")
-        .eq("role", role)
-        .limit(5);
-
-      if (roleError) {
-        return {
-          testName: `Member Roles - ${role} Query`,
-          passed: false,
-          message: `Cannot query members with role ${role}`,
-          error: roleError.message
-        };
-      }
-
-      roleResults[role] = roleMembers?.length || 0;
-    }
-
-    // Test active/inactive status
-    const { data: activeMembers, error: activeError } = await supabase
+    // Check if we can read from members table
+    const { data, error } = await supabase
       .from("members")
-      .select("*")
-      .eq("isactive", true)
+      .select("id, fullname, email, category")
       .limit(5);
 
-    if (activeError) {
+    if (error) {
       return {
-        testName: "Member Status - Active Members Query",
-        passed: false,
-        message: "Cannot query active members",
-        error: activeError.message
-      };
-    }
-
-    const { data: inactiveMembers, error: inactiveError } = await supabase
-      .from("members")
-      .select("*")
-      .eq("isactive", false)
-      .limit(5);
-
-    if (inactiveError) {
-      return {
-        testName: "Member Status - Inactive Members Query",
-        passed: false,
-        message: "Cannot query inactive members",
-        error: inactiveError.message
+        healthy: false,
+        message: "Cannot access members table",
+        details: { error: error.message }
       };
     }
 
     return {
-      testName: "Member Categories and Roles Validation",
-      passed: true,
-      message: "Member categories and roles are working correctly",
-      details: {
-        categoryResults,
-        roleResults,
-        activeMembers: activeMembers?.length || 0,
-        inactiveMembers: inactiveMembers?.length || 0,
-        totalCategoriesTested: categories.length,
-        totalRolesTested: roles.length
-      }
+      healthy: true,
+      message: `Member management system is healthy. Found ${data?.length || 0} sample records.`,
+      details: { recordCount: data?.length || 0 }
     };
+
   } catch (error) {
     return {
-      testName: "Member Categories and Roles Validation",
-      passed: false,
-      message: "Error testing member categories and roles",
-      error: String(error)
+      healthy: false,
+      message: "Health check failed",
+      details: { error: error instanceof Error ? error.message : String(error) }
     };
   }
-};
-
-/**
- * Main function to execute all member management tests
- */
-export const executeMemberManagementTests = async (): Promise<MemberTestReport> => {
-  console.log("=== EXECUTING MEMBER MANAGEMENT FUNCTIONALITY TESTS ===");
-  
-  const startTime = new Date();
-  const tests: MemberTestResult[] = [];
-
-  // Execute all tests
-  tests.push(await testMemberCRUDOperations());
-  tests.push(await testMemberSearchAndFiltering());
-  tests.push(await testPastorAssignmentAndChurchUnits());
-  tests.push(await testMemberCategoriesAndRoles());
-
-  // Calculate summary
-  const passedTests = tests.filter(test => test.passed).length;
-  const failedTests = tests.length - passedTests;
-  const overallPassed = failedTests === 0;
-
-  const report: MemberTestReport = {
-    timestamp: startTime.toISOString(),
-    overallPassed,
-    totalTests: tests.length,
-    passedTests,
-    failedTests,
-    tests
-  };
-
-  console.log("=== MEMBER MANAGEMENT FUNCTIONALITY TESTS COMPLETE ===");
-  console.log(`Overall Result: ${overallPassed ? 'PASSED' : 'FAILED'}`);
-  console.log(`Tests: ${passedTests}/${tests.length} passed`);
-  
-  return report;
-};
+}

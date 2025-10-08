@@ -1,0 +1,75 @@
+{
+  "timestamp": "2025-10-08T02:05:45.490Z",
+  "overallPassed": false,
+  "totalTests": 4,
+  "passedTests": 3,
+  "failedTests": 1,
+  "tests": [
+    {
+      "testName": "Member CRUD Operations - Create",
+      "passed": false,
+      "message": "Cannot create new member",
+      "error": "new row violates row-level security policy for table \"members\"",
+      "details": {
+        "testResults": {
+          "create": false,
+          "read": true,
+          "update": false,
+          "delete": false
+        }
+      }
+    },
+    {
+      "testName": "Member Search and Filtering Validation",
+      "passed": true,
+      "message": "All search and filtering operations work correctly",
+      "details": {
+        "searchTests": {
+          "basicSearch": true,
+          "emailFilter": true,
+          "categoryFilter": true,
+          "activeFilter": true,
+          "pagination": true,
+          "sorting": true
+        },
+        "totalMembers": 7,
+        "categoryFilteredCount": 1,
+        "activeFilteredCount": 5
+      }
+    },
+    {
+      "testName": "Pastor Assignment and Church Unit Management Validation",
+      "passed": true,
+      "message": "Pastor assignments and church unit management work correctly",
+      "details": {
+        "assignmentTests": {
+          "pastorAssignment": true,
+          "churchUnitAssignment": true,
+          "multipleChurchUnits": true,
+          "assignmentValidation": true
+        },
+        "pastorsCount": 5,
+        "membersWithPastorsCount": 0,
+        "membersWithChurchUnitsCount": 0,
+        "membersWithMultipleUnitsCount": 0,
+        "assignmentIssues": [],
+        "assignmentIssuesCount": 0
+      }
+    },
+    {
+      "testName": "Advanced Search Functionality Validation",
+      "passed": true,
+      "message": "Advanced search functionality works correctly",
+      "details": {
+        "advancedTests": {
+          "nameSearch": true,
+          "phoneSearch": false,
+          "combinedSearch": true,
+          "caseInsensitiveSearch": true
+        },
+        "sampleDataCount": 7,
+        "testCoverage": 3
+      }
+    }
+  ]
+}
