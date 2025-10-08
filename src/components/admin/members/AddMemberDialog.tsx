@@ -30,15 +30,20 @@ export function AddMemberDialog({ onAddMember, pastors }: AddMemberDialogProps) 
   const form = useForm<MemberFormValues>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
-      fullName: "",
+      fullname: "",
       email: "",
       phone: "",
       address: "",
-      category: "Sons",
-      assignedTo: "none",
-      churchUnits: [],
+      genotype: "",
+      category: "Members",
+      title: "",
+      assignedto: "",
+      churchunit: "",
+      churchunits: [],
+      auxanogroup: "",
       notes: "",
-      isActive: true,
+      isactive: true,
+      role: "user",
     },
   });
 
@@ -47,15 +52,23 @@ export function AddMemberDialog({ onAddMember, pastors }: AddMemberDialogProps) 
       // In a real app, you would add the member to Supabase here
       const newMember: Member = {
         id: Date.now().toString(), // use UUID in real app
-        fullName: values.fullName,
+        fullname: values.fullname,
         email: values.email,
         phone: values.phone,
         address: values.address,
+        genotype: values.genotype,
         category: values.category,
-        assignedTo: values.assignedTo,
+        title: values.title,
+        assignedto: values.assignedto,
+        churchunit: values.churchunit,
+        churchunits: values.churchunits,
+        auxanogroup: values.auxanogroup,
+        joindate: values.joindate || new Date().toISOString().split('T')[0],
         notes: values.notes,
-        isActive: values.isActive,
-        joinDate: new Date().toISOString().split('T')[0],
+        isactive: values.isactive,
+        role: values.role,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       onAddMember(newMember);

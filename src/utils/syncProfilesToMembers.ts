@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { adminSupabase } from "@/integrations/supabase/adminClient";
 import { toast } from "@/hooks/use-toast";
 import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
+import { Member, Profile } from '@/types/member';
 
 // Check if the database is accessible and credentials are working
 const checkDatabaseConnection = async () => {
@@ -25,8 +26,8 @@ const checkDatabaseConnection = async () => {
 // Define a more robust function to check if a member exists
 const checkMemberExists = async (email: string, userId: string | null) => {
   try {
-    // Build a query to check by email (case-insensitive) or userId
-    let query = supabase.from("members").select("id, email, userid");
+    // Build a query to check by email (case-insensitive) or user_id/userid (handle both column names)
+    let query = supabase.from("members").select("id, email, user_id, userid");
 
     if (email) {
       // First try exact match
@@ -48,12 +49,13 @@ const checkMemberExists = async (email: string, userId: string | null) => {
       if (exists) return true;
     }
 
-    // Check by userId if provided
+    // Check by user_id or userid if provided (handle both column names during transition)
     if (userId) {
+      // Try new column name first
       const { data: userMatch } = await supabase
         .from("members")
         .select("id")
-        .eq("userid", userId)
+        .or(`user_id.eq.${userId},userid.eq.${userId}`)
         .maybeSingle();
 
       if (userMatch) return true;
@@ -109,23 +111,30 @@ export const manualSyncProfileToMember = async (profileId: string) => {
       };
     }
 
-    // Prepare member record
+    // Prepare member record with consolidated structure
+    // Note: After consolidation, profiles table will only have basic auth data
     const fullName = profile.full_name?.trim() || profile.email?.split('@')[0] || 'Unknown';
-    const churchUnits = profile.church_unit ? [profile.church_unit] : [];
     const now = new Date().toISOString();
 
     const memberData = {
+      // Use both column names during transition period
+      user_id: profile.id,
+      userid: profile.id, // Keep old column for compatibility
       fullname: fullName,
       email: profile.email?.toLowerCase(),
-      category: 'Others', // Default category
-      churchunit: profile.church_unit || null,
-      churchunits: churchUnits,
-      assignedto: profile.assigned_pastor || null,
-      phone: profile.phone || null,
-      address: profile.address || null,
-      isactive: true,
+      phone: (profile as any).phone || null, // May not exist in simplified profiles
+      address: (profile as any).address || null, // May not exist in simplified profiles
+      genotype: (profile as any).genotype || null, // May not exist in simplified profiles
+      category: 'Members', // Default category
+      title: null,
+      assignedto: (profile as any).assigned_pastor || null, // May not exist in simplified profiles
+      churchunit: (profile as any).church_unit || null, // May not exist in simplified profiles
+      churchunits: (profile as any).church_unit ? [(profile as any).church_unit] : [], // May not exist in simplified profiles
+      auxanogroup: null,
       joindate: now.split('T')[0],
-      userid: profile.id,
+      notes: null,
+      isactive: true,
+      role: (profile as any).role || 'user', // May not exist in simplified profiles
       created_at: now,
       updated_at: now
     };
@@ -231,7 +240,7 @@ export const syncProfilesToMembers = async () => {
     try {
       const result = await adminSupabase
         .from("members")
-        .select("email, fullname, id, userid");
+        .select("email, fullname, id, user_id, userid"); // Handle both old and new column names
 
       existingMembers = result.data;
       membersError = result.error;
@@ -245,7 +254,7 @@ export const syncProfilesToMembers = async () => {
       // Fall back to regular client
       const result = await supabase
         .from("members")
-        .select("email, fullname, id, userid");
+        .select("email, fullname, id, user_id, userid"); // Handle both old and new column names
 
       existingMembers = result.data;
       membersError = result.error;
@@ -261,10 +270,10 @@ export const syncProfilesToMembers = async () => {
       .filter(m => m.email) // Filter out null emails
       .map(m => m.email.toLowerCase())); // Convert to lowercase for consistent comparison
 
-    // Also track user IDs to avoid duplicates
+    // Also track user IDs to avoid duplicates (handle both old and new column names)
     const existingUserIds = new Set((existingMembers || [])
-      .filter(m => m.userid) // Filter out null userids
-      .map(m => m.userid));
+      .filter(m => m.user_id || m.userid) // Filter out null user_ids/userids
+      .map(m => m.user_id || m.userid));
 
     console.log(`Found ${existingEmails.size} existing members with emails`);
     console.log(`Found ${existingUserIds.size} existing members with user IDs`);
@@ -337,29 +346,33 @@ export const syncProfilesToMembers = async () => {
       };
     }
 
-    // Step 4: Prepare member records from profiles
+    // Step 4: Prepare member records from profiles with consolidated structure
     const membersToInsert = profilesToAdd.map(profile => {
       // Ensure we have a valid full name
       const fullName = profile.full_name?.trim() || profile.email?.split('@')[0] || 'Unknown';
-
-      // Extract church units if available
-      const churchUnits = profile.church_unit ? [profile.church_unit] : [];
 
       // Use current timestamp for created_at and updated_at
       const now = new Date().toISOString();
 
       return {
+        // Use both column names during transition period
+        user_id: profile.id,
+        userid: profile.id, // Keep old column for compatibility
         fullname: fullName,
         email: profile.email?.toLowerCase(),
-        category: 'Others', // Default category
-        churchunit: profile.church_unit || null,
-        churchunits: churchUnits, // Add array of church units
-        assignedto: profile.assigned_pastor || null,
-        phone: profile.phone || null,
-        address: profile.address || null,
-        isactive: true,
+        phone: (profile as any).phone || null, // May not exist in simplified profiles
+        address: (profile as any).address || null, // May not exist in simplified profiles
+        genotype: (profile as any).genotype || null, // May not exist in simplified profiles
+        category: 'Members', // Default category
+        title: null,
+        assignedto: (profile as any).assigned_pastor || null, // May not exist in simplified profiles
+        churchunit: (profile as any).church_unit || null, // May not exist in simplified profiles
+        churchunits: (profile as any).church_unit ? [(profile as any).church_unit] : [], // May not exist in simplified profiles
+        auxanogroup: null,
         joindate: now.split('T')[0],
-        userid: profile.id, // Link to the auth user ID
+        notes: null,
+        isactive: true,
+        role: (profile as any).role || 'user', // May not exist in simplified profiles
         created_at: now,
         updated_at: now
       };
@@ -429,9 +442,11 @@ export const syncProfilesToMembers = async () => {
               const minimalMember = {
                 fullname: member.fullname,
                 email: member.email,
-                category: 'Others',
+                category: 'Members',
                 isactive: true,
-                userid: member.userid
+                user_id: member.user_id,
+                userid: member.userid, // Keep both for compatibility
+                role: 'user'
               };
 
               const directResult = await adminSupabase

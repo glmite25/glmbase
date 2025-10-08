@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { Profile } from '@/types/member';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAdmin: boolean;
   isSuperUser: boolean;
-  profile: any;
+  profile: Profile | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperUser, setIsSuperUser] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     let mounted = true;

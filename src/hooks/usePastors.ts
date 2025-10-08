@@ -2,12 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
 import { useToast } from '@/hooks/use-toast';
-import { Member } from './useMembers';
-
-// Define types for pastor data (extends Member)
-export interface Pastor extends Member {
-  title: string; // Pastor's title is required for pastors
-}
+import { Pastor } from '@/types/member';
 
 // Define filter options for fetching pastors
 export interface PastorFilters {
@@ -20,43 +15,41 @@ export interface PastorFilters {
  * Custom hook for fetching all pastors with optional filtering
  */
 export const usePastors = (filters?: PastorFilters) => {
-  return useQuery({
+  return useQuery<Pastor[]>({
     queryKey: queryKeys.pastors.list(),
-    queryFn: async () => {
-      // Start building the query
-      let query = supabase
+    queryFn: async (): Promise<Pastor[]> => {
+      // Execute query with simplified approach to avoid type issues
+      const { data, error } = await supabase
         .from('members')
         .select('*')
         .eq('category', 'Pastors');
-
-      // Apply filters
-      if (filters) {
-        // Search term filter
-        if (filters.searchTerm && filters.searchTerm.trim() !== '') {
-          const term = filters.searchTerm.toLowerCase();
-          query = query.ilike('fullname', `%${term}%`);
-        }
-
-        // Title filter
-        if (filters.title) {
-          query = query.eq('title', filters.title);
-        }
-
-        // Church unit filter
-        if (filters.churchUnit) {
-          // Try to match either the primary church unit or in the array of church units
-          query = query.or(`churchunit.eq.${filters.churchUnit},churchunits.cs.{${filters.churchUnit}}`);
-        }
-      }
-
-      // Execute the query
-      const { data, error } = await query;
 
       if (error) {
         throw error;
       }
 
-      return data as Pastor[];
+      // Apply client-side filtering for now to avoid complex query type issues
+      let filteredData = data || [];
+      
+      if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
+        const term = filters.searchTerm.toLowerCase();
+        filteredData = filteredData.filter((item: any) => 
+          item.fullname?.toLowerCase().includes(term)
+        );
+      }
+
+      if (filters?.title) {
+        filteredData = filteredData.filter((item: any) => item.title === filters.title);
+      }
+
+      if (filters?.churchUnit) {
+        filteredData = filteredData.filter((item: any) => 
+          item.churchunit === filters.churchUnit || 
+          (item.churchunits && item.churchunits.includes(filters.churchUnit))
+        );
+      }
+
+      return filteredData.map((item: any) => normalizePastor(item));
     },
   });
 };
@@ -65,9 +58,9 @@ export const usePastors = (filters?: PastorFilters) => {
  * Custom hook for fetching a single pastor by ID
  */
 export const usePastor = (id: string) => {
-  return useQuery({
+  return useQuery<Pastor>({
     queryKey: queryKeys.pastors.detail(id),
-    queryFn: async () => {
+    queryFn: async (): Promise<Pastor> => {
       const { data, error } = await supabase
         .from('members')
         .select('*')
@@ -79,7 +72,7 @@ export const usePastor = (id: string) => {
         throw error;
       }
 
-      return data as Pastor;
+      return normalizePastor(data as any);
     },
     enabled: !!id, // Only run the query if an ID is provided
   });
@@ -91,14 +84,16 @@ export const usePastor = (id: string) => {
  * @returns Normalized pastor data
  */
 export const normalizePastor = (pastor: any): Pastor => {
-  // Handle case inconsistencies in column names
+  // Handle case inconsistencies in column names and include new consolidated fields
   return {
     id: pastor.id,
+    user_id: pastor.user_id || pastor.userid || null, // Handle both old and new column names
     fullname: pastor.fullname || pastor.fullName || '',
     email: pastor.email || '',
     phone: pastor.phone || '',
     address: pastor.address || '',
-    category: pastor.category || 'Pastors',
+    genotype: pastor.genotype || '', // New field, may not exist yet
+    category: 'Pastors' as const,
     title: pastor.title || '',
     assignedto: pastor.assignedto || pastor.assignedTo || null,
     churchunit: pastor.churchunit || pastor.churchUnit || '',
@@ -107,9 +102,15 @@ export const normalizePastor = (pastor: any): Pastor => {
     joindate: pastor.joindate || pastor.joinDate || new Date().toISOString().split('T')[0],
     notes: pastor.notes || '',
     isactive: pastor.isactive !== undefined ? pastor.isactive : (pastor.isActive !== undefined ? pastor.isActive : true),
-    userid: pastor.userid || pastor.userId || null,
+    role: pastor.role || 'user', // New field, may not exist yet
     created_at: pastor.created_at || new Date().toISOString(),
     updated_at: pastor.updated_at || new Date().toISOString(),
+
+    // Legacy compatibility fields
+    fullName: pastor.fullname || pastor.fullName || '',
+    assignedTo: pastor.assignedto || pastor.assignedTo || null,
+    churchUnit: pastor.churchunit || pastor.churchUnit || '',
+    auxanoGroup: pastor.auxanogroup || pastor.auxanoGroup || '',
   };
 };
 
@@ -137,13 +138,13 @@ export const useCreatePastor = () => {
         throw error;
       }
 
-      return data[0] as Pastor;
+      return normalizePastor(data[0]);
     },
     onSuccess: (data) => {
       // Invalidate relevant queries
       invalidateRelatedQueries(queryClient, 'pastors');
       invalidateRelatedQueries(queryClient, 'members');
-      
+
       // Show success toast
       toast({
         title: 'Pastor created',
@@ -186,13 +187,13 @@ export const useUpdatePastor = () => {
         throw error;
       }
 
-      return data[0] as Pastor;
+      return normalizePastor(data[0]);
     },
     onSuccess: (data) => {
       // Invalidate relevant queries
       invalidateRelatedQueries(queryClient, 'pastors', data.id);
       invalidateRelatedQueries(queryClient, 'members', data.id);
-      
+
       // Show success toast
       toast({
         title: 'Pastor updated',
@@ -236,7 +237,7 @@ export const useAssignMembersToPastor = () => {
       // Invalidate relevant queries
       invalidateRelatedQueries(queryClient, 'pastors', data.pastorId);
       invalidateRelatedQueries(queryClient, 'members');
-      
+
       // Show success toast
       const memberCount = data.assignedMembers.length;
       toast({

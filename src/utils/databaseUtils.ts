@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { Member } from '@/types/member';
 
 /**
  * Utility functions for common database operations
@@ -45,6 +46,7 @@ export async function fetchPaginatedMembers(
     }
 
     // Start building the query - get newest members first
+    // Use * to select all fields (handles both old and new schema during transition)
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' })
@@ -136,7 +138,7 @@ export async function fetchPaginatedMembers(
     }
 
     return {
-      data: data || [],
+      data: (data || []) as Member[],
       totalCount: count || 0,
       page,
       pageSize,
@@ -168,11 +170,11 @@ export async function fetchPaginatedPastors(
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // Start building the query
+    // Start building the query - select all fields (handles both old and new schema)
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' })
-      .eq('category', 'Pastors' as any);
+      .eq('category', 'Pastors');
 
     // Apply filters
     if (filters.searchTerm && filters.searchTerm.trim() !== '') {
@@ -181,8 +183,8 @@ export async function fetchPaginatedPastors(
     }
 
     if (filters.churchUnit) {
-      // For now, just match the primary church unit
-      query = query.eq('churchunit', filters.churchUnit as any);
+      // Match either the primary church unit or in the array of church units
+      query = query.or(`churchunit.eq.${filters.churchUnit},churchunits.cs.{${filters.churchUnit}}`);
     }
 
     // Apply pagination

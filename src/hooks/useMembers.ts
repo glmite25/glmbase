@@ -3,27 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
 import { useToast } from '@/hooks/use-toast';
 import { fetchPaginatedMembers } from '@/utils/databaseUtils';
-
-// Define types for member data
-export interface Member {
-  id: string;
-  fullname: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  category: string;
-  title?: string;
-  assignedto?: string;
-  churchunit?: string;
-  churchunits?: string[];
-  auxanogroup?: string;
-  joindate: string;
-  notes?: string;
-  isactive: boolean;
-  userid?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Member } from '@/types/member';
 
 // Define filter options for fetching members
 export interface MemberFilters {

@@ -31,9 +31,10 @@ export function MembersTable({
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Category</TableHead>
+          <TableHead>Title</TableHead>
           <TableHead>Assigned Pastor</TableHead>
           <TableHead>Church Unit</TableHead>
-          <TableHead>Auxano Group</TableHead>
+          <TableHead>Role</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="w-[100px]">Actions</TableHead>
         </TableRow>
@@ -41,36 +42,39 @@ export function MembersTable({
       <TableBody>
         {members.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-4">
+            <TableCell colSpan={9} className="text-center py-4">
               No members found
             </TableCell>
           </TableRow>
         ) : (
           members.map((member) => (
             <TableRow key={member.id}>
-              <TableCell>{member.fullName}</TableCell>
+              <TableCell>{member.fullname || member.fullName}</TableCell>
               <TableCell>{member.email}</TableCell>
               <TableCell>{member.category}</TableCell>
+              <TableCell>{member.title || "N/A"}</TableCell>
               <TableCell>
-                {member.assignedTo ? getAssignedPastorName(member.assignedTo) : "Not Assigned"}
+                {(member.assignedto || member.assignedTo) ? getAssignedPastorName(member.assignedto || member.assignedTo || '') : "Not Assigned"}
               </TableCell>
               <TableCell>
-                {member.churchUnit
-                  ? <Badge className="bg-blue-100 text-blue-800">{member.churchUnit}</Badge>
+                {(member.churchunit || member.churchUnit)
+                  ? <Badge className="bg-blue-100 text-blue-800">{member.churchunit || member.churchUnit}</Badge>
                   : "Not Assigned"}
               </TableCell>
               <TableCell>
-                {member.auxanoGroup || "Not Assigned"}
+                <Badge variant={member.role === 'superuser' ? 'destructive' : member.role === 'admin' ? 'default' : 'secondary'}>
+                  {member.role || 'user'}
+                </Badge>
               </TableCell>
               <TableCell>
                 <span
                   className={`px-2 py-1 text-xs rounded-full ${
-                    member.isActive
+                    (member.isactive !== undefined ? member.isactive : member.isActive)
                       ? "bg-green-100 text-green-800"
                       : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {member.isActive ? "Active" : "Inactive"}
+                  {(member.isactive !== undefined ? member.isactive : member.isActive) ? "Active" : "Inactive"}
                 </span>
               </TableCell>
               <TableCell className="text-right space-x-2">

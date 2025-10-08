@@ -36,30 +36,40 @@ export function EditMemberDialog({
   const form = useForm<MemberFormValues>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
-      fullName: "",
+      fullname: "",
       email: "",
       phone: "",
       address: "",
+      genotype: "",
       category: "Members",
-      assignedTo: "none",
-      churchUnits: [],
+      title: "",
+      assignedto: "",
+      churchunit: "",
+      churchunits: [],
+      auxanogroup: "",
       notes: "",
-      isActive: true,
+      isactive: true,
+      role: "user",
     },
   });
 
   useEffect(() => {
     if (member && open) {
       form.reset({
-        fullName: member.fullName,
+        fullname: member.fullname || member.fullName || "",
         email: member.email,
         phone: member.phone || "",
         address: member.address || "",
+        genotype: member.genotype || "",
         category: member.category,
-        assignedTo: member.assignedTo || "none",
-        churchUnits: member.churchUnits || [],
+        title: member.title || "",
+        assignedto: member.assignedto || member.assignedTo || "",
+        churchunit: member.churchunit || member.churchUnit || "",
+        churchunits: member.churchunits || member.churchUnits || [],
+        auxanogroup: member.auxanogroup || member.auxanoGroup || "",
         notes: member.notes || "",
-        isActive: member.isActive,
+        isactive: member.isactive !== undefined ? member.isactive : member.isActive !== undefined ? member.isActive : true,
+        role: member.role || "user",
       });
     }
   }, [member, open, form]);

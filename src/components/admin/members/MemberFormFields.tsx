@@ -16,7 +16,7 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
     <>
       <FormField
         control={control}
-        name="fullName"
+        name="fullname"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Full Name</FormLabel>
@@ -68,6 +68,19 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
       />
       <FormField
         control={control}
+        name="genotype"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Genotype</FormLabel>
+            <FormControl>
+              <Input placeholder="AA, AS, SS, etc." {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
         name="category"
         render={({ field }) => (
           <FormItem>
@@ -82,9 +95,11 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="Pastors">Pastors</SelectItem>
                 <SelectItem value="Members">Members</SelectItem>
-                <SelectItem value="MINT">MINT</SelectItem>
+                <SelectItem value="Pastors">Pastors</SelectItem>
+                <SelectItem value="Workers">Workers</SelectItem>
+                <SelectItem value="Visitors">Visitors</SelectItem>
+                <SelectItem value="Partners">Partners</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
@@ -93,7 +108,20 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
       />
       <FormField
         control={control}
-        name="assignedTo"
+        name="title"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Title</FormLabel>
+            <FormControl>
+              <Input placeholder="Pastor, Deacon, etc." {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="assignedto"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Assigned Pastor</FormLabel>
@@ -110,7 +138,7 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
                 <SelectItem value="none">Not Assigned</SelectItem>
                 {pastors.map(pastor => (
                   <SelectItem key={pastor.id} value={pastor.id}>
-                    {pastor.fullName}
+                    {(pastor as any).fullname || pastor.fullName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -121,7 +149,20 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
       />
       <FormField
         control={control}
-        name="churchUnits"
+        name="churchunit"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Primary Church Unit</FormLabel>
+            <FormControl>
+              <Input placeholder="3HMedia, 3HMusic, etc." {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="churchunits"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Church Units</FormLabel>
@@ -131,6 +172,44 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
                 onChange={field.onChange}
               />
             </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="auxanogroup"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Auxano Group</FormLabel>
+            <FormControl>
+              <Input placeholder="Group name" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="role"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Role</FormLabel>
+            <Select
+              onValueChange={field.onChange}
+              value={field.value || undefined}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="superuser">Super User</SelectItem>
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}
@@ -150,7 +229,7 @@ export function MemberFormFields({ control, pastors }: MemberFormFieldsProps) {
       />
       <FormField
         control={control}
-        name="isActive"
+        name="isactive"
         render={({ field }) => (
           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
             <FormControl>
