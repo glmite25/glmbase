@@ -12,7 +12,7 @@ import { useRecentSermons } from "@/hooks/useSermons";
 const Index = () => {
   // Fetch real events from database
   const { events: upcomingEvents, loading: eventsLoading } = useUpcomingEvents(6);
-  
+
   // Fetch real sermons from database
   const { sermons: recentSermons, loading: sermonsLoading } = useRecentSermons(3);
 
@@ -20,7 +20,7 @@ const Index = () => {
   const formattedEvents = upcomingEvents.map(event => ({
     id: event.id,
     title: event.title,
-    date: event.is_recurring 
+    date: event.is_recurring
       ? `Every ${event.recurrence_pattern === 'weekly' ? 'Week' : 'Month'}`
       : new Date(event.event_date).toLocaleDateString(),
     time: event.start_time || "TBA",
