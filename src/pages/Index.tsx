@@ -6,32 +6,37 @@ import SermonCard from "@/components/SermonCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useUpcomingEvents } from "@/hooks/useEvents";
+import { useRecentSermons } from "@/hooks/useSermons";
 
 const Index = () => {
-  // Events should be fetched from the database
-  // For now, use real recurring events
-  const upcomingEvents = [
-    {
-      id: "1",
-      title: "Sunday Worship Service",
-      date: "Every Sunday",
-      time: "8:00 AM",
-      location: "Upper Room",
-      image: "https://images.unsplash.com/photo-1507036066871-b7e8032b3dea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1032&q=80"
-    },
-    {
-      id: "2",
-      title: "Wednesday Joint Auxano",
-      date: "Every Wednesday",
-      time: "4:00 PM",
-      location: "Upper Room",
-      image: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80"
-    }
-  ];
+  // Fetch real events from database
+  const { events: upcomingEvents, loading: eventsLoading } = useUpcomingEvents(6);
+  
+  // Fetch real sermons from database
+  const { sermons: recentSermons, loading: sermonsLoading } = useRecentSermons(3);
 
-  // Sermons should be fetched from the database
-  // For now, use an empty array
-  const recentSermons = [] as const;
+  // Format events for display
+  const formattedEvents = upcomingEvents.map(event => ({
+    id: event.id,
+    title: event.title,
+    date: event.is_recurring 
+      ? `Every ${event.recurrence_pattern === 'weekly' ? 'Week' : 'Month'}`
+      : new Date(event.event_date).toLocaleDateString(),
+    time: event.start_time || "TBA",
+    location: event.location || "TBA",
+    image: event.image_url || "https://images.unsplash.com/photo-1507036066871-b7e8032b3dea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1032&q=80"
+  }));
+
+  // Format sermons for display
+  const formattedSermons = recentSermons.map(sermon => ({
+    id: sermon.id,
+    title: sermon.title,
+    speaker: sermon.speaker,
+    date: new Date(sermon.sermon_date).toLocaleDateString(),
+    type: sermon.sermon_type,
+    image: sermon.image_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+  }));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -165,18 +170,33 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingEvents.map((event, index) => (
-                <div key={event.id} data-aos="zoom-in" data-aos-delay={index * 100}>
-                  <EventCard
-                    id={event.id}
-                    title={event.title}
-                    date={event.date}
-                    time={event.time}
-                    location={event.location}
-                    image={event.image}
-                  />
+              {eventsLoading ? (
+                // Loading skeleton
+                Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="animate-pulse">
+                    <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
+                    <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                    <div className="bg-gray-200 h-4 rounded w-3/4"></div>
+                  </div>
+                ))
+              ) : formattedEvents.length > 0 ? (
+                formattedEvents.map((event, index) => (
+                  <div key={event.id} data-aos="zoom-in" data-aos-delay={index * 100}>
+                    <EventCard
+                      id={event.id}
+                      title={event.title}
+                      date={event.date}
+                      time={event.time}
+                      location={event.location}
+                      image={event.image}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-gray-600">No upcoming events at this time.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
@@ -376,8 +396,21 @@ const Index = () => {
 
             {/* Sermon list with minimalist design */}
             <div className="max-w-4xl mx-auto space-y-16">
-              {recentSermons.length > 0 ? (
-                recentSermons.map((sermon, index) => (
+              {sermonsLoading ? (
+                // Loading skeleton for sermons
+                Array.from({ length: 2 }).map((_, index) => (
+                  <div key={index} className="animate-pulse flex flex-col md:flex-row gap-8">
+                    <div className="w-full md:w-1/3 bg-gray-200 h-64 rounded"></div>
+                    <div className="w-full md:w-2/3 space-y-4">
+                      <div className="bg-gray-200 h-4 rounded w-1/4"></div>
+                      <div className="bg-gray-200 h-8 rounded w-3/4"></div>
+                      <div className="bg-gray-200 h-4 rounded w-1/2"></div>
+                      <div className="bg-gray-200 h-4 rounded w-1/3"></div>
+                    </div>
+                  </div>
+                ))
+              ) : formattedSermons.length > 0 ? (
+                formattedSermons.map((sermon, index) => (
                   <div key={sermon.id} className="group" data-aos="zoom-in" data-aos-delay={index * 100}>
                     <Link to={`/sermons/${sermon.id}`} className="block">
                       <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -393,7 +426,7 @@ const Index = () => {
                         {/* Content */}
                         <div className="w-full md:w-2/3">
                           <div className="text-church-red text-sm font-medium mb-2">
-                            {sermon.type.toUpperCase()}
+                            {sermon.type.replace('_', ' ').toUpperCase()}
                           </div>
                           <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
                             {sermon.title}
@@ -463,7 +496,7 @@ const Index = () => {
             >
               <Link to="/about">
                 <Button
-                  size="xl"
+                  size="lg"
                   variant="outline"
                   className="text-2xl border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-12 py-6"
                 >
@@ -472,7 +505,7 @@ const Index = () => {
               </Link>
               <Link to="/contact">
                 <Button
-                  size="xl"
+                  size="lg"
                   className="bg-[#FF0000] hover:bg-church-red/90 text-white text-2xl px-12 py-6"
                 >
                   CONTACT US
