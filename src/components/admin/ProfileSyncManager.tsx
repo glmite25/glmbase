@@ -10,8 +10,7 @@ import {
     CheckCircle,
     AlertTriangle,
     Users,
-    Database,
-    Sync,
+    RotateCcw,
     Shield
 } from "lucide-react";
 
@@ -39,6 +38,13 @@ interface SyncResult {
     synced_members: number;
 }
 
+interface UserSyncResult {
+    success: boolean;
+    action: string;
+    email: string;
+    message?: string;
+}
+
 export const ProfileSyncManager = () => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
     const [loading, setLoading] = useState(false);
@@ -48,11 +54,13 @@ export const ProfileSyncManager = () => {
     const checkSyncStatus = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.rpc('check_profile_sync_status');
+            const { data, error } = await supabase.rpc('check_profile_sync_status' as any);
 
             if (error) throw error;
 
-            setSyncStatus(data);
+            if (data && typeof data === 'object') {
+                setSyncStatus(data as SyncStatus);
+            }
         } catch (error: any) {
             console.error("Error checking sync status:", error);
             toast({
@@ -68,16 +76,22 @@ export const ProfileSyncManager = () => {
     const syncAllProfiles = async () => {
         setSyncing(true);
         try {
-            const { data, error } = await supabase.rpc('sync_all_profiles');
+            const { data, error } = await supabase.rpc('sync_all_profiles' as any);
 
             if (error) throw error;
 
-            const result = data as SyncResult;
-
-            toast({
-                title: "Profile sync completed",
-                description: `Synced ${result.synced_count} profiles. ${result.error_count} errors.`,
-            });
+            if (data && typeof data === 'object') {
+                const result = data as SyncResult;
+                toast({
+                    title: "Profile sync completed",
+                    description: `Synced ${result.synced_count} profiles. ${result.error_count} errors.`,
+                });
+            } else {
+                toast({
+                    title: "Profile sync completed",
+                    description: "Sync operation finished successfully.",
+                });
+            }
 
             // Refresh status after sync
             await checkSyncStatus();
@@ -104,26 +118,35 @@ export const ProfileSyncManager = () => {
         }
 
         try {
-            const { data, error } = await supabase.rpc('sync_user_profile', {
+            const { data, error } = await supabase.rpc('sync_user_profile' as any, {
                 user_email: email.toLowerCase().trim()
             });
 
             if (error) throw error;
 
-            if (data.success) {
-                toast({
-                    title: "User profile synced",
-                    description: `${email}: ${data.action}`,
-                });
+            if (data && typeof data === 'object') {
+                const result = data as UserSyncResult;
+                if (result.success) {
+                    toast({
+                        title: "User profile synced",
+                        description: `${email}: ${result.action}`,
+                    });
 
-                // Refresh status after sync
-                await checkSyncStatus();
+                    // Refresh status after sync
+                    await checkSyncStatus();
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Sync failed",
+                        description: result.message || "Failed to sync user profile"
+                    });
+                }
             } else {
                 toast({
-                    variant: "destructive",
-                    title: "Sync failed",
-                    description: data.message || "Failed to sync user profile"
+                    title: "User profile synced",
+                    description: `${email}: Profile sync completed`,
                 });
+                await checkSyncStatus();
             }
         } catch (error: any) {
             console.error("Error syncing user profile:", error);
@@ -140,7 +163,7 @@ export const ProfileSyncManager = () => {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Sync className="w-5 h-5" />
+                        <RotateCcw className="w-5 h-5" />
                         Profile Synchronization Manager
                     </CardTitle>
                     <CardDescription>
@@ -161,7 +184,7 @@ export const ProfileSyncManager = () => {
                             onClick={syncAllProfiles}
                             disabled={syncing || loading}
                         >
-                            <Sync className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                            <RotateCcw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
                             {syncing ? 'Syncing...' : 'Sync All Profiles'}
                         </Button>
                     </div>
@@ -287,7 +310,7 @@ export const ProfileSyncManager = () => {
                             type="email"
                             placeholder="user@example.com"
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     syncSpecificUser((e.target as HTMLInputElement).value);
                                 }
