@@ -58,14 +58,31 @@ export const useRecentSermons = (limit = 10) => {
     const fetchRecentSermons = async () => {
       try {
         setLoading(true);
-        const { data, error } = await (supabase as any).rpc('get_recent_sermons', {
+        
+        // Try RPC function first, fallback to direct query
+        let { data, error } = await (supabase as any).rpc('get_recent_sermons', {
           limit_count: limit
         });
+
+        // If RPC fails, use direct query
+        if (error) {
+          console.warn('RPC function failed, using direct query:', error.message);
+          const result = await (supabase as any)
+            .from('sermons')
+            .select('*')
+            .eq('is_published', true)
+            .order('sermon_date', { ascending: false })
+            .limit(limit);
+          
+          data = result.data;
+          error = result.error;
+        }
 
         if (error) throw error;
         setSermons(data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch recent sermons');
+        console.error('Error fetching recent sermons:', err);
       } finally {
         setLoading(false);
       }
