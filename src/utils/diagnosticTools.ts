@@ -2,18 +2,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { adminSupabase } from "@/integrations/supabase/adminClient";
 
 /**
- * Diagnostic function to check if profiles are being properly synced to members
- * This function will log detailed information about the sync process
+ * Diagnostic function to check if profiles are being properly synced to consolidated members table
+ * This function works with the new consolidated database structure
  */
 export const checkProfileMemberSync = async () => {
-  console.log("=== DIAGNOSTIC: CHECKING PROFILE-MEMBER SYNC ===");
+  console.log("=== DIAGNOSTIC: CHECKING PROFILE-MEMBER SYNC (CONSOLIDATED STRUCTURE) ===");
 
   try {
-    // Step 1: Get all profiles
-    console.log("Fetching all profiles...");
+    // Step 1: Get all lightweight profiles (after consolidation, profiles only contain basic auth data)
+    console.log("Fetching all lightweight profiles...");
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, email, full_name, created_at, updated_at")
       .order('updated_at', { ascending: false });
 
     if (profilesError) {
@@ -21,7 +21,7 @@ export const checkProfileMemberSync = async () => {
       return { success: false, error: profilesError.message };
     }
 
-    console.log(`Found ${profiles?.length || 0} profiles`);
+    console.log(`Found ${profiles?.length || 0} lightweight profiles`);
 
     if (profiles && profiles.length > 0) {
       console.log("First 3 profiles:", profiles.slice(0, 3).map(p => ({
@@ -32,31 +32,33 @@ export const checkProfileMemberSync = async () => {
       })));
     }
 
-    // Step 2: Get all members
-    console.log("Fetching all members...");
+    // Step 2: Get all members from consolidated table
+    console.log("Fetching all members from consolidated table...");
     const { data: members, error: membersError } = await supabase
       .from("members")
-      .select("*")
+      .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, isactive, created_at, updated_at")
       .order('created_at', { ascending: false });
 
     if (membersError) {
-      console.error("Error fetching members:", membersError);
+      console.error("Error fetching consolidated members:", membersError);
       return { success: false, error: membersError.message };
     }
 
-    console.log(`Found ${members?.length || 0} members`);
+    console.log(`Found ${members?.length || 0} consolidated members`);
 
     if (members && members.length > 0) {
-      console.log("First 3 members:", members.slice(0, 3).map(m => ({
+      console.log("First 3 consolidated members:", members.slice(0, 3).map(m => ({
         id: m.id,
         email: m.email,
         fullname: m.fullname,
-        created_at: m.created_at,
-        userid: m.userid
+        user_id: m.user_id,
+        category: m.category,
+        role: m.role,
+        created_at: m.created_at
       })));
     }
 
-    // Step 3: Check for profiles that don't have corresponding members
+    // Step 3: Check for profiles that don't have corresponding members in consolidated table
     const missingMembers = [];
     const profileEmails = new Set();
 
@@ -64,10 +66,10 @@ export const checkProfileMemberSync = async () => {
       if (profile.email) {
         profileEmails.add(profile.email.toLowerCase());
 
-        // Check if this profile has a corresponding member
+        // Check if this profile has a corresponding member in consolidated table
         const matchingMember = members?.find(m =>
           (m.email && m.email.toLowerCase() === profile.email?.toLowerCase()) ||
-          m.userid === profile.id
+          m.user_id === profile.id
         );
 
         if (!matchingMember) {
@@ -81,21 +83,21 @@ export const checkProfileMemberSync = async () => {
       }
     }
 
-    console.log(`Found ${missingMembers.length} profiles without corresponding members`);
+    console.log(`Found ${missingMembers.length} profiles without corresponding members in consolidated table`);
 
     if (missingMembers.length > 0) {
-      console.log("Profiles missing from members table:", missingMembers);
+      console.log("Profiles missing from consolidated members table:", missingMembers);
     }
 
-    // Step 4: Check for members that don't have corresponding profiles
+    // Step 4: Check for consolidated members that don't have corresponding profiles
     const extraMembers = [];
 
     for (const member of members || []) {
       if (member.email) {
-        // Check if this member has a corresponding profile
+        // Check if this consolidated member has a corresponding profile
         const hasMatchingProfile = profiles?.some(p =>
           (p.email && p.email.toLowerCase() === member.email?.toLowerCase()) ||
-          p.id === member.userid
+          p.id === member.user_id
         );
 
         if (!hasMatchingProfile) {
@@ -103,17 +105,19 @@ export const checkProfileMemberSync = async () => {
             memberId: member.id,
             email: member.email,
             fullname: member.fullname,
+            category: member.category,
+            role: member.role,
             created_at: member.created_at,
-            userid: member.userid
+            user_id: member.user_id
           });
         }
       }
     }
 
-    console.log(`Found ${extraMembers.length} members without corresponding profiles`);
+    console.log(`Found ${extraMembers.length} consolidated members without corresponding profiles`);
 
     if (extraMembers.length > 0) {
-      console.log("Members without corresponding profiles:", extraMembers);
+      console.log("Consolidated members without corresponding profiles:", extraMembers);
     }
 
     return {
@@ -123,13 +127,14 @@ export const checkProfileMemberSync = async () => {
       missingMemberCount: missingMembers.length,
       extraMemberCount: extraMembers.length,
       missingMembers,
-      extraMembers
+      extraMembers,
+      consolidatedStructure: true // Flag to indicate this uses consolidated structure
     };
   } catch (error) {
-    console.error("Error in checkProfileMemberSync:", error);
+    console.error("Error in checkProfileMemberSync (consolidated):", error);
     return { success: false, error: String(error) };
   } finally {
-    console.log("=== DIAGNOSTIC: CHECK COMPLETE ===");
+    console.log("=== DIAGNOSTIC: CONSOLIDATED CHECK COMPLETE ===");
   }
 };
 
@@ -199,28 +204,26 @@ export const checkUserByEmail = async (email: string) => {
       results.profileError = String(error);
     }
 
-    // Step 2: Check members table
+    // Step 2: Check consolidated members table
     try {
-      // Try admin client first
       let memberData = null;
       let memberError = null;
 
       try {
         const result = await adminSupabase
           .from("members")
-          .select("*")
+          .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, isactive, created_at, updated_at")
           .ilike("email", email)
           .maybeSingle();
 
         memberData = result.data;
         memberError = result.error;
       } catch (adminError) {
-        console.warn("Could not check members with admin client, falling back to regular client:", adminError);
+        console.warn("Could not check consolidated members with admin client, falling back to regular client:", adminError);
 
-        // Fall back to regular client
         const result = await supabase
           .from("members")
-          .select("*")
+          .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, isactive, created_at, updated_at")
           .ilike("email", email)
           .maybeSingle();
 
@@ -228,17 +231,25 @@ export const checkUserByEmail = async (email: string) => {
         memberError = result.error;
       }
 
-      results.inMembers = !!memberData;
-      results.memberData = memberData;
+      results.inConsolidatedMembers = !!memberData;
+      results.consolidatedMemberData = memberData;
       results.memberError = memberError?.message;
 
       if (memberError) {
-        console.error("Error checking members:", memberError);
+        console.error("Error checking consolidated members:", memberError);
       } else {
-        console.log("Member check result:", memberData ? "Found" : "Not found");
+        console.log("Consolidated member check result:", memberData ? "Found" : "Not found");
+        if (memberData) {
+          console.log("Consolidated member details:", {
+            category: memberData.category,
+            role: memberData.role,
+            isactive: memberData.isactive,
+            user_id: memberData.user_id
+          });
+        }
       }
     } catch (error) {
-      console.error("Exception checking members:", error);
+      console.error("Exception checking consolidated members:", error);
       results.memberError = String(error);
     }
 
@@ -287,6 +298,9 @@ export const checkUserByEmail = async (email: string) => {
       results.roleError = String(error);
     }
 
+    // Add consolidated structure flag
+    results.consolidatedStructure = true;
+
     return {
       success: true,
       results
@@ -300,19 +314,115 @@ export const checkUserByEmail = async (email: string) => {
   }
 };
 
-export const manualSyncProfileToMember = async (profileId: string) => {
-  console.log(`Manually syncing profile ${profileId} to members table...`);
+/**
+ * Comprehensive diagnostic function for the consolidated database structure
+ * This function validates the integrity of the consolidated members table
+ */
+export const validateConsolidatedStructure = async () => {
+  console.log("=== DIAGNOSTIC: VALIDATING CONSOLIDATED STRUCTURE ===");
 
   try {
-    // Step 1: Get the profile
-    // Try admin client first
+    const results: any = {
+      timestamp: new Date().toISOString(),
+      consolidatedStructure: true
+    };
+
+    // Step 1: Check consolidated members table structure
+    console.log("Checking consolidated members table structure...");
+    const { data: members, error: membersError } = await supabase
+      .from("members")
+      .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, churchunit, churchunits, auxanogroup, joindate, notes, isactive, created_at, updated_at")
+      .limit(5);
+
+    if (membersError) {
+      console.error("Error accessing consolidated members table:", membersError);
+      results.membersTableError = membersError.message;
+    } else {
+      results.membersTableAccessible = true;
+      results.sampleMembers = members;
+      console.log("Consolidated members table accessible, sample records:", members?.length || 0);
+    }
+
+    // Step 2: Check lightweight profiles table structure
+    console.log("Checking lightweight profiles table structure...");
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, created_at, updated_at")
+      .limit(5);
+
+    if (profilesError) {
+      console.error("Error accessing profiles table:", profilesError);
+      results.profilesTableError = profilesError.message;
+    } else {
+      results.profilesTableAccessible = true;
+      results.sampleProfiles = profiles;
+      console.log("Lightweight profiles table accessible, sample records:", profiles?.length || 0);
+    }
+
+    // Step 3: Check data consistency
+    if (members && profiles) {
+      const membersWithAuth = members.filter(m => m.user_id);
+      const profilesWithMembers = profiles.filter(p => 
+        members.some(m => m.user_id === p.id || m.email?.toLowerCase() === p.email?.toLowerCase())
+      );
+
+      results.membersWithAuth = membersWithAuth.length;
+      results.profilesWithMembers = profilesWithMembers.length;
+      results.totalMembers = members.length;
+      results.totalProfiles = profiles.length;
+
+      console.log(`Data consistency check:
+        - Total members: ${members.length}
+        - Members with auth: ${membersWithAuth.length}
+        - Total profiles: ${profiles.length}
+        - Profiles with members: ${profilesWithMembers.length}`);
+    }
+
+    // Step 4: Check for required fields in consolidated structure
+    if (members && members.length > 0) {
+      const requiredFields = ['id', 'email', 'fullname', 'category', 'isactive', 'role'];
+      const fieldValidation: any = {};
+
+      for (const field of requiredFields) {
+        const recordsWithField = members.filter(m => m[field] !== null && m[field] !== undefined);
+        fieldValidation[field] = {
+          total: members.length,
+          withValue: recordsWithField.length,
+          percentage: Math.round((recordsWithField.length / members.length) * 100)
+        };
+      }
+
+      results.fieldValidation = fieldValidation;
+      console.log("Field validation for consolidated structure:", fieldValidation);
+    }
+
+    return {
+      success: true,
+      results
+    };
+  } catch (error) {
+    console.error("Error in validateConsolidatedStructure:", error);
+    return {
+      success: false,
+      error: String(error)
+    };
+  } finally {
+    console.log("=== DIAGNOSTIC: CONSOLIDATED STRUCTURE VALIDATION COMPLETE ===");
+  }
+};
+
+export const manualSyncProfileToMember = async (profileId: string) => {
+  console.log(`Manually syncing profile ${profileId} to consolidated members table...`);
+
+  try {
+    // Step 1: Get the lightweight profile
     let profile;
     let profileError;
 
     try {
       const result = await adminSupabase
         .from("profiles")
-        .select("*")
+        .select("id, email, full_name, created_at")
         .eq("id", profileId)
         .single();
 
@@ -321,10 +431,9 @@ export const manualSyncProfileToMember = async (profileId: string) => {
     } catch (adminError) {
       console.warn("Could not fetch profile with admin client, falling back to regular client:", adminError);
 
-      // Fall back to regular client
       const result = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, email, full_name, created_at")
         .eq("id", profileId)
         .single();
 
@@ -342,10 +451,9 @@ export const manualSyncProfileToMember = async (profileId: string) => {
       return { success: false, error: "Profile not found" };
     }
 
-    console.log("Found profile:", profile);
+    console.log("Found lightweight profile:", profile);
 
-    // Step 2: Check if a member already exists
-    // Try admin client first
+    // Step 2: Check if a member already exists in consolidated table
     let existingMember;
     let memberError;
 
@@ -353,7 +461,7 @@ export const manualSyncProfileToMember = async (profileId: string) => {
       const result = await adminSupabase
         .from("members")
         .select("*")
-        .or(`email.eq.${profile.email?.toLowerCase()},userid.eq.${profile.id}`)
+        .or(`email.eq.${profile.email?.toLowerCase()},user_id.eq.${profile.id}`)
         .maybeSingle();
 
       existingMember = result.data;
@@ -361,11 +469,10 @@ export const manualSyncProfileToMember = async (profileId: string) => {
     } catch (adminError) {
       console.warn("Could not check for existing member with admin client, falling back to regular client:", adminError);
 
-      // Fall back to regular client
       const result = await supabase
         .from("members")
         .select("*")
-        .or(`email.eq.${profile.email?.toLowerCase()},userid.eq.${profile.id}`)
+        .or(`email.eq.${profile.email?.toLowerCase()},user_id.eq.${profile.id}`)
         .maybeSingle();
 
       existingMember = result.data;
@@ -373,35 +480,39 @@ export const manualSyncProfileToMember = async (profileId: string) => {
     }
 
     if (memberError) {
-      console.error("Error checking for existing member:", memberError);
+      console.error("Error checking for existing member in consolidated table:", memberError);
       return { success: false, error: memberError.message };
     }
 
     if (existingMember) {
-      console.log("Member already exists:", existingMember);
-      return { success: true, message: "Member already exists", member: existingMember };
+      console.log("Member already exists in consolidated table:", existingMember);
+      return { success: true, message: "Member already exists in consolidated table", member: existingMember };
     }
 
-    // Step 3: Create a new member
+    // Step 3: Create a new member in consolidated structure
     const memberData = {
+      user_id: profile.id,
       fullname: profile.full_name || profile.email?.split('@')[0] || 'Unknown',
       email: profile.email?.toLowerCase(),
-      category: 'Others', // Default category
-      churchunit: profile.church_unit || null,
-      churchunits: profile.church_unit ? [profile.church_unit] : [],
-      assignedto: profile.assigned_pastor || null,
-      phone: profile.phone || null,
-      address: profile.address || null,
-      isactive: true,
+      phone: null, // Will be populated when user updates their profile
+      address: null, // Will be populated when user updates their profile
+      genotype: null, // Will be populated when user updates their profile
+      category: 'Members', // Default category for consolidated structure
+      title: null,
+      assignedto: null,
+      churchunit: null,
+      churchunits: [],
+      auxanogroup: null,
       joindate: new Date().toISOString().split('T')[0],
-      userid: profile.id, // Link to the auth user ID
+      notes: null,
+      isactive: true,
+      role: 'user', // Default role for new members
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
-    console.log("Creating new member:", memberData);
+    console.log("Creating new member in consolidated structure:", memberData);
 
-    // Try admin client first
     let newMember;
     let insertError;
 
@@ -415,12 +526,11 @@ export const manualSyncProfileToMember = async (profileId: string) => {
       insertError = result.error;
 
       if (!insertError && newMember) {
-        console.log("Successfully inserted member using admin client");
+        console.log("Successfully inserted member into consolidated table using admin client");
       }
     } catch (adminError) {
       console.warn("Could not insert member with admin client, falling back to regular client:", adminError);
 
-      // Fall back to regular client
       const result = await supabase
         .from("members")
         .insert([memberData])
@@ -431,15 +541,15 @@ export const manualSyncProfileToMember = async (profileId: string) => {
     }
 
     if (insertError) {
-      console.error("Error creating member:", insertError);
+      console.error("Error creating member in consolidated table:", insertError);
       return { success: false, error: insertError.message };
     }
 
-    console.log("Successfully created member:", newMember);
+    console.log("Successfully created member in consolidated table:", newMember);
 
-    return { success: true, member: newMember[0] };
+    return { success: true, member: newMember[0], consolidatedStructure: true };
   } catch (error) {
-    console.error("Error in manualSyncProfileToMember:", error);
+    console.error("Error in manualSyncProfileToMember (consolidated):", error);
     return { success: false, error: String(error) };
   }
 };

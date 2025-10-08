@@ -59,11 +59,17 @@ interface Member {
   fullname: string;
   phone?: string | null;
   address?: string | null;
+  genotype?: string | null; // New field from consolidated structure
   churchunit?: string | null;
   churchunits?: string[];
   assignedto?: string | null;
   category: string;
+  title?: string | null; // New field from consolidated structure
+  auxanogroup?: string | null; // New field from consolidated structure
+  joindate?: string; // New field from consolidated structure
+  notes?: string | null; // New field from consolidated structure
   isactive: boolean;
+  role?: string; // New field from consolidated structure
   created_at: string;
   updated_at: string;
 }
@@ -84,15 +90,22 @@ const MembersManager = () => {
     email: "",
     phone: "",
     address: "",
+    genotype: "", // New field for consolidated structure
     churchunit: "",
     assignedto: "",
     category: "Members",
+    title: "", // New field for consolidated structure
+    auxanogroup: "", // New field for consolidated structure
+    joindate: new Date().toISOString().split('T')[0], // New field for consolidated structure
+    notes: "", // New field for consolidated structure
     isactive: true,
+    role: "user", // New field for consolidated structure
   });
 
   const churchUnits = CHURCH_UNIT_NAMES;
 
-  const categories = ["Members", "Pastors", "Deacons", "Elders"];
+  const categories = ["Members", "Pastors", "Workers", "Visitors", "Partners"];
+  const roles = ["user", "admin", "superuser"];
   const statuses = [
     { value: true, label: "Active" },
     { value: false, label: "Inactive" }
@@ -209,10 +222,16 @@ const MembersManager = () => {
       email: member.email,
       phone: member.phone || "",
       address: member.address || "",
+      genotype: member.genotype || "",
       churchunit: member.churchunit || "",
       assignedto: member.assignedto || "",
       category: member.category,
+      title: member.title || "",
+      auxanogroup: member.auxanogroup || "",
+      joindate: member.joindate || new Date().toISOString().split('T')[0],
+      notes: member.notes || "",
       isactive: member.isactive,
+      role: member.role || "user",
     });
     setIsDialogOpen(true);
   };
@@ -223,10 +242,16 @@ const MembersManager = () => {
       email: "",
       phone: "",
       address: "",
+      genotype: "",
       churchunit: "",
       assignedto: "",
       category: "Members",
+      title: "",
+      auxanogroup: "",
+      joindate: new Date().toISOString().split('T')[0],
+      notes: "",
       isactive: true,
+      role: "user",
     });
     setEditingMember(null);
   };
@@ -235,24 +260,33 @@ const MembersManager = () => {
     try {
       setLoading(true);
       toast({
-        title: "Refreshing...",
-        description: "Refreshing member data",
+        title: "Syncing...",
+        description: "Syncing profiles to consolidated members table",
       });
 
-      // Simply refresh the members data for now
-      // In the future, this could call a database function to sync with auth users
-      await fetchMembers();
+      // Import and use the updated sync utility
+      const { syncProfilesToMembers } = await import("@/utils/syncProfilesToMembers");
+      const result = await syncProfilesToMembers();
 
-      toast({
-        title: "Success",
-        description: "Member data refreshed successfully",
-      });
+      if (result.success) {
+        await fetchMembers(); // Refresh the members data
+        toast({
+          title: "Sync completed",
+          description: result.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Sync failed",
+          description: result.message,
+        });
+      }
     } catch (error) {
-      console.error('Error refreshing members:', error);
+      console.error('Error syncing with auth:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to refresh member data",
+        description: "Failed to sync with authentication system",
       });
     } finally {
       setLoading(false);
@@ -261,14 +295,20 @@ const MembersManager = () => {
 
   const exportMembers = () => {
     const csvContent = [
-      ['Name', 'Email', 'Phone', 'Church Unit', 'Category', 'Status', 'Created Date'],
+      ['Name', 'Email', 'Phone', 'Address', 'Genotype', 'Church Unit', 'Auxano Group', 'Category', 'Title', 'Role', 'Status', 'Join Date', 'Created Date'],
       ...filteredMembers.map(member => [
         member.fullname,
         member.email,
         member.phone || '',
+        member.address || '',
+        member.genotype || '',
         member.churchunit || '',
+        member.auxanogroup || '',
         member.category,
+        member.title || '',
+        member.role || 'user',
         member.isactive ? 'Active' : 'Inactive',
+        member.joindate || '',
         new Date(member.created_at).toLocaleDateString()
       ])
     ].map(row => row.join(',')).join('\n');
@@ -277,7 +317,7 @@ const MembersManager = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `members-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `consolidated-members-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -367,7 +407,7 @@ const MembersManager = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="phone">Phone</Label>
                     <Input
@@ -376,6 +416,27 @@ const MembersManager = () => {
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="genotype">Genotype</Label>
+                    <Input
+                      id="genotype"
+                      value={formData.genotype}
+                      onChange={(e) => setFormData({ ...formData, genotype: e.target.value })}
+                      placeholder="e.g., AA, AS, SS"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="e.g., Pastor, Deacon"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="churchunit">Church Unit</Label>
                     <Select
@@ -395,6 +456,14 @@ const MembersManager = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div>
+                    <Label htmlFor="auxanogroup">Auxano Group</Label>
+                    <Input
+                      id="auxanogroup"
+                      value={formData.auxanogroup}
+                      onChange={(e) => setFormData({ ...formData, auxanogroup: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -403,6 +472,36 @@ const MembersManager = () => {
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="joindate">Join Date</Label>
+                    <Input
+                      id="joindate"
+                      type="date"
+                      value={formData.joindate}
+                      onChange={(e) => setFormData({ ...formData, joindate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="assignedto">Assigned Pastor</Label>
+                    <Input
+                      id="assignedto"
+                      value={formData.assignedto}
+                      onChange={(e) => setFormData({ ...formData, assignedto: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Input
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Additional notes about the member"
                   />
                 </div>
 
@@ -426,6 +525,24 @@ const MembersManager = () => {
                     </Select>
                   </div>
                   <div>
+                    <Label htmlFor="role">Role</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => setFormData({ ...formData, role: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label htmlFor="isactive">Status</Label>
                     <Select
                       value={formData.isactive.toString()}
@@ -439,14 +556,6 @@ const MembersManager = () => {
                         <SelectItem value="false">Inactive</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="assignedto">Assigned Pastor</Label>
-                    <Input
-                      id="assignedto"
-                      value={formData.assignedto}
-                      onChange={(e) => setFormData({ ...formData, assignedto: e.target.value })}
-                    />
                   </div>
                 </div>
 
@@ -564,6 +673,7 @@ const MembersManager = () => {
                 <TableHead>Phone</TableHead>
                 <TableHead>Church Unit</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Auth Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -572,13 +682,34 @@ const MembersManager = () => {
             <TableBody>
               {filteredMembers.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.fullname}</TableCell>
+                  <TableCell className="font-medium">
+                    <div>
+                      <div>{member.fullname}</div>
+                      {member.title && (
+                        <div className="text-xs text-gray-500">{member.title}</div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{member.email}</TableCell>
                   <TableCell>{member.phone || '-'}</TableCell>
-                  <TableCell>{member.churchunit || '-'}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div>{member.churchunit || '-'}</div>
+                      {member.auxanogroup && (
+                        <div className="text-xs text-gray-500">Auxano: {member.auxanogroup}</div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge className={getCategoryColor(member.category)}>
                       {member.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={member.role === 'superuser' ? 'bg-red-100 text-red-800' : 
+                                    member.role === 'admin' ? 'bg-orange-100 text-orange-800' : 
+                                    'bg-gray-100 text-gray-800'}>
+                      {(member.role || 'user').charAt(0).toUpperCase() + (member.role || 'user').slice(1)}
                     </Badge>
                   </TableCell>
                   <TableCell>

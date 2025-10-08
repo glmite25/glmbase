@@ -6,9 +6,15 @@
 DROP TRIGGER IF EXISTS trigger_sync_user_to_member ON auth.users;
 DROP TRIGGER IF EXISTS trigger_sync_user_to_member_safe ON auth.users;
 DROP TRIGGER IF EXISTS trigger_sync_user_to_member_final ON auth.users;
+DROP TRIGGER IF EXISTS trigger_sync_user_to_member_enhanced ON auth.users;
+DROP TRIGGER IF EXISTS trigger_sync_profile_to_member_enhanced ON public.profiles;
+DROP TRIGGER IF EXISTS trigger_sync_member_to_profile_enhanced ON public.members_enhanced;
 DROP FUNCTION IF EXISTS public.sync_user_to_member() CASCADE;
 DROP FUNCTION IF EXISTS public.sync_user_to_member_safe() CASCADE;
 DROP FUNCTION IF EXISTS public.sync_user_to_member_final() CASCADE;
+DROP FUNCTION IF EXISTS public.sync_user_to_member_enhanced() CASCADE;
+DROP FUNCTION IF EXISTS public.sync_profile_to_member_enhanced() CASCADE;
+DROP FUNCTION IF EXISTS public.sync_member_to_profile_enhanced() CASCADE;
 
 -- Create enhanced sync function for the consolidated members table
 CREATE OR REPLACE FUNCTION public.sync_user_to_member_enhanced()

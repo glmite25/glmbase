@@ -9,8 +9,19 @@ DROP POLICY IF EXISTS "admins_can_view_all_members" ON public.members_enhanced;
 DROP POLICY IF EXISTS "superusers_full_access" ON public.members_enhanced;
 DROP POLICY IF EXISTS "admins_can_insert_members" ON public.members_enhanced;
 DROP POLICY IF EXISTS "admins_can_update_members" ON public.members_enhanced;
+DROP POLICY IF EXISTS "admins_can_update_all_members" ON public.members_enhanced;
 DROP POLICY IF EXISTS "users_can_update_own_basic_info" ON public.members_enhanced;
+DROP POLICY IF EXISTS "pastors_can_view_assigned_members" ON public.members_enhanced;
+DROP POLICY IF EXISTS "pastors_can_update_assigned_members" ON public.members_enhanced;
+DROP POLICY IF EXISTS "admins_can_soft_delete_members" ON public.members_enhanced;
 DROP POLICY IF EXISTS "admins_can_delete_members" ON public.members_enhanced;
+
+-- Drop existing policies on profiles table
+DROP POLICY IF EXISTS "users_can_view_own_profile" ON public.profiles;
+DROP POLICY IF EXISTS "users_can_update_own_profile" ON public.profiles;
+DROP POLICY IF EXISTS "admins_can_view_all_profiles" ON public.profiles;
+DROP POLICY IF EXISTS "superusers_can_manage_all_profiles" ON public.profiles;
+DROP POLICY IF EXISTS "allow_profile_creation_on_signup" ON public.profiles;
 
 -- Ensure RLS is enabled on the enhanced members table
 ALTER TABLE public.members_enhanced ENABLE ROW LEVEL SECURITY;

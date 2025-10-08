@@ -64,8 +64,9 @@ ON public.members_enhanced(auxanogroup) WHERE auxanogroup IS NOT NULL;
 
 -- ========================================
 -- DATE-BASED INDEXES FOR REPORTING
--- ========================================-- J
-join date index for membership tracking
+-- ========================================
+
+-- Join date index for membership tracking
 CREATE INDEX IF NOT EXISTS idx_members_enhanced_joindate 
 ON public.members_enhanced(joindate);
 
@@ -134,8 +135,9 @@ ON public.members_enhanced(gender) WHERE gender IS NOT NULL;
 
 -- Marital status index
 CREATE INDEX IF NOT EXISTS idx_members_enhanced_marital_status 
-ON public.members_enhanced(marital_status) WHERE marital_status IS NOT NULL;-- Bapt
-ism status index
+ON public.members_enhanced(marital_status) WHERE marital_status IS NOT NULL;
+
+-- Baptism status index
 CREATE INDEX IF NOT EXISTS idx_members_enhanced_is_baptized 
 ON public.members_enhanced(is_baptized);
 
@@ -198,8 +200,9 @@ CREATE INDEX IF NOT EXISTS idx_members_enhanced_user_email
 ON public.members_enhanced(user_id, email) WHERE user_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_members_enhanced_auth_active 
-ON public.members_enhanced(user_id, isactive) WHERE user_id IS NOT NULL;-- 
-Reporting and analytics indexes
+ON public.members_enhanced(user_id, isactive) WHERE user_id IS NOT NULL;
+
+-- Reporting and analytics indexes
 CREATE INDEX IF NOT EXISTS idx_members_enhanced_category_joindate 
 ON public.members_enhanced(category, joindate) WHERE isactive = true;
 
