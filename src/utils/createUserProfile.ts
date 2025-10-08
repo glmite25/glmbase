@@ -1,5 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Type for the safe helper function response
+interface SafeHelperResponse {
+  success: boolean;
+  message: string;
+  user_id?: string;
+}
+
 /**
  * Creates or updates a member record in the members table
  * Using the correct column names from the database schema
@@ -17,7 +24,7 @@ const createMemberRecord = async (
     console.log(`Creating/updating member record for user ${userId}`);
 
     // Determine category based on email (admin users are pastors)
-    const adminEmails = ['ojidelawrence@gmail.com', 'admin@gospellabourministry.com'];
+    const adminEmails = ['ojidelawrence@gmail.com', 'popsabey1@gmail.com', 'dev.samadeyemi@gmail.com'];
     const category = adminEmails.includes(email.toLowerCase()) ? 'Pastors' : 'Members';
 
     // Use the correct column names from the database schema
@@ -102,6 +109,32 @@ export const createUserProfile = async (
 
     // Ensure fullName is not empty
     const sanitizedFullName = fullName?.trim() || email.split('@')[0];
+
+    // Try using the safe helper function first
+    try {
+      const { data, error } = await supabase.rpc('create_user_profile_safe' as any, {
+        user_id: userId,
+        user_email: normalizedEmail,
+        user_full_name: sanitizedFullName,
+        church_unit: churchUnit || null,
+        phone: phone || null
+      }) as { data: SafeHelperResponse | null; error: any };
+
+      if (error) {
+        console.warn("Safe helper function failed, falling back to manual creation:", error.message);
+      } else if (data?.success) {
+        console.log("Profile created successfully using safe helper function");
+        return {
+          success: true,
+          message: "Profile and member record created/updated successfully"
+        };
+      }
+    } catch (helperError) {
+      console.warn("Safe helper function not available, using manual creation");
+    }
+
+    // Fallback to manual creation
+    console.log("Using manual profile creation");
 
     // Create a profile record with only the fields that exist in the schema
     const profileData = {

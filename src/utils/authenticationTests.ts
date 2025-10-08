@@ -25,7 +25,7 @@ export const testUserRegistrationFlow = async (): Promise<AuthTestResult> => {
   try {
     // We'll test this by checking existing users to see if they have proper records
     // in both profiles and members tables
-    
+
     // Get a sample of profiles
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
@@ -51,13 +51,13 @@ export const testUserRegistrationFlow = async (): Promise<AuthTestResult> => {
 
     // Check if these profiles have corresponding member records
     const registrationFlowIssues = [];
-    
+
     for (const profile of profiles) {
       // Check if this profile has a corresponding member record
       const { data: memberRecord, error: memberError } = await supabase
         .from("members")
         .select("*")
-        .or(`user_id.eq.${profile.id},email.ilike.${profile.email}`)
+        .or(`id.eq.${profile.id},email.ilike.${profile.email}`)
         .maybeSingle();
 
       if (memberError) {
@@ -78,8 +78,8 @@ export const testUserRegistrationFlow = async (): Promise<AuthTestResult> => {
         });
       } else {
         // Validate that the member record has proper sync
-        if (memberRecord.user_id !== profile.id && 
-            memberRecord.email?.toLowerCase() !== profile.email?.toLowerCase()) {
+        if (memberRecord.id !== profile.id &&
+          memberRecord.email?.toLowerCase() !== profile.email?.toLowerCase()) {
           registrationFlowIssues.push({
             profileId: profile.id,
             memberId: memberRecord.id,
@@ -88,7 +88,7 @@ export const testUserRegistrationFlow = async (): Promise<AuthTestResult> => {
             details: {
               profileEmail: profile.email,
               memberEmail: memberRecord.email,
-              memberUserId: memberRecord.user_id
+              memberUserId: memberRecord.id
             }
           });
         }
@@ -98,8 +98,8 @@ export const testUserRegistrationFlow = async (): Promise<AuthTestResult> => {
     return {
       testName: "User Registration Flow Validation",
       passed: registrationFlowIssues.length === 0,
-      message: registrationFlowIssues.length === 0 ? 
-        "User registration flow is working correctly" : 
+      message: registrationFlowIssues.length === 0 ?
+        "User registration flow is working correctly" :
         `Found ${registrationFlowIssues.length} registration flow issues`,
       details: {
         profilesChecked: profiles.length,
@@ -124,7 +124,7 @@ export const testLoginLogoutFunctionality = async (): Promise<AuthTestResult> =>
   try {
     // Test current user session
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError) {
       return {
         testName: "Login/Logout Functionality - Session Check",
@@ -166,7 +166,7 @@ export const testLoginLogoutFunctionality = async (): Promise<AuthTestResult> =>
     const { data: member, error: memberError } = await supabase
       .from("members")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .maybeSingle();
 
     if (memberError) {
@@ -207,7 +207,6 @@ export const testLoginLogoutFunctionality = async (): Promise<AuthTestResult> =>
           email: member.email,
           fullname: member.fullname,
           category: member.category,
-          role: member.role,
           isactive: member.isactive
         } : null
       }
@@ -229,7 +228,7 @@ export const testAdminSuperuserAccess = async (): Promise<AuthTestResult> => {
   try {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError) {
       return {
         testName: "Admin/Superuser Access - User Check",
@@ -266,11 +265,11 @@ export const testAdminSuperuserAccess = async (): Promise<AuthTestResult> => {
       };
     }
 
-    // Check member record for role information
+    // Check member record for basic information
     const { data: memberRecord, error: memberError } = await supabase
       .from("members")
-      .select("role, email")
-      .eq("user_id", user.id)
+      .select("email, category")
+      .eq("id", user.id)
       .maybeSingle();
 
     if (memberError) {
@@ -283,7 +282,7 @@ export const testAdminSuperuserAccess = async (): Promise<AuthTestResult> => {
     }
 
     // Check if user is a designated superuser
-    const superuserEmails = ['ojidelawrence@gmail.com', 'popsabey1@gmail.com'];
+    const superuserEmails = ['ojidelawrence@gmail.com', 'popsabey1@gmail.com', 'dev.samadeyemi@gmail.com'];
     const isSuperuser = superuserEmails.includes(user.email?.toLowerCase() || '');
 
     // Test admin access by trying to access admin-only data
@@ -292,7 +291,7 @@ export const testAdminSuperuserAccess = async (): Promise<AuthTestResult> => {
       // Try to access all members (admin operation)
       const { data: allMembers, error: adminError } = await supabase
         .from("members")
-        .select("id, email, fullname, role")
+        .select("id, email, fullname, category")
         .limit(5);
 
       adminAccessTest = {
@@ -338,12 +337,12 @@ export const testAdminSuperuserAccess = async (): Promise<AuthTestResult> => {
         userEmail: user.email,
         isSuperuser,
         userRoles: userRoles || [],
-        memberRole: memberRecord?.role || null,
+        memberCategory: memberRecord?.category || null,
         adminAccessTest,
         superuserAccessTest,
-        accessLevel: isSuperuser ? 'superuser' : 
-                    (userRoles && userRoles.length > 0) ? userRoles[0].role : 
-                    memberRecord?.role || 'user'
+        accessLevel: isSuperuser ? 'superuser' :
+          (userRoles && userRoles.length > 0) ? userRoles[0].role :
+            memberRecord?.category || 'user'
       }
     };
   } catch (error) {
@@ -362,7 +361,7 @@ export const testAdminSuperuserAccess = async (): Promise<AuthTestResult> => {
 export const testAuthenticationTriggers = async (): Promise<AuthTestResult> => {
   try {
     // Test by checking if existing users have proper sync between auth, profiles, and members
-    
+
     // Get profiles with their corresponding auth user data
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
@@ -393,7 +392,7 @@ export const testAuthenticationTriggers = async (): Promise<AuthTestResult> => {
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("*")
-        .eq("user_id", profile.id)
+        .eq("id", profile.id)
         .maybeSingle();
 
       if (memberError) {
@@ -431,8 +430,8 @@ export const testAuthenticationTriggers = async (): Promise<AuthTestResult> => {
     return {
       testName: "Authentication Triggers Validation",
       passed: triggerIssues.length === 0,
-      message: triggerIssues.length === 0 ? 
-        "Authentication triggers are working correctly" : 
+      message: triggerIssues.length === 0 ?
+        "Authentication triggers are working correctly" :
         `Found ${triggerIssues.length} trigger-related issues`,
       details: {
         profilesChecked: profiles.length,
@@ -455,7 +454,7 @@ export const testAuthenticationTriggers = async (): Promise<AuthTestResult> => {
  */
 export const executeAuthenticationTests = async (): Promise<AuthTestReport> => {
   console.log("=== EXECUTING AUTHENTICATION AND USER MANAGEMENT TESTS ===");
-  
+
   const startTime = new Date();
   const tests: AuthTestResult[] = [];
 
@@ -482,6 +481,6 @@ export const executeAuthenticationTests = async (): Promise<AuthTestReport> => {
   console.log("=== AUTHENTICATION AND USER MANAGEMENT TESTS COMPLETE ===");
   console.log(`Overall Result: ${overallPassed ? 'PASSED' : 'FAILED'}`);
   console.log(`Tests: ${passedTests}/${tests.length} passed`);
-  
+
   return report;
 };
