@@ -1,4 +1,8 @@
 -- Create RPC functions for events and sermons
+-- Drop existing functions first to avoid conflicts
+
+DROP FUNCTION IF EXISTS get_upcoming_events(integer);
+DROP FUNCTION IF EXISTS get_recent_sermons(integer);
 
 -- Function to get upcoming events
 CREATE OR REPLACE FUNCTION get_upcoming_events(limit_count INTEGER DEFAULT 10)
