@@ -28,6 +28,13 @@ const Settings = lazy(() => import("./pages/Settings"));
 const AdminAccess = lazy(() => import("./pages/AdminAccess"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 
+// Lazy load React Query Devtools for development
+const ReactQueryDevtoolsLazy = lazy(() => 
+  import('@tanstack/react-query-devtools').then(mod => ({ 
+    default: mod.ReactQueryDevtools 
+  }))
+);
+
 // Component to conditionally render the header
 const AppContent = () => {
   const location = useLocation();
@@ -110,17 +117,11 @@ const App = () => {
         </TooltipProvider>
       </AuthProvider>
       {/* Add React Query Devtools - only visible in development */}
-      {import.meta.env.DEV &&
-        (() => {
-          // Dynamically import ReactQueryDevtools only in development
-          const ReactQueryDevtools = lazy(() => import('@tanstack/react-query-devtools').then(mod => ({ default: mod.ReactQueryDevtools })));
-          return (
-            <Suspense fallback={null}>
-              <ReactQueryDevtools initialIsOpen={false} />
-            </Suspense>
-          );
-        })()
-      }
+      {import.meta.env.DEV && (
+        <Suspense fallback={null}>
+          <ReactQueryDevtoolsLazy />
+        </Suspense>
+      )}
     </QueryClientProvider>
   );
 };

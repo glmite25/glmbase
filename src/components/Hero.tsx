@@ -1,10 +1,15 @@
 // Header import removed - Header is rendered in App.tsx
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 interface HeroProps {
   title: string;
   subtitle: string;
   backgroundImage?: string;
   overlay?: boolean;
+  ctaText?: string;
+  ctaLink?: string;
 }
 
 const Hero = ({
@@ -12,6 +17,8 @@ const Hero = ({
   subtitle,
   backgroundImage = "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1473&q=80",
   overlay = true,
+  ctaText,
+  ctaLink,
 }: HeroProps) => {
   return (
     <div className="relative">{/* Header is already rendered in App.tsx, no need to duplicate */}
@@ -39,17 +46,17 @@ const Hero = ({
             {subtitle}
           </p>
           
-          {/* {ctaText && (
+          {ctaText && ctaLink && (
             <Link to={ctaLink}>
                 <Button 
                 size="lg" 
-                className="bg-transparent  text-white font-medium px-6 py-8  border-2 border-white rounded-none"
+                className="bg-transparent text-white font-medium px-6 py-8 border-2 border-white rounded-none hover:bg-white hover:text-black transition-colors"
                 >
                 {ctaText}
                 <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
             </Link>
-          )} */}
+          )}
         </div>
       </div>
     </div>

@@ -186,9 +186,9 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 pt-16">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       {/* Mobile sidebar toggle button */}
-      <div className="md:hidden sticky top-16 z-10 bg-white p-4 border-b flex items-center justify-between">
+      <div className="md:hidden sticky top-0 z-10 bg-white p-4 border-b flex items-center justify-between">
         <Button
           variant="ghost"
           size="icon"

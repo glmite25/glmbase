@@ -46,7 +46,9 @@ const Index = () => {
           ctaText="Join Us This Sunday"
           ctaLink="/about"
           backgroundImage="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1473&q=80"
-        />  <div className="bg-white py-12 sm:py-16 px-4" data-aos="fade-up">
+        />
+
+        <div className="bg-white py-12 sm:py-16 px-4" data-aos="fade-up">
           {/* Right-aligned heading section */}
           <div className="max-w-6xl mx-auto mb-8 sm:mb-12 text-center sm:text-right" data-aos="fade-right">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-black inline-block pb-2">

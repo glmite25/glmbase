@@ -1,8 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { adminSupabase } from "@/integrations/supabase/adminClient";
-import { toast } from "@/hooks/use-toast";
-import { queryKeys, invalidateRelatedQueries } from '@/lib/react-query-config';
-import { Member, Profile } from '@/types/member';
 
 // Enhanced sync result interface for consolidated structure
 interface SyncResult {
@@ -47,8 +44,8 @@ const checkDatabaseConnection = async () => {
   try {
     console.log("Testing database connection...");
     // Test both tables to ensure consolidated structure is working
-    const { data: profilesData, error: profilesError } = await supabase.from("profiles").select("count").limit(1);
-    const { data: membersData, error: membersError } = await supabase.from("members").select("count").limit(1);
+    const { error: profilesError } = await supabase.from("profiles").select("count").limit(1);
+    const { error: membersError } = await supabase.from("members").select("count").limit(1);
 
     if (profilesError || membersError) {
       console.error("Database connection test failed:", { profilesError, membersError });

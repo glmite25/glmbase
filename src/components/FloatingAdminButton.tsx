@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Shield, Crown, Settings, X } from "lucide-react";
@@ -13,10 +13,11 @@ import {
 const FloatingAdminButton = () => {
   const { user, isAdmin, isSuperUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Don't show on admin routes
-  if (window.location.pathname.startsWith('/admin')) {
+  if (location.pathname.startsWith('/admin')) {
     return null;
   }
 
