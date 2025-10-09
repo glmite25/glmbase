@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import { 
   Form, 
   FormControl, 
@@ -29,10 +29,7 @@ import {
 } from "@/components/ui/select";
 import { 
   User, 
-  Mail, 
-  Phone, 
   MapPin, 
-  Calendar, 
   Edit, 
   Save, 
   X, 
@@ -42,7 +39,6 @@ import {
   Briefcase,
   Users
 } from "lucide-react";
-import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
 // Profile form schema
 const profileSchema = z.object({

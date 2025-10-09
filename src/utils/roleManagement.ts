@@ -10,7 +10,7 @@ export const addUserRoleSafe = async (
 ): Promise<{ success: boolean; error: Error | null }> => {
   try {
     // Call the admin_add_user_role function
-    const { data, error } = await supabase.rpc("admin_add_user_role", {
+    const { error } = await supabase.rpc("admin_add_user_role", {
       user_id_param: userId,
       role_param: role,
     });
@@ -29,7 +29,7 @@ export const addUserRoleSafe = async (
  */
 export const checkIsSuperUser = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc("is_superuser");
+    const { error } = await supabase.rpc("is_superuser");
 
     if (error) {
       console.error("Error checking superuser status:", error);
@@ -48,7 +48,7 @@ export const checkIsSuperUser = async (): Promise<boolean> => {
  */
 export const checkIsAdmin = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc("is_admin");
+    const { error } = await supabase.rpc("is_admin");
 
     if (error) {
       console.error("Error checking admin status:", error);
@@ -72,7 +72,7 @@ export const removeUserRoleSafe = async (
 ): Promise<{ success: boolean; error: Error | null }> => {
   try {
     // Call the admin_remove_user_role function
-    const { data, error } = await supabase.rpc("admin_remove_user_role", {
+    const { error } = await supabase.rpc("admin_remove_user_role", {
       user_id_param: userId,
       role_param: role,
     });

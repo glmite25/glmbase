@@ -474,8 +474,9 @@ export async function testCompleteAuthFlow(): Promise<AuthFlowTestResult[]> {
   }
 
   return results;
-}/
-**
+}
+
+/**
  * Create a service role client for administrative operations
  */
 export function createServiceRoleClient() {

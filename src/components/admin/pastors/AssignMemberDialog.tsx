@@ -113,7 +113,7 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
             .join(' ');
 
           // Create new member
-          const { data: newMember, error: insertError } = await supabase
+          const { error: insertError } = await supabase
             .from('members')
             .insert([
               {

@@ -201,7 +201,7 @@ export function PaginatedMembersTable({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              {getPageNumbers().map((pageNumber, index) => {
+              {getPageNumbers().map((pageNumber) => {
                 // Render ellipsis
                 if (pageNumber < 0) {
                   return (

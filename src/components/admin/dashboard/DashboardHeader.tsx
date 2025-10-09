@@ -1,6 +1,5 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardHeaderProps {
   title: string;
@@ -9,7 +8,6 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ title, description }: DashboardHeaderProps) => {
   const { isSuperUser } = useAuth();
-  const isMobile = useIsMobile();
   
   return (
     <div className="mb-6 md:mb-8">

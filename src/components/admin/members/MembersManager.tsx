@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,9 @@ import {
   UserPlus,
   Edit,
   Trash2,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
   Search,
-  Filter,
   Download,
   RefreshCw,
-  Eye,
   UserCheck,
   UserX
 } from "lucide-react";
@@ -82,7 +76,6 @@ const MembersManager = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -106,16 +99,8 @@ const MembersManager = () => {
 
   const categories = ["Members", "Pastors", "Workers", "Visitors", "Partners"];
   const roles = ["user", "admin", "superuser"];
-  const statuses = [
-    { value: true, label: "Active" },
-    { value: false, label: "Inactive" }
-  ];
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -139,7 +124,11 @@ const MembersManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

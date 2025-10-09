@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { adminSupabase } from "@/integrations/supabase/adminClient";
 
 export interface DataIntegrityTestResult {
   testName: string;
@@ -32,7 +31,7 @@ export interface DataIntegrityReport {
 export const testDataPreservation = async (): Promise<DataIntegrityTestResult> => {
   try {
     // Check if we can access both tables
-    const { data: profiles, error: profilesError } = await supabase
+    const { error: profilesError } = await supabase
       .from("profiles")
       .select("*")
       .limit(1);
@@ -46,7 +45,7 @@ export const testDataPreservation = async (): Promise<DataIntegrityTestResult> =
       };
     }
 
-    const { data: members, error: membersError } = await supabase
+    const { error: membersError } = await supabase
       .from("members")
       .select("*")
       .limit(1);
@@ -213,13 +212,13 @@ export const testDataConsistency = async (): Promise<DataIntegrityTestResult> =>
 export const testForeignKeyConstraints = async (): Promise<DataIntegrityTestResult> => {
   try {
     // Test 1: Check profiles.id -> auth.users(id) relationship
-    const { data: authUsers, error: authError } = await supabase
+    const { error: authError } = await supabase
       .from("auth.users")
       .select("id")
       .limit(1);
 
     // If we can't access auth.users directly, we'll test indirectly
-    let authUsersAccessible = !authError;
+    const authUsersAccessible = !authError;
 
     // Test 2: Check members.user_id -> auth.users(id) relationship
     const { data: membersWithUserId, error: membersError } = await supabase
@@ -415,7 +414,7 @@ export const executeDataIntegrityTests = async (): Promise<DataIntegrityReport> 
   const overallPassed = failedTests === 0;
 
   // Get summary data
-  let summary = {
+  const summary = {
     profilesCount: 0,
     membersCount: 0,
     authUsersCount: 0,

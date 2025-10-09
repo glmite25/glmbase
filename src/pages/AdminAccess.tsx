@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 const AdminAccess = () => {
     const { user, isAdmin, isSuperUser, isLoading } = useAuth();
     const navigate = useNavigate();
-    const [forceCheck, setForceCheck] = useState(false);
+
     const { toast } = useToast();
 
     // Check localStorage for stored admin status
@@ -55,7 +55,6 @@ const AdminAccess = () => {
     };
 
     const handleRefreshAuth = () => {
-        setForceCheck(true);
         window.location.reload();
     };
 

@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Edit } from "lucide-react";
 import { type AdminUser } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 import { MultipleChurchUnitsSelect } from "../../admin/members/MultipleChurchUnitsSelect";
@@ -69,8 +68,6 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
       role: "user",
     },
   });
-
-  const churchUnits = OFFICIAL_CHURCH_UNITS;
 
   const pastors = [
     { id: "timileyin_fadeyi", name: "Timileyin Fadeyi" },

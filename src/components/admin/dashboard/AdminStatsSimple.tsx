@@ -45,8 +45,8 @@ const AdminStatsSimple = () => {
       ]);
 
       // Events table not implemented yet
-      let eventsCount = 0;
-      let upcomingEventsCount = 0;
+      const eventsCount = 0;
+      const upcomingEventsCount = 0;
 
       setStats({
         totalMembers: membersResult.count || 0,

@@ -12,6 +12,11 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, isAdmin, isSuperUser } = useAuth();
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -23,6 +28,28 @@ const Header = () => {
     // Clean up on unmount
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMenuOpen && !(event.target as Element).closest('header')) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
 
   const navItems = [
     { name: "About", path: "/about" },
@@ -81,7 +108,7 @@ const Header = () => {
             </div>
           ) : (
             <Button
-              className="bg-[#ff0000] rounded-none px-10 py-6 rounded hover:bg-[#ff0000]/90 text-white"
+              className="bg-church-red px-10 py-6 hover:bg-church-red/90 text-white"
               onClick={() => navigate("/auth")}
             >
               Login
@@ -93,9 +120,10 @@ const Header = () => {
         <div className="md:hidden flex items-center space-x-3">
           {user && <UserAvatar />}
           <button
-            className="text-gray-50 focus:outline-none"
+            className="text-gray-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-md p-2 transition-colors hover:bg-white/10"
             onClick={toggleMenu}
             aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -103,9 +131,12 @@ const Header = () => {
       </div>
 
       {/* Mobile Navigation Drawer */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t animate-fade-in">
-          <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+      <div className={`md:hidden bg-white border-t transition-all duration-300 ease-in-out ${
+        isMenuOpen 
+          ? 'max-h-screen opacity-100 visible' 
+          : 'max-h-0 opacity-0 invisible overflow-hidden'
+      }`}>
+        <div className="container mx-auto px-4 py-4 flex flex-col space-y-4 max-h-[calc(100vh-80px)] overflow-y-auto">
             {/* User section at top for mobile */}
             {user ? (
               <div className="border-b border-gray-200 pb-4 mb-2">
@@ -138,7 +169,7 @@ const Header = () => {
             ) : (
               <div className="border-b border-gray-200 pb-4 mb-2">
                 <Button
-                  className="bg-[#FF0000] hover:bg-[#FF0000]/90 text-white w-full"
+                  className="bg-church-red hover:bg-church-red/90 text-white w-full"
                   onClick={() => {
                     navigate("/auth");
                     setIsMenuOpen(false);
@@ -166,7 +197,6 @@ const Header = () => {
             ))}
           </div>
         </div>
-      )}
     </header>
   );
 };

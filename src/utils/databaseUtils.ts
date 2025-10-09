@@ -80,7 +80,7 @@ export async function fetchPaginatedMembers(
 
     // Execute the query
     console.log("Executing members query...");
-    let { data, error, count } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       console.error("Error fetching members:", error);

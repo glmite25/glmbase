@@ -17,8 +17,7 @@ const createMemberRecord = async (
   fullName: string,
   churchUnit?: string,
   assignedPastor?: string,
-  phone?: string,
-  address?: string
+  phone?: string
 ) => {
   try {
     console.log(`Creating/updating member record for user ${userId}`);
@@ -129,7 +128,7 @@ export const createUserProfile = async (
           message: "Profile and member record created/updated successfully"
         };
       }
-    } catch (helperError) {
+    } catch {
       console.warn("Safe helper function not available, using manual creation");
     }
 
@@ -189,7 +188,7 @@ export const createUserProfile = async (
     console.log("Profile created/updated successfully");
 
     // Also create/update member record
-    const memberResult = await createMemberRecord(userId, normalizedEmail, sanitizedFullName, churchUnit, assignedPastor, phone, address);
+    const memberResult = await createMemberRecord(userId, normalizedEmail, sanitizedFullName, churchUnit, assignedPastor, phone);
     
     if (!memberResult.success) {
       console.warn("Member record creation failed, but profile was created:", memberResult.message);

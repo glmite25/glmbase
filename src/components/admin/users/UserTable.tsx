@@ -4,7 +4,6 @@ import { type AdminUser } from "./types";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,

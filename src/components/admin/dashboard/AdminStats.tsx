@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, DollarSign, MessageSquare, Heart, BookOpen, UserCheck, TrendingUp } from "lucide-react";
+import { Users, Heart, UserCheck, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StatsData {
@@ -51,12 +51,10 @@ const AdminStats = () => {
       const [
         membersResult,
         activeMembersResult,
-        pastorsResult,
         recentMembersResult,
       ] = await Promise.all([
         supabase.from('members').select('id', { count: 'exact', head: true }),
         supabase.from('members').select('id', { count: 'exact', head: true }).eq('isactive', true),
-        supabase.from('members').select('id', { count: 'exact', head: true }).eq('category', 'Pastors'),
         supabase.from('members').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
 

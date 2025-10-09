@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
           session = result.data?.session;
-        } catch (timeoutError) {
+        } catch {
           console.warn('[AuthContext] Session fetch timed out, checking localStorage fallback');
           // Check localStorage for stored admin status as fallback
           const storedAdminStatus = localStorage.getItem('glm-is-admin') === 'true';
@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (result.error) {
             console.warn('[AuthContext] Profile fetch error:', result.error.message);
           }
-        } catch (timeoutError) {
+        } catch {
           console.warn('[AuthContext] Profile fetch timed out');
         }
 

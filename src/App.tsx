@@ -47,7 +47,7 @@ const AppContent = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen">
       {/* Only render the Header when not on admin routes */}
       {!isAdminRoute && <Header />}
       {/* Floating Admin Button - shows on all non-admin pages */}

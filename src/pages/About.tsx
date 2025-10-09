@@ -2,7 +2,7 @@
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
 
 const About = () => {
   // Fetch real pastors from the database instead of using dummy data

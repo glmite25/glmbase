@@ -257,7 +257,6 @@ export function AddPastorDialog({ onPastorAdded }: AddPastorDialogProps) {
           ])
           .select();
 
-        data = insertData;
         error = insertError;
       }
 

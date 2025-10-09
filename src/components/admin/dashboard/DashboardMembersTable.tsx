@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -9,16 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MoreHorizontal, Search, Trash2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { Member, MemberCategory } from "@/types/member";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -39,20 +31,13 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Fetch data when category or searchTerm changes
-  useEffect(() => {
-    fetchMembers();
-    fetchPastors();
-  }, [category, searchTerm]);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       console.log("Fetching members for category:", category);
 
-      // Start building the query - use a cache-busting timestamp to ensure fresh data
-      const timestamp = new Date().getTime();
+      // Start building the query
       let query = supabase.from('members')
         .select('*')
         .order('created_at', { ascending: false }); // Get newest members first
@@ -134,9 +119,9 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [category, searchTerm, toast]);
 
-  const fetchPastors = async () => {
+  const fetchPastors = useCallback(async () => {
     try {
       console.log('Fetching pastors from Supabase...');
 
@@ -166,7 +151,13 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       });
       setPastors([]);
     }
-  };
+  }, [toast]);
+
+  // Fetch data when category or searchTerm changes
+  useEffect(() => {
+    fetchMembers();
+    fetchPastors();
+  }, [fetchMembers, fetchPastors]);
 
   // No need for client-side filtering anymore as we're doing it at the database level
 

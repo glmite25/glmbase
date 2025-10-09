@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StatsCardProps {
   title: string;
@@ -10,7 +9,6 @@ interface StatsCardProps {
 }
 
 const StatsCard = ({ title, description, value, trend }: StatsCardProps) => {
-  const isMobile = useIsMobile();
   
   return (
     <Card>

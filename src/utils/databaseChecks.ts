@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+
 
 /**
  * Checks if the necessary database triggers are installed

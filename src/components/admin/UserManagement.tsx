@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 import UserTable from "./users/UserTable";
 import AddUserDialog from "./users/AddUserDialog";
@@ -26,11 +25,7 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       console.log("Loading users...");
@@ -61,7 +56,11 @@ export default function UserManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const handleEditUser = (user: AdminUser) => {
     setSelectedUser(user);

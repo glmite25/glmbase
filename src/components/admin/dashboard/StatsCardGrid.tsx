@@ -1,9 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import StatsCard from "./StatsCard";
 import EnhancedStatsCard from "./EnhancedStatsCard";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchDashboardMetrics, DashboardMetrics } from "./DashboardMetricsService";
 import {
   Users,
@@ -18,7 +16,6 @@ import {
 
 const StatsCardGrid = () => {
   const { isSuperUser } = useAuth();
-  const isMobile = useIsMobile();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 

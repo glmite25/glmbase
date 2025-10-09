@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 const DefaultDashboard = () => {
-  const { user, isSuperUser, isAdmin } = useAuth();
+  const { user, isSuperUser } = useAuth();
   const navigate = useNavigate();
 
   const quickActions = [

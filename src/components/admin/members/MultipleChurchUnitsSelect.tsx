@@ -17,11 +17,6 @@ import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
-interface ChurchUnit {
-  id: string;
-  name: string;
-}
-
 interface MultipleChurchUnitsSelectProps {
   value: string[];
   onChange: (value: string[]) => void;
