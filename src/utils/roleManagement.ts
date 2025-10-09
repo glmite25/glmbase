@@ -29,7 +29,7 @@ export const addUserRoleSafe = async (
  */
 export const checkIsSuperUser = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase.rpc("is_superuser");
+    const { data, error } = await supabase.rpc("is_superuser");
 
     if (error) {
       console.error("Error checking superuser status:", error);
@@ -48,7 +48,7 @@ export const checkIsSuperUser = async (): Promise<boolean> => {
  */
 export const checkIsAdmin = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase.rpc("is_admin");
+    const { data, error } = await supabase.rpc("is_admin");
 
     if (error) {
       console.error("Error checking admin status:", error);

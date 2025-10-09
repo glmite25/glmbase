@@ -28,7 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, UserPlus } from "lucide-react";
 
 // Define the form schema with validation
-const assignMemberSchema = z.object({
+const addMemberToUnitSchema = z.object({
   memberId: z.string().optional(),
   memberEmail: z.string().email({ message: "Please enter a valid email address" }).optional(),
   useEmail: z.boolean().default(false),
@@ -43,23 +43,23 @@ const assignMemberSchema = z.object({
   path: ["memberId"], // This will show the error on the memberId field
 });
 
-type AssignMemberFormValues = z.infer<typeof assignMemberSchema>;
+type AddMemberToUnitFormValues = z.infer<typeof addMemberToUnitSchema>;
 
-interface AssignMemberDialogProps {
-  pastorId: string;
-  pastorName: string;
-  onMemberAssigned: () => void;
+interface AddMemberToUnitDialogProps {
+  unitId: string;
+  unitName: string;
+  onMemberAdded: () => void;
 }
 
-export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: AssignMemberDialogProps) {
+export function AddMemberToUnitDialog({ unitId, unitName, onMemberAdded }: AddMemberToUnitDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableMembers, setAvailableMembers] = useState<{ id: string; fullName: string; email: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<AssignMemberFormValues>({
-    resolver: zodResolver(assignMemberSchema),
+  const form = useForm<AddMemberToUnitFormValues>({
+    resolver: zodResolver(addMemberToUnitSchema),
     defaultValues: {
       memberId: "",
       memberEmail: "",
@@ -67,20 +67,32 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
     },
   });
 
-  // Fetch available members (not assigned to any pastor)
+  // Fetch available members (not already in this unit)
   const fetchAvailableMembers = async () => {
     setIsLoading(true);
     try {
-      // Get members who are not pastors and not assigned to any pastor
+      // Get all members who are not already in this unit
       const { data, error } = await supabase
         .from('members')
-        .select('id, fullname, email')
-        .not('category', 'eq', 'Pastors')
-        .is('assignedto', null);
+        .select('id, fullname, email, churchunit, churchunits')
+        .neq('category', 'Pastors');
 
       if (error) throw error;
 
-      setAvailableMembers(data || []);
+      // Filter out members who are already in this unit
+      const filteredMembers = (data || []).filter(member => {
+        const memberUnits = member.churchunits || [];
+        const memberUnit = member.churchunit;
+        
+        // Check if member is already in this unit
+        return !memberUnits.includes(unitId) && memberUnit !== unitId;
+      });
+
+      setAvailableMembers(filteredMembers.map(member => ({
+        id: member.id,
+        fullName: member.fullname || '',
+        email: member.email || ''
+      })));
     } catch (error: any) {
       console.error("Error fetching available members:", error);
       toast({
@@ -101,87 +113,109 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
     }
   }, [open]);
 
-  const onSubmit = async (values: AssignMemberFormValues) => {
+  const onSubmit = async (values: AddMemberToUnitFormValues) => {
     setIsSubmitting(true);
     try {
       if (values.useEmail && values.memberEmail) {
-        // Using email to assign member
+        // Using email to add member to unit
         // First check if member exists
         const { data: memberData, error: memberError } = await supabase
           .from('members')
-          .select('id, fullname, email')
+          .select('id, fullname, email, churchunit, churchunits')
           .eq('email', values.memberEmail.toLowerCase());
 
         if (memberError) throw memberError;
 
         if (!memberData || memberData.length === 0) {
-          // Member doesn't exist, create a new one
+          // Member doesn't exist, create a new one and add to unit
           const nameFromEmail = values.memberEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ');
           const fullName = nameFromEmail
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
 
-          // Create new member
+          // Create new member with unit assignment
           const { error: insertError } = await supabase
             .from('members')
             .insert([
               {
                 fullname: fullName,
                 email: values.memberEmail.toLowerCase(),
-                category: 'Others', // Default category
-                assignedto: pastorId,
+                category: 'Members',
+                churchunit: unitId,
+                churchunits: [unitId],
                 isactive: true,
                 joindate: new Date().toISOString().split('T')[0],
               }
-            ])
-            .select();
+            ]);
 
           if (insertError) throw insertError;
 
           toast({
-            title: "New member created and assigned",
-            description: `${fullName} has been created and assigned to ${pastorName}.`,
+            title: "New member created and added to unit",
+            description: `${fullName} has been created and added to ${unitName}.`,
           });
         } else {
-          // Member exists, update assignedto field
+          // Member exists, add them to this unit
+          const member = memberData[0];
+          const currentUnits = member.churchunits || [];
+          const updatedUnits = [...currentUnits, unitId];
+
           const { error: updateError } = await supabase
             .from('members')
-            .update({ assignedto: pastorId })
+            .update({ 
+              churchunit: unitId, // Set primary unit
+              churchunits: updatedUnits // Add to units array
+            })
             .eq('email', values.memberEmail.toLowerCase());
 
           if (updateError) throw updateError;
 
           toast({
-            title: "Member assigned successfully",
-            description: `${memberData[0].fullname} has been assigned to ${pastorName}.`,
+            title: "Member added to unit successfully",
+            description: `${member.fullname} has been added to ${unitName}.`,
           });
         }
       } else {
         // Using dropdown selection
-        // Update the member to assign them to this pastor
+        // Get the selected member's current units
+        const { data: memberData, error: fetchError } = await supabase
+          .from('members')
+          .select('churchunit, churchunits, fullname')
+          .eq('id', values.memberId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const currentUnits = memberData.churchunits || [];
+        const updatedUnits = [...currentUnits, unitId];
+
+        // Update the member to add them to this unit
         const { error } = await supabase
           .from('members')
-          .update({ assignedto: pastorId })
+          .update({ 
+            churchunit: unitId, // Set as primary unit
+            churchunits: updatedUnits // Add to units array
+          })
           .eq('id', values.memberId);
 
         if (error) throw error;
 
         toast({
-          title: "Member assigned successfully",
-          description: `Member has been assigned to ${pastorName}.`,
+          title: "Member added to unit successfully",
+          description: `${memberData.fullname} has been added to ${unitName}.`,
         });
       }
 
-      onMemberAssigned();
+      onMemberAdded();
       setOpen(false);
       form.reset();
     } catch (error: any) {
-      console.error("Error assigning member:", error);
+      console.error("Error adding member to unit:", error);
       toast({
         variant: "destructive",
-        title: "Error assigning member",
-        description: error.message || "An error occurred while assigning the member.",
+        title: "Error adding member to unit",
+        description: error.message || "An error occurred while adding the member to the unit.",
       });
     } finally {
       setIsSubmitting(false);
@@ -191,15 +225,16 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" /> Assign Member
+        <Button className="flex items-center gap-2">
+          <UserPlus className="h-4 w-4" />
+          Add Member to Unit
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Assign Member to Pastor</DialogTitle>
+          <DialogTitle>Add Member to {unitName}</DialogTitle>
           <DialogDescription>
-            Assign a member to {pastorName} for pastoral care.
+            Add a member to the {unitName} unit.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -215,7 +250,7 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel>Assign by email address</FormLabel>
+                  <FormLabel>Add by email address</FormLabel>
                 </FormItem>
               )}
             />
@@ -266,7 +301,7 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
                         ) : (
                           availableMembers.map((member) => (
                             <SelectItem key={member.id} value={member.id}>
-                              {member.fullname || member.fullName} ({member.email})
+                              {member.fullName} ({member.email})
                             </SelectItem>
                           ))
                         )}
@@ -286,10 +321,10 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Assigning...
+                    Adding...
                   </>
                 ) : (
-                  "Assign Member"
+                  "Add to Unit"
                 )}
               </Button>
             </DialogFooter>

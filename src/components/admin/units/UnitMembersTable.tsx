@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Member } from "@/types/member";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 import {
   Table,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, UserPlus } from "lucide-react";
+import { AddMemberToUnitDialog } from "./AddMemberToUnitDialog";
 
 interface UnitMembersTableProps {
   unitId: string;
@@ -148,13 +149,11 @@ export function UnitMembersTable({ unitId, unitName }: UnitMembersTableProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button
-          className="flex items-center gap-2"
-          onClick={() => navigate("/admin/members")}
-        >
-          <UserPlus className="h-4 w-4" />
-          Add Member to Unit
-        </Button>
+        <AddMemberToUnitDialog
+          unitId={unitId}
+          unitName={unitName}
+          onMemberAdded={fetchMembers}
+        />
       </div>
 
       {loading ? (
