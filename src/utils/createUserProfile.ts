@@ -7,6 +7,21 @@ interface SafeHelperResponse {
   user_id?: string;
 }
 
+// Type for database errors
+interface DatabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
+// Type for operation result
+interface OperationResult {
+  success: boolean;
+  message: string;
+  error?: DatabaseError;
+}
+
 /**
  * Creates or updates a member record in the members table
  * Using the correct column names from the database schema
@@ -18,7 +33,7 @@ const createMemberRecord = async (
   churchUnit?: string,
   assignedPastor?: string,
   phone?: string
-) => {
+): Promise<OperationResult> => {
   try {
     console.log(`Creating/updating member record for user ${userId}`);
 
@@ -60,12 +75,13 @@ const createMemberRecord = async (
       success: true,
       message: "Member record created/updated successfully"
     };
-  } catch (error: any) {
-    console.error("Exception in createMemberRecord:", error);
+  } catch (error: unknown) {
+    const dbError = error as DatabaseError;
+    console.error("Exception in createMemberRecord:", dbError);
     return {
       success: false,
-      message: error.message || "Unknown error creating member record",
-      error
+      message: dbError.message || "Unknown error creating member record",
+      error: dbError
     };
   }
 };
@@ -111,13 +127,14 @@ export const createUserProfile = async (
 
     // Try using the safe helper function first
     try {
-      const { data, error } = await supabase.rpc('create_user_profile_safe', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('create_user_profile_safe', {
         user_id: userId,
         user_email: normalizedEmail,
         user_full_name: sanitizedFullName,
         church_unit: churchUnit || null,
         phone: phone || null
-      });
+      }) as { data: SafeHelperResponse | null; error: DatabaseError | null };
 
       if (error) {
         console.warn("Safe helper function failed, falling back to manual creation:", error.message);
@@ -130,8 +147,9 @@ export const createUserProfile = async (
       } else if (data && !data.success) {
         console.warn("Safe helper function returned error:", data.message);
       }
-    } catch (rpcError: any) {
-      console.warn("Safe helper function not available or failed:", rpcError.message);
+    } catch (rpcError: unknown) {
+      const dbError = rpcError as DatabaseError;
+      console.warn("Safe helper function not available or failed:", dbError.message);
     }
 
     // Fallback to manual creation with improved error handling
@@ -153,7 +171,7 @@ export const createUserProfile = async (
     // Use upsert to create or update the profile with retry mechanism
     let attempts = 0;
     const maxAttempts = 3;
-    let profileError = null;
+    let profileError: DatabaseError | null = null;
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -197,8 +215,8 @@ export const createUserProfile = async (
           }
         }
 
-      } catch (exception: any) {
-        profileError = exception;
+      } catch (exception: unknown) {
+        profileError = exception as DatabaseError;
         console.error(`Profile creation attempt ${attempts} exception:`, exception);
       }
 
@@ -229,8 +247,9 @@ export const createUserProfile = async (
         console.warn("Member record creation failed, but profile was created:", memberResult.message);
         // Don't fail the entire operation if member creation fails
       }
-    } catch (memberError: any) {
-      console.warn("Member record creation threw exception:", memberError.message);
+    } catch (memberError: unknown) {
+      const dbError = memberError as DatabaseError;
+      console.warn("Member record creation threw exception:", dbError.message);
       // Continue anyway since profile was created
     }
 
@@ -238,12 +257,13 @@ export const createUserProfile = async (
       success: true,
       message: "Profile created/updated successfully"
     };
-  } catch (error: any) {
-    console.error("Exception in createUserProfile:", error);
+  } catch (error: unknown) {
+    const dbError = error as DatabaseError;
+    console.error("Exception in createUserProfile:", dbError);
     return {
       success: false,
-      message: error.message || "Unknown error creating profile",
-      error
+      message: dbError.message || "Unknown error creating profile",
+      error: dbError
     };
   }
 };

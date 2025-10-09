@@ -98,8 +98,13 @@ export async function fetchPaginatedMembers(
         throw error; // Throw the original error
       } else {
         console.log("Fallback query succeeded!");
-        data = fallbackQuery.data;
-        count = fallbackQuery.count;
+        return {
+          data: (fallbackQuery.data || []) as Member[],
+          totalCount: fallbackQuery.count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((fallbackQuery.count || 0) / pageSize)
+        };
       }
     }
 
