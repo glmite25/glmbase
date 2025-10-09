@@ -1,6 +1,6 @@
 import { executeDataIntegrityTests, DataIntegrityReport } from './dataIntegrityTests';
 import { executeAuthenticationTests, AuthTestReport } from './authenticationTests';
-import { executeMemberManagementTests, MemberTestReport } from './memberManagementTests';
+import { runMemberManagementTests, MemberTestReport } from './memberManagementTests';
 
 export interface ComprehensiveTestReport {
   timestamp: string;
@@ -40,7 +40,7 @@ export const executeComprehensiveValidationTests = async (): Promise<Comprehensi
   const authenticationReport = await executeAuthenticationTests();
   
   console.log("\n3. Executing Member Management Functionality Tests...");
-  const memberManagementReport = await executeMemberManagementTests();
+  const memberManagementReport = await runMemberManagementTests();
   
   // Calculate overall statistics
   const testSuites = [dataIntegrityReport, authenticationReport, memberManagementReport];

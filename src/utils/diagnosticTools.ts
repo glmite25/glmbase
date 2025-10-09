@@ -36,7 +36,7 @@ export const checkProfileMemberSync = async () => {
     console.log("Fetching all members from consolidated table...");
     const { data: members, error: membersError } = await supabase
       .from("members")
-      .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, isactive, created_at, updated_at")
+      .select("id, email, fullname, phone, category, churchunit, churchunits, assignedto, isactive, created_at, updated_at")
       .order('created_at', { ascending: false });
 
     if (membersError) {
@@ -51,9 +51,9 @@ export const checkProfileMemberSync = async () => {
         id: m.id,
         email: m.email,
         fullname: m.fullname,
-        user_id: m.user_id,
         category: m.category,
-        role: m.role,
+        churchunit: m.churchunit,
+        isactive: m.isactive,
         created_at: m.created_at
       })));
     }
@@ -68,8 +68,7 @@ export const checkProfileMemberSync = async () => {
 
         // Check if this profile has a corresponding member in consolidated table
         const matchingMember = members?.find(m =>
-          (m.email && m.email.toLowerCase() === profile.email?.toLowerCase()) ||
-          m.user_id === profile.id
+          m.email && m.email.toLowerCase() === profile.email?.toLowerCase()
         );
 
         if (!matchingMember) {
@@ -96,8 +95,7 @@ export const checkProfileMemberSync = async () => {
       if (member.email) {
         // Check if this consolidated member has a corresponding profile
         const hasMatchingProfile = profiles?.some(p =>
-          (p.email && p.email.toLowerCase() === member.email?.toLowerCase()) ||
-          p.id === member.user_id
+          p.email && p.email.toLowerCase() === member.email?.toLowerCase()
         );
 
         if (!hasMatchingProfile) {
@@ -106,9 +104,9 @@ export const checkProfileMemberSync = async () => {
             email: member.email,
             fullname: member.fullname,
             category: member.category,
-            role: member.role,
-            created_at: member.created_at,
-            user_id: member.user_id
+            churchunit: member.churchunit,
+            isactive: member.isactive,
+            created_at: member.created_at
           });
         }
       }
@@ -212,7 +210,7 @@ export const checkUserByEmail = async (email: string) => {
       try {
         const result = await adminSupabase
           .from("members")
-          .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, isactive, created_at, updated_at")
+          .select("id, email, fullname, phone, category, churchunit, churchunits, assignedto, isactive, created_at, updated_at")
           .ilike("email", email)
           .maybeSingle();
 
@@ -223,7 +221,7 @@ export const checkUserByEmail = async (email: string) => {
 
         const result = await supabase
           .from("members")
-          .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, isactive, created_at, updated_at")
+          .select("id, email, fullname, phone, category, churchunit, churchunits, assignedto, isactive, created_at, updated_at")
           .ilike("email", email)
           .maybeSingle();
 
@@ -242,9 +240,9 @@ export const checkUserByEmail = async (email: string) => {
         if (memberData) {
           console.log("Consolidated member details:", {
             category: memberData.category,
-            role: memberData.role,
+            churchunit: memberData.churchunit,
             isactive: memberData.isactive,
-            user_id: memberData.user_id
+            assignedto: memberData.assignedto
           });
         }
       }
@@ -331,7 +329,7 @@ export const validateConsolidatedStructure = async () => {
     console.log("Checking consolidated members table structure...");
     const { data: members, error: membersError } = await supabase
       .from("members")
-      .select("id, user_id, email, fullname, phone, address, genotype, category, title, role, churchunit, churchunits, auxanogroup, joindate, notes, isactive, created_at, updated_at")
+      .select("id, email, fullname, phone, category, churchunit, churchunits, assignedto, isactive, created_at, updated_at")
       .limit(5);
 
     if (membersError) {
@@ -361,30 +359,30 @@ export const validateConsolidatedStructure = async () => {
 
     // Step 3: Check data consistency
     if (members && profiles) {
-      const membersWithAuth = members.filter(m => m.user_id);
-      const profilesWithMembers = profiles.filter(p => 
-        members.some(m => m.user_id === p.id || m.email?.toLowerCase() === p.email?.toLowerCase())
+      const membersWithEmail = members.filter(m => m.email);
+      const profilesWithMembers = profiles.filter(p =>
+        members.some(m => m.email?.toLowerCase() === p.email?.toLowerCase())
       );
 
-      results.membersWithAuth = membersWithAuth.length;
+      results.membersWithEmail = membersWithEmail.length;
       results.profilesWithMembers = profilesWithMembers.length;
       results.totalMembers = members.length;
       results.totalProfiles = profiles.length;
 
       console.log(`Data consistency check:
         - Total members: ${members.length}
-        - Members with auth: ${membersWithAuth.length}
+        - Members with email: ${membersWithEmail.length}
         - Total profiles: ${profiles.length}
         - Profiles with members: ${profilesWithMembers.length}`);
     }
 
     // Step 4: Check for required fields in consolidated structure
     if (members && members.length > 0) {
-      const requiredFields = ['id', 'email', 'fullname', 'category', 'isactive', 'role'];
+      const requiredFields = ['id', 'email', 'fullname', 'category', 'isactive'];
       const fieldValidation: any = {};
 
       for (const field of requiredFields) {
-        const recordsWithField = members.filter(m => m[field] !== null && m[field] !== undefined);
+        const recordsWithField = members.filter((m: any) => m[field] !== null && m[field] !== undefined);
         fieldValidation[field] = {
           total: members.length,
           withValue: recordsWithField.length,
@@ -461,7 +459,7 @@ export const manualSyncProfileToMember = async (profileId: string) => {
       const result = await adminSupabase
         .from("members")
         .select("*")
-        .or(`email.eq.${profile.email?.toLowerCase()},user_id.eq.${profile.id}`)
+        .eq("email", profile.email?.toLowerCase())
         .maybeSingle();
 
       existingMember = result.data;
@@ -472,7 +470,7 @@ export const manualSyncProfileToMember = async (profileId: string) => {
       const result = await supabase
         .from("members")
         .select("*")
-        .or(`email.eq.${profile.email?.toLowerCase()},user_id.eq.${profile.id}`)
+        .eq("email", profile.email?.toLowerCase())
         .maybeSingle();
 
       existingMember = result.data;
@@ -491,22 +489,14 @@ export const manualSyncProfileToMember = async (profileId: string) => {
 
     // Step 3: Create a new member in consolidated structure
     const memberData = {
-      user_id: profile.id,
       fullname: profile.full_name || profile.email?.split('@')[0] || 'Unknown',
       email: profile.email?.toLowerCase(),
       phone: null, // Will be populated when user updates their profile
-      address: null, // Will be populated when user updates their profile
-      genotype: null, // Will be populated when user updates their profile
       category: 'Members', // Default category for consolidated structure
-      title: null,
       assignedto: null,
       churchunit: null,
       churchunits: [],
-      auxanogroup: null,
-      joindate: new Date().toISOString().split('T')[0],
-      notes: null,
       isactive: true,
-      role: 'user', // Default role for new members
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };

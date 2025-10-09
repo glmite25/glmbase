@@ -128,24 +128,24 @@ export async function verifyAdminDashboardAccess(userId?: string): Promise<AuthV
       };
     }
 
-    // Check if user has admin/superuser role
+    // Check if user has admin role
     const roles = rolesData?.map(r => r.role) || [];
-    const hasAdminRole = roles.includes('admin') || roles.includes('superuser');
+    const hasAdminRole = roles.includes('admin');
 
     if (!hasAdminRole) {
       return {
         success: false,
         message: 'User does not have admin privileges',
-        error: 'Missing admin or superuser role',
+        error: 'Missing admin role',
         details: { roles }
       };
     }
 
     // Test access to admin-specific tables/functions
     const adminChecks = await Promise.allSettled([
-      supabase.from('members').select('count', { count: 'exact', head: true }),
-      supabase.from('profiles').select('count', { count: 'exact', head: true }),
-      supabase.from('user_roles').select('count', { count: 'exact', head: true })
+      supabase.from('members').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('user_roles').select('*', { count: 'exact', head: true })
     ]);
 
     const failedChecks = adminChecks
@@ -207,27 +207,64 @@ export async function performSystemHealthChecks(): Promise<SystemHealthCheck[]> 
     }
 
     // 2. Database tables accessibility
-    const tables = ['profiles', 'members', 'user_roles'];
-    for (const table of tables) {
-      try {
-        const { data, error } = await supabase
-          .from(table)
-          .select('*', { count: 'exact', head: true });
-        
-        checks.push({
-          component: `Database Table: ${table}`,
-          status: error ? 'error' : 'healthy',
-          message: error ? `Table access failed: ${error.message}` : 'Table accessible',
-          details: error || { accessible: true }
-        });
-      } catch (error) {
-        checks.push({
-          component: `Database Table: ${table}`,
-          status: 'error',
-          message: 'Table access test failed',
-          details: error
-        });
-      }
+    try {
+      const { error: profilesError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      checks.push({
+        component: 'Database Table: profiles',
+        status: profilesError ? 'error' : 'healthy',
+        message: profilesError ? `Table access failed: ${profilesError.message}` : 'Table accessible',
+        details: profilesError || { accessible: true }
+      });
+    } catch (error) {
+      checks.push({
+        component: 'Database Table: profiles',
+        status: 'error',
+        message: 'Table access test failed',
+        details: error
+      });
+    }
+
+    try {
+      const { error: membersError } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true });
+      
+      checks.push({
+        component: 'Database Table: members',
+        status: membersError ? 'error' : 'healthy',
+        message: membersError ? `Table access failed: ${membersError.message}` : 'Table accessible',
+        details: membersError || { accessible: true }
+      });
+    } catch (error) {
+      checks.push({
+        component: 'Database Table: members',
+        status: 'error',
+        message: 'Table access test failed',
+        details: error
+      });
+    }
+
+    try {
+      const { error: userRolesError } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true });
+      
+      checks.push({
+        component: 'Database Table: user_roles',
+        status: userRolesError ? 'error' : 'healthy',
+        message: userRolesError ? `Table access failed: ${userRolesError.message}` : 'Table accessible',
+        details: userRolesError || { accessible: true }
+      });
+    } catch (error) {
+      checks.push({
+        component: 'Database Table: user_roles',
+        status: 'error',
+        message: 'Table access test failed',
+        details: error
+      });
     }
 
     // 3. Authentication service check
@@ -389,17 +426,27 @@ export async function testCompleteAuthFlow(): Promise<AuthFlowTestResult[]> {
       error: profileError?.message,
       data: profileData ? {
         email: profileData.email,
-        role: profileData.role,
         fullName: profileData.full_name
       } : null
     });
 
     // Step 5: Access member data
-    const { data: memberData, error: memberError } = await supabase
-      .from('members')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    let memberData: any = null;
+    let memberError: any = null;
+    
+    try {
+      // Use a simpler query to avoid type issues
+      const { data, error } = await (supabase as any)
+        .from('members')
+        .select('fullname, category, isactive')
+        .eq('user_id', userId)
+        .single();
+      
+      memberData = data;
+      memberError = error;
+    } catch (error) {
+      memberError = error;
+    }
 
     results.push({
       step: '5. Access Member Data',
@@ -420,7 +467,7 @@ export async function testCompleteAuthFlow(): Promise<AuthFlowTestResult[]> {
       .eq('user_id', userId);
 
     const roles = rolesData?.map(r => r.role) || [];
-    const hasAdminRole = roles.includes('admin') || roles.includes('superuser');
+    const hasAdminRole = roles.includes('admin');
 
     results.push({
       step: '6. Access User Roles',
@@ -434,25 +481,44 @@ export async function testCompleteAuthFlow(): Promise<AuthFlowTestResult[]> {
     });
 
     // Step 7: Test admin operations (count records in admin tables)
-    const adminOperations = [
-      { table: 'members', description: 'Count all members' },
-      { table: 'profiles', description: 'Count all profiles' },
-      { table: 'user_roles', description: 'Count all user roles' }
-    ];
+    // Test members table
+    const { count: membersCount, error: membersCountError } = await supabase
+      .from('members')
+      .select('*', { count: 'exact', head: true });
 
-    for (const operation of adminOperations) {
-      const { count, error: countError } = await supabase
-        .from(operation.table)
-        .select('*', { count: 'exact', head: true });
+    results.push({
+      step: '7a. Admin Operation: Count all members',
+      success: !membersCountError,
+      message: membersCountError ? 'Failed to count members' : `Successfully counted ${membersCount} records in members`,
+      error: membersCountError?.message,
+      data: { table: 'members', count: membersCount }
+    });
 
-      results.push({
-        step: `7. Admin Operation: ${operation.description}`,
-        success: !countError,
-        message: countError ? `Failed to count ${operation.table}` : `Successfully counted ${count} records in ${operation.table}`,
-        error: countError?.message,
-        data: { table: operation.table, count }
-      });
-    }
+    // Test profiles table
+    const { count: profilesCount, error: profilesCountError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+
+    results.push({
+      step: '7b. Admin Operation: Count all profiles',
+      success: !profilesCountError,
+      message: profilesCountError ? 'Failed to count profiles' : `Successfully counted ${profilesCount} records in profiles`,
+      error: profilesCountError?.message,
+      data: { table: 'profiles', count: profilesCount }
+    });
+
+    // Test user_roles table
+    const { count: userRolesCount, error: userRolesCountError } = await supabase
+      .from('user_roles')
+      .select('*', { count: 'exact', head: true });
+
+    results.push({
+      step: '7c. Admin Operation: Count all user roles',
+      success: !userRolesCountError,
+      message: userRolesCountError ? 'Failed to count user_roles' : `Successfully counted ${userRolesCount} records in user_roles`,
+      error: userRolesCountError?.message,
+      data: { table: 'user_roles', count: userRolesCount }
+    });
 
     // Step 8: Sign out
     const { error: signOutError } = await supabase.auth.signOut();
@@ -515,7 +581,7 @@ export async function verifySuperadminAccount(): Promise<AuthVerificationResult>
       };
     }
     
-    const superadminUser = authUsers.users.find(user => 
+    const superadminUser = authUsers.users.find((user: any) => 
       user.email === SUPERADMIN_CREDENTIALS.email
     );
     
@@ -548,7 +614,7 @@ export async function verifySuperadminAccount(): Promise<AuthVerificationResult>
       .eq('user_id', superadminUser.id);
     
     const roles = rolesData?.map(r => r.role) || [];
-    const hasSuperuserRole = roles.includes('superuser');
+    const hasAdminRole = roles.includes('admin');
     
     return {
       success: true,
@@ -573,7 +639,7 @@ export async function verifySuperadminAccount(): Promise<AuthVerificationResult>
         roles: {
           exists: !rolesError,
           roles,
-          hasSuperuserRole,
+          hasAdminRole,
           error: rolesError?.message
         }
       }
