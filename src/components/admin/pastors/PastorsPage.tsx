@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,14 +13,14 @@ import { AddPastorDialog } from "./AddPastorDialog";
 
 interface Pastor {
   id: string;
-  fullName: string;
+  fullname: string;
   email: string;
   phone?: string;
   title?: string;
   bio?: string;
   memberCount: number;
-  churchUnit?: string;
-  auxanoGroup?: string;
+  churchunit?: string;
+  auxanogroup?: string;
 }
 
 const PastorsPage = () => {
@@ -30,11 +30,7 @@ const PastorsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchPastors();
-  }, []);
-
-  const fetchPastors = async () => {
+  const fetchPastors = useCallback(async () => {
     try {
       setLoading(true);
       console.log('PastorsPage: Fetching pastors from Supabase...');
@@ -90,26 +86,30 @@ const PastorsPage = () => {
 
       console.log('PastorsPage: Successfully processed all pastors with member counts');
       setPastors(pastorsWithCounts);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('PastorsPage: Error fetching pastors:', error);
       toast({
         variant: "destructive",
         title: "Error fetching pastors",
-        description: error.message || "Failed to fetch pastors. Please try again later."
+        description: error instanceof Error ? error.message : "Failed to fetch pastors. Please try again later."
       });
       // Set empty array in case of error
       setPastors([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  // Make sure we handle both fullName and fullname properties
+  useEffect(() => {
+    fetchPastors();
+  }, [fetchPastors]);
+
+  // Filter pastors based on search query
   const filteredPastors = pastors.filter(pastor => {
-    const name = pastor.fullName || pastor.fullname || '';
+    const name = pastor.fullname || '';
     const email = pastor.email || '';
-    const churchUnit = pastor.churchUnit || pastor.churchunit || '';
-    const auxanoGroup = pastor.auxanoGroup || pastor.auxanogroup || '';
+    const churchUnit = pastor.churchunit || '';
+    const auxanoGroup = pastor.auxanogroup || '';
 
     const query = searchQuery.toLowerCase();
 
@@ -181,7 +181,7 @@ const PastorsPage = () => {
                 filteredPastors.map((pastor) => (
                   <Card key={pastor.id} className="overflow-hidden">
                     <CardHeader className="pb-2">
-                      <CardTitle>{pastor.fullName}</CardTitle>
+                      <CardTitle>{pastor.fullname}</CardTitle>
                       <CardDescription>{pastor.title || 'Pastor'}</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -198,14 +198,14 @@ const PastorsPage = () => {
                           <Badge variant="outline" className="bg-blue-50">
                             {pastor.memberCount} Members
                           </Badge>
-                          {pastor.churchUnit && (
+                          {pastor.churchunit && (
                             <Badge variant="outline" className="bg-green-50">
-                              {pastor.churchUnit}
+                              {pastor.churchunit}
                             </Badge>
                           )}
-                          {pastor.auxanoGroup && (
+                          {pastor.auxanogroup && (
                             <Badge variant="outline" className="bg-yellow-50">
-                              {pastor.auxanoGroup}
+                              {pastor.auxanogroup}
                             </Badge>
                           )}
                         </div>
@@ -261,11 +261,11 @@ const PastorsPage = () => {
                     ) : filteredPastors.length > 0 ? (
                       filteredPastors.map((pastor) => (
                         <tr key={pastor.id} className="border-b transition-colors hover:bg-muted/50">
-                          <td className="p-4 align-middle font-medium">{pastor.fullName}</td>
+                          <td className="p-4 align-middle font-medium">{pastor.fullname}</td>
                           <td className="p-4 align-middle">{pastor.email}</td>
                           <td className="p-4 align-middle">{pastor.phone || '-'}</td>
-                          <td className="p-4 align-middle">{pastor.churchUnit || '-'}</td>
-                          <td className="p-4 align-middle">{pastor.auxanoGroup || '-'}</td>
+                          <td className="p-4 align-middle">{pastor.churchunit || '-'}</td>
+                          <td className="p-4 align-middle">{pastor.auxanogroup || '-'}</td>
                           <td className="p-4 align-middle">{pastor.memberCount}</td>
                           <td className="p-4 align-middle">
                             <Button
