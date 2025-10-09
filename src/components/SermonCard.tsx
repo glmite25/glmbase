@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Headphones, Video, BookOpen, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import ImageWithFallback from "@/components/ui/image-with-fallback";
 
 interface SermonCardProps {
   id: string;
@@ -32,7 +33,7 @@ const SermonCard = ({ id, title, speaker, date, image, type }: SermonCardProps) 
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
       {image && (
         <div className="w-full h-48 overflow-hidden">
-          <img 
+          <ImageWithFallback 
             src={image} 
             alt={title} 
             className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"

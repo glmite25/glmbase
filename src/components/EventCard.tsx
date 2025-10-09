@@ -1,6 +1,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import ImageWithFallback from "@/components/ui/image-with-fallback";
 
 interface EventCardProps {
   id: string;
@@ -17,7 +18,7 @@ const EventCard = ({ id, title, date, time, location, image }: EventCardProps) =
       {/* Image with gradient overlay */}
       {image && (
         <div className="relative w-full h-56 p-2 overflow-hidden">
-          <img 
+          <ImageWithFallback 
             src={image} 
             alt={title} 
             className="w-full h-full rounded-2xl object-cover transition-transform duration-500 group-hover:scale-105"

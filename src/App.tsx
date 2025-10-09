@@ -8,7 +8,7 @@ import Header from "@/components/Header";
 import FloatingAdminButton from "@/components/FloatingAdminButton";
 import { PageLoader } from "@/components/ui/loading-spinner";
 import { useEffect, useState, lazy, Suspense } from "react";
-import AOS from 'aos';
+import { useAOS } from "@/hooks/useAOS";
 import 'aos/dist/aos.css';
 import { createQueryClient } from "@/lib/react-query-config";
 
@@ -39,16 +39,19 @@ const ReactQueryDevtoolsLazy = lazy(() =>
 const AppContent = () => {
   const location = useLocation();
 
-  // Initialize AOS when component mounts
+  // Initialize AOS with optimized settings
+  const { refreshAOS } = useAOS({
+    duration: 800,
+    easing: 'ease-out-cubic',
+    once: true,
+    mirror: false,
+    offset: 80,
+  });
+
+  // Refresh AOS when route changes
   useEffect(() => {
-    AOS.init({
-      duration: 1100,
-      easing: 'ease-in-out',
-      once: true,
-      mirror: true,
-      offset: 100
-    });
-  }, []);
+    refreshAOS();
+  }, [location.pathname, refreshAOS]);
 
   // Check if the current path is an admin route
   const isAdminRoute = location.pathname.startsWith('/admin');

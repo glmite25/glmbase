@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import BackgroundImage from "@/components/ui/background-image";
 
 interface HeroProps {
   title: string;
@@ -23,19 +24,13 @@ const Hero = ({
   return (
     <div className="relative">{/* Header is already rendered in App.tsx, no need to duplicate */}
       
-      <div 
-        className="relative h-screen flex items-end justify-start mb-8 overflow-hidden"
-        style={{
-          backgroundImage: `url(${backgroundImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
+      <BackgroundImage 
+        src={backgroundImage}
+        className="h-screen flex items-end justify-start mb-8 overflow-hidden"
+        overlay={overlay}
+        overlayOpacity={0.5}
       >
-        {overlay && (
-          <div className="absolute inset-0 bg-black/50 z-10"></div>
-        )}
-        
-        <div className="container max-w-7xl w-full relative z-20 px-4 md:px-6 lg:px-6 pb-16 text-left">
+        <div className="container max-w-7xl w-full px-4 md:px-6 lg:px-6 pb-16 text-left">
             <p className="text-sm md:text-base text-church-red/70 uppercase tracking-wide mb-2">
             Empowering Lives Through Faith
             </p>
@@ -58,7 +53,7 @@ const Hero = ({
             </Link>
           )}
         </div>
-      </div>
+      </BackgroundImage>
     </div>
   );
 };

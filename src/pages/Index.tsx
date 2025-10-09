@@ -7,6 +7,8 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useUpcomingEvents } from "@/hooks/useEvents";
 import { useRecentSermons } from "@/hooks/useSermons";
+import ImageWithFallback from "@/components/ui/image-with-fallback";
+import VideoWithFallback from "@/components/ui/video-with-fallback";
 
 const Index = () => {
   // Fetch real events from database
@@ -68,7 +70,7 @@ const Index = () => {
               className="border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
               data-aos="zoom-in"
             >
-              <img
+              <ImageWithFallback
                 src="https://res.cloudinary.com/dsaqsxtup/image/upload/v1746371168/584_g8yxvz.jpg"
                 alt="Worship"
                 className="w-full h-48 object-cover"
@@ -90,7 +92,7 @@ const Index = () => {
               data-aos="zoom-in"
               data-aos-delay="100"
             >
-              <img
+              <ImageWithFallback
                 src="https://res.cloudinary.com/dsaqsxtup/image/upload/v1746373650/2149187035_zlg8tp.jpg"
                 alt="Community"
                 className="w-full h-48 object-cover"
@@ -112,7 +114,7 @@ const Index = () => {
               data-aos="zoom-in"
               data-aos-delay="200"
             >
-              <img
+              <ImageWithFallback
                 src="https://res.cloudinary.com/dsaqsxtup/image/upload/v1746371305/2149008918_dlptqv.jpg"
                 alt="Service"
                 className="w-full h-48 object-cover"
@@ -324,32 +326,19 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="relative flex justify-center items-center py-16 sm:py-24 md:py-32 min-h-screen bg-black overflow-hidden" data-aos="fade-up">
-          {/* Video background */}
-          <div className="absolute inset-0 z-0">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover opacity-70"
-              poster="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
-            >
-              <source src="/ydr-2025-teaser.mp4" type="video/mp4" />
-              {/* Fallback for browsers that don't support video */}
-            </video>
-            {/* Fallback image for when video fails to load */}
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-70"
-              style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')"
-              }}
-            ></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
-          </div>
-
+        <VideoWithFallback
+          src="/ydr-2025-teaser.mp4"
+          fallbackImage="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+          className="relative flex justify-center items-center py-16 sm:py-24 md:py-32 min-h-screen bg-black overflow-hidden"
+          autoPlay
+          loop
+          muted
+          playsInline
+          overlayOpacity={0.3}
+          data-aos="fade-up"
+        >
           {/* Content */}
-          <div className="container mx-auto px-4 relative z-10">
+          <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center" data-aos="fade-down">
               {/* Subtitle */}
               <div className="text-church-red text-lg md:text-xl font-medium mb-6 tracking-widest" data-aos="fade-right">
@@ -381,7 +370,7 @@ const Index = () => {
               <div className="w-1 h-2 bg-white mt-2 rounded-full"></div>
             </div>
           </div>
-        </section>
+        </VideoWithFallback>
 
 
         {/* Recent Sermons */}
