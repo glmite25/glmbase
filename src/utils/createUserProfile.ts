@@ -125,8 +125,10 @@ export const createUserProfile = async (
     // Ensure fullName is not empty
     const sanitizedFullName = fullName?.trim() || email.split('@')[0];
 
-    // Try using the safe helper function first
+    // Try using the safe helper function first with improved error handling
     try {
+      console.log("Attempting to use create_user_profile_safe function");
+      
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc('create_user_profile_safe', {
         user_id: userId,
@@ -137,19 +139,22 @@ export const createUserProfile = async (
       }) as { data: SafeHelperResponse | null; error: DatabaseError | null };
 
       if (error) {
-        console.warn("Safe helper function failed, falling back to manual creation:", error.message);
+        console.warn("Safe helper function failed:", error);
+        // Don't return here, fall through to manual creation
       } else if (data?.success) {
-        console.log("Profile created successfully using safe helper function");
+        console.log("Profile created successfully using safe helper function:", data);
         return {
           success: true,
-          message: "Profile and member record created/updated successfully"
+          message: data.message || "Profile and member record created/updated successfully"
         };
       } else if (data && !data.success) {
         console.warn("Safe helper function returned error:", data.message);
+        // Don't return here, fall through to manual creation
       }
     } catch (rpcError: unknown) {
       const dbError = rpcError as DatabaseError;
-      console.warn("Safe helper function not available or failed:", dbError.message);
+      console.warn("Safe helper function exception:", dbError);
+      // Continue to manual creation
     }
 
     // Fallback to manual creation with improved error handling

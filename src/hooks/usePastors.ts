@@ -18,9 +18,9 @@ export const usePastors = (filters?: PastorFilters) => {
   return useQuery<Pastor[]>({
     queryKey: queryKeys.pastors.list(),
     queryFn: async (): Promise<Pastor[]> => {
-      // Execute query with simplified approach to avoid type issues
+      // Execute query using the correct members table
       const { data, error } = await supabase
-        .from('members_enhanced')
+        .from('members')
         .select('*')
         .eq('category', 'Pastors');
 
@@ -30,10 +30,10 @@ export const usePastors = (filters?: PastorFilters) => {
 
       // Apply client-side filtering for now to avoid complex query type issues
       let filteredData = data || [];
-      
+
       if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
         const term = filters.searchTerm.toLowerCase();
-        filteredData = filteredData.filter((item: any) => 
+        filteredData = filteredData.filter((item: any) =>
           item.fullname?.toLowerCase().includes(term)
         );
       }
@@ -43,8 +43,8 @@ export const usePastors = (filters?: PastorFilters) => {
       }
 
       if (filters?.churchUnit) {
-        filteredData = filteredData.filter((item: any) => 
-          item.churchunit === filters.churchUnit || 
+        filteredData = filteredData.filter((item: any) =>
+          item.churchunit === filters.churchUnit ||
           (item.churchunits && item.churchunits.includes(filters.churchUnit))
         );
       }
@@ -62,7 +62,7 @@ export const usePastor = (id: string) => {
     queryKey: queryKeys.pastors.detail(id),
     queryFn: async (): Promise<Pastor> => {
       const { data, error } = await supabase
-        .from('members_enhanced')
+        .from('members')
         .select('*')
         .eq('id', id)
         .eq('category', 'Pastors')

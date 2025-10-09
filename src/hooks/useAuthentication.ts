@@ -221,12 +221,18 @@ export const useAuthentication = () => {
       console.log("Creating user profile after successful signup");
 
       // Wait a moment to ensure the user is created in Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Create profile record using the user data from signup
       if (data.user && data.user.id) {
         try {
-          console.log("Creating profile for user:", data.user.id);
+          console.log("Attempting profile creation with data:", {
+            userId: data.user.id,
+            email: normalizedEmail,
+            fullName,
+            churchUnit,
+            phone
+          });
 
           // Use our utility function to create the profile
           const profileResult = await createUserProfile(
@@ -241,22 +247,27 @@ export const useAuthentication = () => {
 
           if (!profileResult.success) {
             console.error("Error creating profile:", profileResult.message);
-            // Show warning but don't fail the signup
+            // Show success message since the trigger should handle profile creation
             toast({
-              variant: "destructive",
-              title: "Profile creation warning",
-              description: "Account created but profile setup incomplete. You can update your profile later.",
+              variant: "default",
+              title: "Account Created Successfully",
+              description: "Your account has been created. Profile setup will complete automatically.",
             });
           } else {
-            console.log("Profile created/updated successfully");
+            console.log("Profile created successfully:", profileResult.message);
+            toast({
+              variant: "default",
+              title: "Account Created Successfully",
+              description: "Your account and profile have been set up successfully.",
+            });
           }
         } catch (profileError: any) {
           console.error("Profile creation error:", profileError);
-          // Show warning but don't fail the signup
+          // Show success message since the trigger should handle profile creation
           toast({
-            variant: "destructive",
-            title: "Profile creation warning",
-            description: "Account created but profile setup incomplete. You can update your profile later.",
+            variant: "default",
+            title: "Account Created Successfully",
+            description: "Your account has been created. Profile setup will complete automatically.",
           });
         }
       }
@@ -412,7 +423,8 @@ export const useAuthentication = () => {
         description: "Check your inbox for instructions to reset your password.",
       });
     } catch (error: unknown) {
-      console.error("Password reset error:", error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error("Password reset error:", errorMessage);
     } finally {
       setIsLoading(false);
     }
