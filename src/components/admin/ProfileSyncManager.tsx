@@ -45,7 +45,7 @@ interface UserSyncResult {
     message?: string;
 }
 
-export const ProfileSyncManager = () => {
+const ProfileSyncManager = () => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -351,3 +351,5 @@ export const ProfileSyncManager = () => {
         </div>
     );
 };
+
+export default ProfileSyncManager;

@@ -80,7 +80,13 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
 
       if (error) throw error;
 
-      setAvailableMembers(data || []);
+      // Transform the data to match the expected interface
+      const transformedMembers = (data || []).map((member: any) => ({
+        id: member.id,
+        fullName: member.fullname,
+        email: member.email
+      }));
+      setAvailableMembers(transformedMembers);
     } catch (error: any) {
       console.error("Error fetching available members:", error);
       toast({
@@ -266,7 +272,7 @@ export function AssignMemberDialog({ pastorId, pastorName, onMemberAssigned }: A
                         ) : (
                           availableMembers.map((member) => (
                             <SelectItem key={member.id} value={member.id}>
-                              {member.fullname || member.fullName} ({member.email})
+                              {member.fullName} ({member.email})
                             </SelectItem>
                           ))
                         )}

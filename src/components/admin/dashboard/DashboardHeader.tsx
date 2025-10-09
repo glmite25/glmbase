@@ -8,7 +8,7 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ title, description }: DashboardHeaderProps) => {
   const { isSuperUser } = useAuth();
-  
+
   return (
     <div className="mb-6 md:mb-8">
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900">

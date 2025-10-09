@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Phone, MapPin, Mail, User, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
+
 
 export const AuthForm = () => {
   const navigate = useNavigate();
@@ -28,8 +28,7 @@ export const AuthForm = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [selectedUnit, setSelectedUnit] = useState("");
-  const [selectedPastor, setSelectedPastor] = useState("");
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [formStep, setFormStep] = useState(0); // 0: Basic info, 1: Additional info
@@ -55,55 +54,7 @@ export const AuthForm = () => {
     }
   }, [user, returnTo, navigate]);
 
-  const churchUnits = OFFICIAL_CHURCH_UNITS;
 
-  // Fetch pastors dynamically from the database instead of using hardcoded values
-  const [pastors, setPastors] = useState<{ id: string; name: string }[]>([]);
-
-  // Fetch pastors when the component loads
-  useEffect(() => {
-    const fetchPastors = async () => {
-      try {
-        // First check if the members table exists
-        const { data, error } = await supabase
-          .from('members')
-          .select('id, fullname')
-          .eq('category', 'Pastors')
-          .limit(10);
-
-        if (error) {
-          console.warn('Members table query failed:', error.message);
-          // Set default pastors if table query fails
-          setPastors([
-            { id: 'default-1', name: 'Pastor Lawrence Ojide' },
-            { id: 'default-2', name: 'Pastor John Doe' },
-            { id: 'default-3', name: 'Pastor Sarah Johnson' }
-          ]);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          setPastors(data.map(pastor => ({
-            id: pastor.id,
-            name: pastor.fullname
-          })));
-        } else {
-          // Set default pastors if no pastors found
-          setPastors([
-            { id: 'default-1', name: 'Pastor Lawrence Ojide' }
-          ]);
-        }
-      } catch (error) {
-        console.warn('Error fetching pastors, using defaults:', error);
-        // Fallback to default pastors
-        setPastors([
-          { id: 'default-1', name: 'Pastor Lawrence Ojide' }
-        ]);
-      }
-    };
-
-    fetchPastors();
-  }, []);
 
   const validateEmail = (email: string): boolean => {
     // More robust email validation
@@ -208,10 +159,9 @@ export const AuthForm = () => {
         fullName,
         phone,
         address,
-        selectedUnit,
-        selectedPastor
+
       });
-      signUp(email, password, fullName, selectedUnit, selectedPastor, phone, address);
+      signUp(email, password, fullName, "", "", phone, address);
     } else {
       signIn(email, password, returnTo || undefined);
     }
@@ -240,8 +190,7 @@ export const AuthForm = () => {
     setFullName("");
     setPhone("");
     setAddress("");
-    setSelectedUnit("");
-    setSelectedPastor("");
+
     setAcceptTerms(false);
     setFormStep(0);
     clearErrors();
@@ -272,8 +221,8 @@ export const AuthForm = () => {
                 ? "Enter your basic information"
                 : "Complete your profile"
               : isAdminLogin
-              ? "Sign in with your admin credentials"
-              : "Please sign in to your account"
+                ? "Sign in with your admin credentials"
+                : "Please sign in to your account"
             }
           </p>
         </div>
@@ -408,57 +357,7 @@ export const AuthForm = () => {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="churchUnit">Church Unit</Label>
-                <Select
-                  value={selectedUnit}
-                  onValueChange={(value) => {
-                    clearErrors();
-                    setSelectedUnit(value);
-                    // Reset pastor if not auxano
-                    if (value !== "auxano") {
-                      setSelectedPastor("");
-                    }
-                  }}
-                >
-                  <SelectTrigger id="churchUnit" className="w-full">
-                    <SelectValue placeholder="Select your church unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {churchUnits.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.id}>
-                        {unit.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
-              {selectedUnit === "auxano" && (
-                <div>
-                  <Label htmlFor="pastor">Assign Pastor</Label>
-                  <Select
-                    value={selectedPastor}
-                    onValueChange={(value) => {
-                      clearErrors();
-                      setSelectedPastor(value);
-                    }}
-                  >
-                    <SelectTrigger id="pastor" className="w-full">
-                      <SelectValue placeholder="Select your pastor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {pastors.map((pastor) => (
-                        <SelectItem key={pastor.id} value={pastor.id}>
-                          {pastor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
           ) : (
             // Sign In Form

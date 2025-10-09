@@ -114,9 +114,9 @@ const PastorsPage = () => {
     const query = searchQuery.toLowerCase();
 
     return name.toLowerCase().includes(query) ||
-           email.toLowerCase().includes(query) ||
-           churchUnit.toLowerCase().includes(query) ||
-           auxanoGroup.toLowerCase().includes(query);
+      email.toLowerCase().includes(query) ||
+      churchUnit.toLowerCase().includes(query) ||
+      auxanoGroup.toLowerCase().includes(query);
   });
 
   const handleViewPastor = (pastorId: string) => {

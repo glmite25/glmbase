@@ -136,8 +136,11 @@ export const PersonalProfilePage = () => {
       
       if (error) throw error;
       
-      if (data?.success && data?.data) {
-        const profileData = data.data;
+      // Type assertion for the RPC response
+      const response = data as unknown as { success: boolean; data: MemberProfile | null; message: string | null };
+      
+      if (response?.success && response?.data) {
+        const profileData = response.data;
         setProfile(profileData);
         
         // Set form values
@@ -146,8 +149,8 @@ export const PersonalProfilePage = () => {
           phone: profileData.phone || "",
           address: profileData.address || "",
           date_of_birth: profileData.date_of_birth || "",
-          gender: profileData.gender || undefined,
-          marital_status: profileData.marital_status || undefined,
+          gender: (profileData.gender as "male" | "female" | "other") || undefined,
+          marital_status: (profileData.marital_status as "single" | "married" | "divorced" | "widowed") || undefined,
           occupation: profileData.occupation || "",
           bio: profileData.bio || "",
           emergency_contact_name: profileData.emergency_contact_name || "",
@@ -160,7 +163,7 @@ export const PersonalProfilePage = () => {
           baptism_date: profileData.baptism_date || "",
           baptism_location: profileData.baptism_location || "",
           is_baptized: profileData.is_baptized || false,
-          preferred_contact_method: profileData.preferred_contact_method || "email",
+          preferred_contact_method: (profileData.preferred_contact_method as "email" | "phone" | "sms" | "whatsapp") || "email",
           skills_talents: profileData.skills_talents || [],
           interests: profileData.interests || [],
           genotype: profileData.genotype || "",
@@ -168,7 +171,7 @@ export const PersonalProfilePage = () => {
       } else {
         toast({
           title: "Error",
-          description: data?.message || "Failed to load profile",
+          description: response?.message || "Failed to load profile",
           variant: "destructive",
         });
       }
@@ -196,7 +199,10 @@ export const PersonalProfilePage = () => {
       
       if (error) throw error;
       
-      if (data?.success) {
+      // Type assertion for the RPC response
+      const response = data as unknown as { success: boolean; data: any; message: string | null };
+      
+      if (response?.success) {
         toast({
           title: "Success",
           description: "Profile updated successfully",
@@ -206,7 +212,7 @@ export const PersonalProfilePage = () => {
       } else {
         toast({
           title: "Error",
-          description: data?.message || "Failed to update profile",
+          description: response?.message || "Failed to update profile",
           variant: "destructive",
         });
       }

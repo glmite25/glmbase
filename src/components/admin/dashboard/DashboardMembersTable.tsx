@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
-import { Member, MemberCategory } from "@/types/member";
+import { Member, MemberCategory, AppRole } from "@/types/member";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -81,24 +81,39 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
         }
 
         // Transform the data to match the Member interface
-        // Use lowercase column names from database and map to camelCase for the UI
-        const formattedMembers: Member[] = data.map(member => ({
+        // Include both lowercase database column names and camelCase compatibility fields
+        const formattedMembers: Member[] = data.map((member: any) => ({
+          // Required fields
           id: member.id,
-          fullName: member.fullname || "", // Use lowercase column name from DB
-          email: member.email,
-          phone: member.phone || undefined,
-          address: member.address || undefined,
-          category: member.category as any,
-          joinDate: member.joindate || new Date().toISOString().split('T')[0], // Use lowercase column name
-          assignedTo: member.assignedto || undefined, // Use lowercase column name
-          // Standardize church unit fields - use lowercase column names
-          churchUnits: member.churchunits ||
-                      (member.churchunit ? [member.churchunit] : []),
-          churchUnit: member.churchunit ||
-                     (member.churchunits && member.churchunits.length > 0 ? member.churchunits[0] : undefined),
-          auxanoGroup: member.auxanogroup || undefined, // Use lowercase column name
-          notes: member.notes || undefined,
-          isActive: member.isactive !== false, // Use lowercase column name
+          email: member.email || "",
+          fullname: member.fullname || "", // DB column name (lowercase)
+          category: member.category as MemberCategory,
+          joindate: member.joindate || new Date().toISOString().split('T')[0], // DB column name
+          isactive: member.isactive !== false, // DB column name
+          role: member.role || 'user' as AppRole,
+          created_at: member.created_at || new Date().toISOString(),
+          updated_at: member.updated_at || new Date().toISOString(),
+          
+          // Optional fields
+          user_id: member.user_id,
+          phone: member.phone,
+          address: member.address,
+          genotype: member.genotype,
+          title: member.title,
+          assignedto: member.assignedto, // DB column name
+          churchunit: member.churchunit, // DB column name
+          churchunits: member.churchunits, // DB column name
+          auxanogroup: member.auxanogroup, // DB column name
+          notes: member.notes,
+          
+          // Legacy/compatibility fields (camelCase)
+          fullName: member.fullname || "",
+          joinDate: member.joindate || new Date().toISOString().split('T')[0],
+          assignedTo: member.assignedto,
+          churchUnit: member.churchunit,
+          churchUnits: member.churchunits || (member.churchunit ? [member.churchunit] : []),
+          auxanoGroup: member.auxanogroup,
+          isActive: member.isactive !== false,
         }));
 
         console.log("Formatted members:", formattedMembers.slice(0, 3));
@@ -136,7 +151,12 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
       console.log('Pastors data received:', data);
 
       if (data && data.length > 0) {
-        setPastors(data);
+        // Transform the data to match the expected interface
+        const transformedPastors = data.map((pastor: any) => ({
+          id: pastor.id,
+          fullName: pastor.fullname
+        }));
+        setPastors(transformedPastors);
       } else {
         console.log('No pastors found in database');
         setPastors([]);
@@ -180,7 +200,7 @@ const DashboardMembersTable = ({ category }: DashboardMembersTableProps) => {
     if (!assignedToId) return "None";
     const assignedPastor = pastors.find(p => p.id === assignedToId);
     // Use lowercase column name from database
-    return assignedPastor ? assignedPastor.fullname : "Unknown";
+    return assignedPastor ? assignedPastor.fullName : "Unknown";
   };
 
   return (

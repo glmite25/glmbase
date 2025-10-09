@@ -57,18 +57,38 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string | null
+          phone: string | null
+          genotype: string | null
+          address: string | null
+          church_unit: string | null
+          assigned_pastor: string | null
+          date_of_birth: string | null
+          created_at: string | null
         }
         Insert: {
           email?: string | null
           full_name?: string | null
           id: string
           updated_at?: string | null
+          phone?: string | null
+          genotype?: string | null
+          address?: string | null
+          church_unit?: string | null
+          assigned_pastor?: string | null
+          date_of_birth?: string | null
+          created_at?: string | null
         }
         Update: {
           email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          phone?: string | null
+          genotype?: string | null
+          address?: string | null
+          church_unit?: string | null
+          assigned_pastor?: string | null
+          date_of_birth?: string | null
         }
         Relationships: []
       }
@@ -110,6 +130,14 @@ export type Database = {
       has_role: {
         Args: { requested_role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
+      }
+      get_member_profile: {
+        Args: {}
+        Returns: Json
+      }
+      update_member_profile: {
+        Args: { profile_data: Json }
+        Returns: Json
       }
     }
     Enums: {

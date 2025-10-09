@@ -1,7 +1,7 @@
 
 import * as z from "zod";
 
-export type MemberCategory = 'Members' | 'Pastors' | 'Workers' | 'Visitors' | 'Partners';
+export type MemberCategory = 'Members' | 'Pastors' | 'Workers' | 'Visitors' | 'Partners' | 'Sons' | 'MINT' | 'Others';
 export type AppRole = 'user' | 'admin' | 'superuser';
 
 /**
@@ -59,7 +59,7 @@ export const memberSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   genotype: z.string().optional(),
-  category: z.enum(["Members", "Pastors", "Workers", "Visitors", "Partners"]),
+  category: z.enum(["Members", "Pastors", "Workers", "Visitors", "Partners", "Sons", "MINT", "Others"]),
   title: z.string().optional(),
   assignedto: z.string().optional(),
   churchunit: z.string().optional(),
@@ -74,13 +74,19 @@ export const memberSchema = z.object({
 export type MemberFormValues = z.infer<typeof memberSchema>;
 
 /**
- * Simplified Profile interface for authentication-only data
- * This represents the lightweight profiles table after consolidation
+ * Profile interface for user profile data
+ * This represents the profiles table with extended user information
  */
 export interface Profile {
   id: string;           // auth.users.id - direct reference to auth table
   email: string;
   full_name?: string;   // DB column: 'full_name' - basic name for auth purposes
+  phone?: string;       // DB column: 'phone' - user's phone number
+  genotype?: string;    // DB column: 'genotype' - user's genotype
+  address?: string;     // DB column: 'address' - user's address
+  church_unit?: string; // DB column: 'church_unit' - user's church unit
+  assigned_pastor?: string; // DB column: 'assigned_pastor' - assigned pastor ID
+  date_of_birth?: string;   // DB column: 'date_of_birth' - user's date of birth
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +94,12 @@ export interface Profile {
 export const profileSchema = z.object({
   email: z.string().email({ message: "Valid email is required" }),
   full_name: z.string().optional(),
+  phone: z.string().optional(),
+  genotype: z.string().optional(),
+  address: z.string().optional(),
+  church_unit: z.string().optional(),
+  assigned_pastor: z.string().optional(),
+  date_of_birth: z.string().optional(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
