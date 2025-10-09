@@ -111,13 +111,13 @@ export const createUserProfile = async (
 
     // Try using the safe helper function first
     try {
-      const { data, error } = await supabase.rpc('create_user_profile_safe' as any, {
+      const { data, error } = await supabase.rpc('create_user_profile_safe', {
         user_id: userId,
         user_email: normalizedEmail,
         user_full_name: sanitizedFullName,
         church_unit: churchUnit || null,
         phone: phone || null
-      }) as { data: SafeHelperResponse | null; error: any };
+      });
 
       if (error) {
         console.warn("Safe helper function failed, falling back to manual creation:", error.message);
@@ -127,76 +127,116 @@ export const createUserProfile = async (
           success: true,
           message: "Profile and member record created/updated successfully"
         };
+      } else if (data && !data.success) {
+        console.warn("Safe helper function returned error:", data.message);
       }
-    } catch {
-      console.warn("Safe helper function not available, using manual creation");
+    } catch (rpcError: any) {
+      console.warn("Safe helper function not available or failed:", rpcError.message);
     }
 
-    // Fallback to manual creation
+    // Fallback to manual creation with improved error handling
     console.log("Using manual profile creation");
 
-    // Create a profile record with only the fields that exist in the schema
+    // Create a profile record with all available fields
     const profileData = {
       id: userId,
       email: normalizedEmail,
       full_name: sanitizedFullName,
+      church_unit: churchUnit || null,
+      phone: phone || null,
+      address: address || null,
       updated_at: new Date().toISOString(),
     };
 
     console.log("Profile data to insert:", profileData);
 
-    // Use upsert to create or update the profile
-    // Add a retry mechanism for database operations
+    // Use upsert to create or update the profile with retry mechanism
     let attempts = 0;
     const maxAttempts = 3;
-    let error = null;
+    let profileError = null;
 
     while (attempts < maxAttempts) {
       attempts++;
       console.log(`Profile creation attempt ${attempts}/${maxAttempts}`);
 
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(profileData);
+      try {
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert(profileData, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          });
 
-      if (!upsertError) {
-        console.log(`Profile creation successful on attempt ${attempts}`);
-        error = null;
-        break;
+        if (!upsertError) {
+          console.log(`Profile creation successful on attempt ${attempts}`);
+          profileError = null;
+          break;
+        }
+
+        profileError = upsertError;
+        console.error(`Profile creation attempt ${attempts} failed:`, profileError);
+
+        // If it's a schema error, try with minimal data
+        if (profileError.message?.includes('column') || profileError.message?.includes('does not exist')) {
+          console.log("Trying with minimal profile data due to schema error");
+          const minimalProfileData = {
+            id: userId,
+            email: normalizedEmail,
+            full_name: sanitizedFullName,
+            updated_at: new Date().toISOString(),
+          };
+
+          const { error: minimalError } = await supabase
+            .from('profiles')
+            .upsert(minimalProfileData, { onConflict: 'id' });
+
+          if (!minimalError) {
+            console.log("Profile created with minimal data");
+            profileError = null;
+            break;
+          }
+        }
+
+      } catch (exception: any) {
+        profileError = exception;
+        console.error(`Profile creation attempt ${attempts} exception:`, exception);
       }
-
-      error = upsertError;
-      console.error(`Profile creation attempt ${attempts} failed:`, error);
 
       // Wait before retrying (exponential backoff)
       if (attempts < maxAttempts) {
-        const delay = Math.pow(2, attempts) * 500; // 1s, 2s, 4s
+        const delay = Math.pow(2, attempts) * 500; // 500ms, 1s, 2s
         console.log(`Retrying after ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
-    if (error) {
-      console.error("Error creating/updating profile:", error);
+    if (profileError) {
+      console.error("All profile creation attempts failed:", profileError);
       return {
         success: false,
-        message: error.message || "Error creating profile",
-        error
+        message: `Profile creation failed: ${profileError.message || 'Unknown error'}`,
+        error: profileError
       };
     }
 
     console.log("Profile created/updated successfully");
 
-    // Also create/update member record
-    const memberResult = await createMemberRecord(userId, normalizedEmail, sanitizedFullName, churchUnit, assignedPastor, phone);
-    
-    if (!memberResult.success) {
-      console.warn("Member record creation failed, but profile was created:", memberResult.message);
+    // Also create/update member record with error handling
+    try {
+      const memberResult = await createMemberRecord(userId, normalizedEmail, sanitizedFullName, churchUnit, assignedPastor, phone);
+      
+      if (!memberResult.success) {
+        console.warn("Member record creation failed, but profile was created:", memberResult.message);
+        // Don't fail the entire operation if member creation fails
+      }
+    } catch (memberError: any) {
+      console.warn("Member record creation threw exception:", memberError.message);
+      // Continue anyway since profile was created
     }
 
     return {
       success: true,
-      message: "Profile and member record created/updated successfully"
+      message: "Profile created/updated successfully"
     };
   } catch (error: any) {
     console.error("Exception in createUserProfile:", error);

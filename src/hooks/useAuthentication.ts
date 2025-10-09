@@ -217,16 +217,57 @@ export const useAuthentication = () => {
 
       console.log("Signup successful, response:", data);
 
-      // Step 2: For development, automatically sign in
+      // Step 2: Handle profile creation (works for both dev and prod)
+      console.log("Creating user profile after successful signup");
+
+      // Wait a moment to ensure the user is created in Supabase
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Create profile record using the user data from signup
+      if (data.user && data.user.id) {
+        try {
+          console.log("Creating profile for user:", data.user.id);
+
+          // Use our utility function to create the profile
+          const profileResult = await createUserProfile(
+            data.user.id,
+            normalizedEmail,
+            fullName,
+            churchUnit,
+            assignedPastor,
+            phone,
+            address
+          );
+
+          if (!profileResult.success) {
+            console.error("Error creating profile:", profileResult.message);
+            // Show warning but don't fail the signup
+            toast({
+              variant: "destructive",
+              title: "Profile creation warning",
+              description: "Account created but profile setup incomplete. You can update your profile later.",
+            });
+          } else {
+            console.log("Profile created/updated successfully");
+          }
+        } catch (profileError: any) {
+          console.error("Profile creation error:", profileError);
+          // Show warning but don't fail the signup
+          toast({
+            variant: "destructive",
+            title: "Profile creation warning",
+            description: "Account created but profile setup incomplete. You can update your profile later.",
+          });
+        }
+      }
+
+      // Step 3: For development, automatically sign in
       if (import.meta.env.DEV) {
         console.log("Development mode: attempting automatic sign in");
 
-        // Wait a moment to ensure the user is created in Supabase
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         try {
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
+            email: normalizedEmail,
             password,
           });
 
@@ -236,38 +277,6 @@ export const useAuthentication = () => {
           }
 
           console.log("Auto sign-in successful:", signInData);
-
-          // Create profile record if it doesn't exist
-          try {
-            // Ensure we have a valid user ID
-            if (!signInData.user || !signInData.user.id) {
-              console.error("Missing user ID for profile creation");
-              throw new Error("Missing user ID for profile creation");
-            }
-
-            console.log("Creating profile for user:", signInData.user.id);
-
-            // Use our utility function to create the profile
-            const profileResult = await createUserProfile(
-              signInData.user.id,
-              email,
-              fullName,
-              churchUnit,
-              assignedPastor,
-              data.user?.user_metadata?.phone,
-              data.user?.user_metadata?.address
-            );
-
-            if (!profileResult.success) {
-              console.error("Error creating profile:", profileResult.message);
-              // Don't throw here, we'll still try to continue with the sign-in
-            } else {
-              console.log("Profile created/updated successfully");
-            }
-          } catch (profileError) {
-            console.error("Profile creation error:", profileError);
-            // Don't throw here, we'll still try to continue with the sign-in
-          }
 
           toast({
             title: "Account created!",
@@ -300,45 +309,69 @@ export const useAuthentication = () => {
 
       // Provide more specific error messages based on the error
       let errorMsg = "Failed to create account. Please try again.";
+      let shouldRetry = false;
 
       if (error.message) {
-        if (error.message.includes("duplicate key") || error.message.includes("already registered")) {
+        const message = error.message.toLowerCase();
+        
+        if (message.includes("duplicate key") || message.includes("already registered") || message.includes("user already registered")) {
           errorMsg = "An account with this email already exists. Please sign in instead.";
-        } else if (error.message.includes("database")) {
-          errorMsg = "Database error saving new user. Please try again or contact support if the issue persists.";
-        } else if (error.message.includes("fetch") || error.message.includes("network")) {
+        } else if (message.includes("database") || message.includes("violates")) {
+          errorMsg = "Database error saving new user. This could be due to:\n• A temporary database connection issue\n• The email address is already in use\n• Required fields are missing\n\nPlease try again or use a different email address.";
+          shouldRetry = true;
+        } else if (message.includes("fetch") || message.includes("network") || message.includes("connection")) {
           errorMsg = "Failed to connect to the server. Please check your internet connection and try again.";
-        } else if (error.message.includes("timeout")) {
+          shouldRetry = true;
+        } else if (message.includes("timeout")) {
           errorMsg = "The request timed out. Please try again when you have a better connection.";
+          shouldRetry = true;
+        } else if (message.includes("foreign key") || message.includes("constraint")) {
+          errorMsg = "Database configuration issue. Please contact support or try again later.";
+          shouldRetry = true;
         } else {
           errorMsg = error.message;
         }
       }
 
-      // If we have a Supabase error code, log it for debugging
+      // Handle specific Supabase error codes
       if (error.code) {
         console.error("Error code:", error.code);
 
-        // Handle specific Supabase error codes
-        if (error.code === "23505") { // Unique violation
-          errorMsg = "An account with this email already exists. Please sign in instead.";
-        } else if (error.code === "23502") { // Not null violation
-          errorMsg = "Missing required information. Please fill in all required fields.";
-        } else if (error.code === "42P01") { // Undefined table
-          errorMsg = "Database configuration error. Please contact support.";
-        } else if (error.code === "auth_signup_duplicate_email") {
-          errorMsg = "This email is already registered. Please sign in instead.";
+        switch (error.code) {
+          case "23505": // Unique violation
+            errorMsg = "An account with this email already exists. Please sign in instead.";
+            break;
+          case "23502": // Not null violation
+            errorMsg = "Missing required information. Please fill in all required fields.";
+            break;
+          case "23503": // Foreign key violation
+            errorMsg = "Database configuration error. Please contact support.";
+            break;
+          case "42P01": // Undefined table
+            errorMsg = "Database configuration error. Please contact support.";
+            break;
+          case "auth_signup_duplicate_email":
+            errorMsg = "This email is already registered. Please sign in instead.";
+            break;
+          case "PGRST116": // Connection error
+            errorMsg = "Database connection error. Please try again.";
+            shouldRetry = true;
+            break;
         }
       }
 
-      // If we have detailed error information, log it
+      // Log additional error information for debugging
       if (error.details) {
         console.error("Error details:", error.details);
       }
+      if (error.hint) {
+        console.error("Error hint:", error.hint);
+      }
 
-      // If the error is a network error, try to provide more helpful information
+      // Handle network errors
       if (error instanceof TypeError && error.message === "Failed to fetch") {
         errorMsg = "Failed to connect to the server. Please check your internet connection and try again.";
+        shouldRetry = true;
         console.error("Network error detected:", error);
       }
 
@@ -348,7 +381,9 @@ export const useAuthentication = () => {
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: errorMsg,
+        description: shouldRetry ? 
+          "There was a temporary issue. Please try again." : 
+          errorMsg.split('\n')[0], // Show only the first line in toast
       });
     } finally {
       setIsLoading(false);
@@ -376,7 +411,7 @@ export const useAuthentication = () => {
         title: "Password reset email sent",
         description: "Check your inbox for instructions to reset your password.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Password reset error:", error.message);
     } finally {
       setIsLoading(false);
