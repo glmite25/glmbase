@@ -117,7 +117,7 @@ const AdminAccess = () => {
                                         </div>
                                         <div className="flex justify-between">
                                             <span>Super Admin:</span>
-                                            <span className={effectiveIsSuperUser ? "text-yellow-600" : "text-red-600"}>
+                                            <span className={effectiveIsSuperUser ? "text-[#ff0000]" : "text-red-600"}>
                                                 {effectiveIsSuperUser ? "👑 Yes" : "❌ No"}
                                             </span>
                                         </div>
@@ -146,7 +146,7 @@ const AdminAccess = () => {
                             ) : effectiveIsAdmin || effectiveIsSuperUser ? (
                                 <Button
                                     onClick={() => navigate("/admin")}
-                                    className={`w-full ${effectiveIsSuperUser ? "bg-yellow-500 hover:bg-yellow-600" : ""}`}
+                                    className={`w-full ${effectiveIsSuperUser ? "bg-yellow-500 hover:bg-[#ff0000]" : ""}`}
                                 >
                                     {effectiveIsSuperUser ? (
                                         <>
@@ -179,7 +179,7 @@ const AdminAccess = () => {
                                     {user.email === 'ojidelawrence@gmail.com' && (
                                         <Button
                                             onClick={handleForceAccess}
-                                            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black"
+                                            className="w-full bg-yellow-500 hover:bg-[#ff0000] text-black"
                                         >
                                             Force Super Admin Access (Testing)
                                         </Button>

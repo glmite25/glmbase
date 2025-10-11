@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { PageLoader } from "@/components/ui/loading-spinner";
+import { UserAvatar } from "@/components/UserAvatar";
 
 // Lazy load admin components
 const AdminSidebar = lazy(() => import("@/components/admin/AdminSidebar"));
@@ -15,7 +16,7 @@ const DashboardContent = lazy(() => import("@/components/admin/dashboard/Dashboa
 const AdminStats = lazy(() => import("@/components/admin/dashboard/AdminStatsSimple"));
 
 const AdminDashboard = () => {
-  const { user, isAdmin, isSuperUser, isLoading } = useAuth();
+  const { user, isAdmin, isSuperUser, isLoading, profile } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -90,24 +91,24 @@ const AdminDashboard = () => {
       // Check for admin status with multiple fallbacks
       const storedSuperUserStatus = localStorage.getItem('glm-is-superuser') === 'true';
       const storedAdminStatus = localStorage.getItem('glm-is-admin') === 'true';
-      
+
       // Admin email whitelist
       const adminEmails = ['ojidelawrence@gmail.com', 'admin@gospellabourministry.com'];
       const isAdminEmail = user?.email && adminEmails.includes(user.email.toLowerCase());
 
       const hasAdminAccess = isAdmin || isSuperUser || storedSuperUserStatus || storedAdminStatus || isAdminEmail;
 
-      if (!user && !storedSuperUserStatus && !storedAdminStatus) {
-        console.log('No user found, redirecting to auth page');
-        navigate("/auth");
-        return;
-      }
+      // if (!user && !storedSuperUserStatus && !storedAdminStatus) {
+      //   console.log('No user found, redirecting to auth page');
+      //   navigate("/auth");
+      //   return;
+      // }
 
-      if (user && !hasAdminAccess) {
-        console.log('User is not admin, redirecting to auth page');
-        navigate("/auth");
-        return;
-      }
+      // if (user && !hasAdminAccess) {
+      //   console.log('User is not admin, redirecting to auth page');
+      //   navigate("/auth");
+      //   return;
+      // }
 
       // If user has admin email but no stored status, grant access
       if (user && isAdminEmail && !storedAdminStatus) {
@@ -186,59 +187,60 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
-      {/* Mobile sidebar toggle button */}
-      <div className="md:hidden sticky top-0 z-10 bg-white p-4 border-b flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="text-gray-700"
-        >
-          <Menu />
-          <span className="sr-only">Toggle sidebar</span>
-        </Button>
-        <h1 className={`text-lg font-bold ${isSuperUser ? "text-yellow-600" : "text-church-red"}`}>
-          {isSuperUser ? "Super Admin" : "Admin Dashboard"}
-        </h1>
-      </div>
+    <div className="flex min-h-screen bg-gray-50">
 
-      {/* Sidebar - conditionally shown on mobile */}
-      <div className={`${sidebarOpen ? 'block' : 'hidden'} md:block z-30 ${isMobile ? 'fixed inset-0 top-16' : ''}`}>
+      {/* Floating Sidebar */}
+      <aside className={`
+    fixed top-8 md:left-8 z-40 h-[90vh] md:w-64 bg-white rounded-3xl shadow-lg border border-gray-100
+    transition-transform duration-300 ease-in-out
+    ${sidebarOpen ? 'translate-x-0 left-4' : '-translate-x-full'}
+    md:translate-x-0
+  `}>
+        <Suspense fallback={<div className="p-4">Loading sidebar...</div>}>
+          <AdminSidebar />
+        </Suspense>
+      </aside>
+
+      {/* Backdrop for mobile */}
+      {isMobile && sidebarOpen && (
         <div
-          className={`${isMobile ? 'bg-black/50 absolute inset-0' : ''}`}
-          onClick={() => isMobile && setSidebarOpen(false)}
-        >
-          <div
-            className={`w-64 bg-white h-[calc(100vh-4rem)] ${isMobile ? 'relative' : 'sticky top-16'}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Suspense fallback={<div className="p-4">Loading sidebar...</div>}>
-              <AdminSidebar />
-            </Suspense>
-          </div>
-        </div>
-      </div>
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      {/* Main content */}
-      <div className="flex-1 p-4 md:p-8">
-        <div className="md:block">
-          <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse rounded-md"></div>}>
-            <DashboardHeader
-              title={isSuperUser ? "Super Admin Dashboard" : "Admin Dashboard"}
-              description={isSuperUser ? "Manage users, members, and system settings" : "Manage members, events, and more"}
-            />
+      {/* Main Content Area */}
+      <div className="md:flex-1 flex flex-col md:ml-72">
+
+        {/* Mobile Header */}
+        <header className="md:hidden sticky top-4 mx-4 z-20 bg-white/80 backdrop-blur-sm border border-gray-100 shadow-sm px-4 py-3 rounded-2xl md:mx-2">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="text-gray-700 hover:bg-gray-100 rounded-xl"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle sidebar</span>
+            </Button>
+            <h1 className={`text-lg font-sans font-bold ${isSuperUser ? "text-[#ff0000]" : "text-[#ff0000]"}`}>
+              {isSuperUser ? "GLM-Admin" : "Admin"}
+            </h1>
+
+            <div className="flex items-center space-x-3 mb-2">
+              <UserAvatar user={user} className="h-12 w-12" />
+            </div>
+            {/* <div className="w-10" /> Spacer for alignment */}
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className=" md:p-6 lg:p-8">
+          <Suspense fallback={<PageLoader />}>
+            <DashboardContent />
           </Suspense>
-        </div>
-        
-        {/* Admin Statistics */}
-        <Suspense fallback={<div className="grid grid-cols-4 gap-4 mb-8">{Array.from({length: 8}).map((_, i) => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-md"></div>)}</div>}>
-          <AdminStats />
-        </Suspense>
-        
-        <Suspense fallback={<PageLoader />}>
-          <DashboardContent />
-        </Suspense>
+        </main>
       </div>
     </div>
   );

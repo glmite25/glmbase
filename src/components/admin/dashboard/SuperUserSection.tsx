@@ -19,7 +19,7 @@ const SuperUserSection = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-yellow-600" />
+                <Shield className="h-5 w-5 text-[#ff0000]" />
                 <CardTitle>User Management</CardTitle>
               </div>
               <Button onClick={() => navigate("/admin/users")}>Manage Users</Button>
@@ -41,7 +41,7 @@ const SuperUserSection = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-yellow-600" />
+                <Crown className="h-5 w-5 text-[#ff0000]" />
                 <CardTitle>Super Admin</CardTitle>
               </div>
             </div>

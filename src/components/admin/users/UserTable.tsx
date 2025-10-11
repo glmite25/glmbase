@@ -1,4 +1,3 @@
-
 import { type AdminUser } from "./types";
 
 import {
@@ -27,30 +26,32 @@ const UserTable = ({ users, loading, onEdit, onDelete }: UserTableProps) => {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead className="w-[100px]">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {users.length === 0 ? (
-          <UserTableEmpty />
-        ) : (
-          users.map((user) => (
-            <UserTableRow 
-              key={user.id}
-              user={user}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <div className="w-full overflow-x-auto">
+      <Table className="min-w-[600px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead className="w-[100px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.length === 0 ? (
+            <UserTableEmpty />
+          ) : (
+            users.map((user) => (
+              <UserTableRow 
+                key={user.id}
+                user={user}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

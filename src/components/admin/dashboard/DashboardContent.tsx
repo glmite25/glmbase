@@ -80,7 +80,9 @@ const DashboardContent = () => {
 
   return (
     <Suspense fallback={<PageLoader />}>
-      {renderContent()}
+     <div className="p-4 md:w-[90%] mx-auto">
+       {renderContent()}
+     </div>
     </Suspense>
   );
 };

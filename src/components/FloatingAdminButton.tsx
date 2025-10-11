@@ -80,7 +80,7 @@ const FloatingAdminButton = () => {
               onClick={handleAdminAccess}
               className={`w-full mt-3 ${
                 effectiveIsSuperUser 
-                  ? "bg-yellow-500 hover:bg-yellow-600 text-black" 
+                  ? "bg-yellow-500 hover:bg-[#ff0000] text-black" 
                   : effectiveIsAdmin
                   ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-gray-500 hover:bg-gray-600"
@@ -108,7 +108,7 @@ const FloatingAdminButton = () => {
               onClick={() => setIsExpanded(!isExpanded)}
               className={`rounded-full w-14 h-14 shadow-lg ${
                 effectiveIsSuperUser 
-                  ? "bg-yellow-500 hover:bg-yellow-600 text-black" 
+                  ? "bg-yellow-500 hover:bg-[#ff0000] text-black" 
                   : effectiveIsAdmin
                   ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-gray-600 hover:bg-gray-700"

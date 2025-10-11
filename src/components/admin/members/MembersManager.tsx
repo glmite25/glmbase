@@ -604,7 +604,7 @@ const MembersManager = () => {
                 <p className="text-sm text-gray-600">Pastors</p>
                 <p className="text-2xl font-bold">{members.filter(m => m.category === 'Pastors').length}</p>
               </div>
-              <UserCheck className="h-8 w-8 text-yellow-600" />
+              <UserCheck className="h-8 w-8 text-[#ff0000]" />
             </div>
           </CardContent>
         </Card>

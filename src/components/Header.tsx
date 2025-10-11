@@ -98,7 +98,7 @@ const Header = () => {
                   onClick={() => navigate("/admin")}
                   className={`${
                     isSuperUser 
-                      ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-medium" 
+                      ? "bg-gradient-to-r from-yellow-500 to-[#ff0000] hover:from-[#ff0000] hover:to-yellow-700 text-black font-medium" 
                       : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium"
                   } px-4 py-2 rounded-md transition-all duration-200 shadow-md hover:shadow-lg`}
                   size="sm"
@@ -158,7 +158,7 @@ const Header = () => {
                       }}
                       className={`w-full ${
                         isSuperUser 
-                          ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-medium" 
+                          ? "bg-gradient-to-r from-yellow-500 to-[#ff0000] hover:from-[#ff0000] hover:to-yellow-700 text-black font-medium" 
                           : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium"
                       }`}
                       size="sm"

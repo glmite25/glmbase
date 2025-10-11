@@ -158,7 +158,7 @@ export const useAuthentication = () => {
     }
   };
 
-  const signUp = async (
+const signUp = async (
     email: string,
     password: string,
     fullName: string,

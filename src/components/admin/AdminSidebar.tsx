@@ -16,21 +16,29 @@ import {
   Speaker,
   UserCog,
   User,
-  Database
+  Database,
+  LogOut
 } from "lucide-react";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { UserAvatar } from "@/components/UserAvatar";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isSuperUser, isAdmin } = useAuth();
+  const { user, profile, isSuperUser, isAdmin } = useAuth();
   const isMobile = useIsMobile();
 
   console.log('AdminSidebar rendering with:', { isSuperUser, isAdmin });
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
 
   // Common menu items for all admins
   const dashboardMenuItem = {
@@ -118,10 +126,10 @@ const AdminSidebar = () => {
     : [dashboardMenuItem, ...regularAdminMenuItems, profileMenuItem, settingsMenuItem];
 
   return (
-    <div className="w-full md:w-64 bg-white border-r h-full flex flex-col">
+    <div className="w-full md:w-64 bg-white rounded-xl border-r h-full flex flex-col">
       <div className="p-6 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <div className={`font-serif text-xl font-bold ${isSuperUser ? "text-yellow-600" : "text-church-red"}`}>
+          <div className={`font-sans text-xl font-bold ${isSuperUser ? "text-[#ff0000]" : "text-church-red"}`}>
             {isSuperUser ? "Super Admin" : "Gospel Labour"}
           </div>
         </Link>
@@ -145,7 +153,7 @@ const AdminSidebar = () => {
               to={item.path}
               className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === item.path
                 ? isSuperUser
-                  ? "bg-yellow-50 text-yellow-600"
+                  ? "bg-red-50 text-[#ff0000]"
                   : "bg-church-red/10 text-church-red"
                 : "text-gray-700 hover:bg-gray-100"
                 }`}
@@ -171,7 +179,7 @@ const AdminSidebar = () => {
                   key={item.name}
                   to={item.path}
                   className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === item.path
-                    ? "bg-yellow-50 text-yellow-600"
+                    ? "bg-red-100 text-[#ff0000]"
                     : "text-gray-700 hover:bg-gray-100"
                     }`}
                 >
@@ -187,7 +195,29 @@ const AdminSidebar = () => {
         )}
       </div>
 
-      {/* Logout button removed */}
+      {/* User profile and logout section */}
+      <div className="mt-auto p-4 border-t">
+        <div className="flex items-center space-x-3 mb-2">
+          <UserAvatar user={user} className="h-10 w-10" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {profile?.full_name || user?.email?.split('@')[0]}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {user?.email}
+            </p>
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full flex items-center justify-center mt-2" 
+          onClick={handleLogout}
+        >
+          <LogOut size={16} className="mr-2" />
+          Logout
+        </Button>
+      </div>
     </div>
   );
 };

@@ -240,7 +240,7 @@ const ProfileSyncManager = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                                        <AlertTriangle className="w-5 h-5 text-[#ff0000]" />
                                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
                                             {syncStatus.issues.total_issues} Issues Found
                                         </Badge>

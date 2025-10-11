@@ -86,7 +86,7 @@ const StatsCardGrid = () => {
             description="Total admin accounts"
             value={loading ? "..." : metrics?.adminUsers || 0}
             trend={`including ${metrics?.superAdmins || 1} super admin`}
-            icon={<ShieldCheck className="h-5 w-5 text-yellow-600" />}
+            icon={<ShieldCheck className="h-5 w-5 text-[#ff0000]" />}
             loading={loading}
           />
           <EnhancedStatsCard

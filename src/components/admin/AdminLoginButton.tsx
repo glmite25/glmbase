@@ -108,7 +108,7 @@ const AdminLoginButton = ({
 
   const getButtonStyle = () => {
     if (effectiveIsSuperUser) {
-      return "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-medium";
+      return "bg-gradient-to-r from-yellow-500 to-[#ff0000] hover:from-[#ff0000] hover:to-yellow-700 text-black font-medium";
     }
     
     if (effectiveIsAdmin) {

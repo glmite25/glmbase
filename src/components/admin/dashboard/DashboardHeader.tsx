@@ -10,11 +10,11 @@ const DashboardHeader = ({ title, description }: DashboardHeaderProps) => {
   const { isSuperUser } = useAuth();
 
   return (
-    <div className="mb-6 md:mb-8">
+    <div className="mb-6 md:mb-8 bg-white p-4 rounded-lg shadow-md">
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
         {isSuperUser ? (
           <span className="flex items-center">
-            <span className="text-yellow-600">Super Admin</span> Dashboard
+          Dashboard
           </span>
         ) : (
           title
