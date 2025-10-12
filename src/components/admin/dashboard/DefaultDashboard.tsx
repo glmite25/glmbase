@@ -251,17 +251,18 @@ const DefaultDashboard = () => {
           <CardTitle className="font-sans">Recent Users</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="md:p-6 overflow-x-auto">
-            {/* <UserTable
-              users={filteredUsers}
-              loading={loading}
-              onEdit={handleEditUser}
-              onDelete={handleDeleteUser}
-            /> */}
+          <div className="w-full overflow-x-auto md:p-6">
+            <div className="w-[300px] sm:min-w-[600px]">
+              <UserTable
+                users={filteredUsers}
+                loading={loading}
+                onEdit={handleEditUser}
+                onDelete={handleDeleteUser}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
-
       {/* Recent Activity */}
       {/* <Card>
         <CardHeader>

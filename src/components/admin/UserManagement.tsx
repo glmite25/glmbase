@@ -74,7 +74,7 @@ export default function UserManagement() {
   };
 
   // Filter users based on search
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.role?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -87,9 +87,9 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      
+
       {/* Header Section - No Background */}
-      <div className="space-y-1">
+      <div className="space-y-1 pt-6">
         <div className="flex items-center gap-3 mb-2">
           {/* <div className="w-10 h-10 bg-[#ff0000] rounded-2xl flex items-center justify-center">
             <Users className="h-5 w-5 text-white" />
@@ -102,7 +102,7 @@ export default function UserManagement() {
       </div>
 
       {/* Stats Cards */}
-      {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
        
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -135,16 +135,15 @@ export default function UserManagement() {
           <div className="text-3xl font-bold font-sans text-gray-900 mb-1">{superAdminCount}</div>
           <p className="text-sm font-medium text-gray-600">Super Admins</p>
         </div>
-      </div> */}
+      </div>
 
       {/* Main Content Card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        
-        {/* Toolbar */}
+
+      <div className="w-[360px] sm:w-full bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            
-            {/* Search */}
+  
             <div className="relative flex-1 max-w-md w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
@@ -155,7 +154,7 @@ export default function UserManagement() {
               />
             </div>
 
-            {/* Actions */}
+ 
             <div className="flex gap-3 w-full sm:w-auto">
               <SuperAdminDialog onSuperAdminAdded={loadUsers}>
                 <Button 
@@ -178,7 +177,7 @@ export default function UserManagement() {
             </div>
           </div>
 
-          {/* Filter Info */}
+
           {searchQuery && (
             <div className="mt-4 flex items-center gap-2">
               <div className="text-sm text-gray-600">
@@ -193,9 +192,7 @@ export default function UserManagement() {
             </div>
           )}
         </div>
-
-        {/* Table Container */}
-        <div className="p-6">
+        <div className="p-6 overflow-x-auto">
           <UserTable
             users={filteredUsers}
             loading={loading}

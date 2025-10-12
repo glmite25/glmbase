@@ -127,7 +127,7 @@ const PastorsPage = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Pastors</h2>
+          <h2 className="text-2xl font-sans font-bold">Pastors</h2>
           <p className="text-muted-foreground">Manage pastors and view their assigned members</p>
         </div>
 
@@ -181,7 +181,7 @@ const PastorsPage = () => {
                 filteredPastors.map((pastor) => (
                   <Card key={pastor.id} className="overflow-hidden">
                     <CardHeader className="pb-2">
-                      <CardTitle>{pastor.fullname}</CardTitle>
+                      <CardTitle className="text-lg font-sans font-bold">{pastor.fullname}</CardTitle>
                       <CardDescription>{pastor.title || 'Pastor'}</CardDescription>
                     </CardHeader>
                     <CardContent>
