@@ -26,7 +26,7 @@ async function runPhoneFix() {
 
   try {
     // Read the SQL fix file
-    const sqlFix = fs.readFileSync('fix_phone_constraint.sql', 'utf8');
+    const sqlFix = fs.readFileSync('simple_phone_fix.sql', 'utf8');
     
     console.log('📖 Executing phone constraint fix...');
     

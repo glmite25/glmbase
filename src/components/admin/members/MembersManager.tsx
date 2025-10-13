@@ -456,14 +456,14 @@ const MembersManager = () => {
                       <div className="space-y-2">
                         <Label htmlFor="churchunit" className="text-sm font-semibold text-gray-900">Church Unit</Label>
                         <Select
-                          value={formData.churchunit}
-                          onValueChange={(value) => setFormData({ ...formData, churchunit: value })}
+                          value={formData.churchunit || "none"}
+                          onValueChange={(value) => setFormData({ ...formData, churchunit: value === "none" ? "" : value })}
                         >
                           <SelectTrigger className="h-12 rounded-xl">
                             <SelectValue placeholder="Select church unit" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {churchUnits.map((unit) => (
                               <SelectItem key={unit} value={unit}>
                                 {unit}
