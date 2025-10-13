@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Member } from "@/types/member";
+import { Member, MemberCategory, AppRole } from "@/types/member";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingState, ErrorState } from "@/components/ui/data-state";
 import {
@@ -12,10 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus } from "lucide-react";
+import { Search } from "lucide-react";
 import { AddMemberToUnitDialog } from "./AddMemberToUnitDialog";
 
 interface UnitMembersTableProps {
@@ -30,7 +28,6 @@ export function UnitMembersTable({ unitId, unitName, onStatsUpdate }: UnitMember
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,8 +41,20 @@ export function UnitMembersTable({ unitId, unitName, onStatsUpdate }: UnitMember
     try {
       console.log(`Fetching members for unit: ${unitId}`);
 
-      // Start building the query
-      let query = supabase.from('members').select('*');
+      // Start building the query - select specific fields that exist in the database
+      let query = supabase.from('members').select(`
+        id,
+        fullname,
+        email,
+        phone,
+        category,
+        churchunit,
+        churchunits,
+        assignedto,
+        isactive,
+        created_at,
+        updated_at
+      `);
 
       // Filter by church unit - check both churchunit and churchunits array
       query = query.or(`churchunit.eq.${unitId},churchunits.cs.{${unitId}}`);
@@ -66,18 +75,36 @@ export function UnitMembersTable({ unitId, unitName, onStatsUpdate }: UnitMember
 
         // Transform the data to match the Member interface
         const formattedMembers: Member[] = data.map(member => ({
+          // Required fields
           id: member.id,
-          fullName: member.fullname || "",
-          email: member.email,
+          email: member.email || "",
+          fullname: member.fullname || "",
+          category: member.category as MemberCategory,
+          joindate: member.created_at ? member.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          isactive: member.isactive !== false,
+          role: 'user' as AppRole, // Default role since it's not in the query
+          created_at: member.created_at || new Date().toISOString(),
+          updated_at: member.updated_at || new Date().toISOString(),
+          
+          // Optional fields
           phone: member.phone || undefined,
-          address: member.address || undefined,
-          category: member.category as any,
-          joinDate: member.joindate || new Date().toISOString().split('T')[0],
+          address: undefined, // Field doesn't exist in current schema
+          genotype: undefined, // Field doesn't exist in current schema
+          title: undefined, // Field doesn't exist in current schema
+          assignedto: member.assignedto || undefined,
+          churchunit: member.churchunit || undefined,
+          churchunits: member.churchunits || [],
+          auxanogroup: undefined, // Field doesn't exist in current schema
+          notes: undefined, // Field doesn't exist in current schema
+          user_id: undefined, // Field doesn't exist in current query
+          
+          // Legacy compatibility fields
+          fullName: member.fullname || "",
           assignedTo: member.assignedto || undefined,
-          churchUnits: member.churchunits || (member.churchunit ? [member.churchunit] : []),
-          churchUnit: member.churchunit || (member.churchunits && member.churchunits.length > 0 ? member.churchunits[0] : undefined),
-          auxanoGroup: member.auxanogroup || undefined,
-          notes: member.notes || undefined,
+          churchUnit: member.churchunit || undefined,
+          churchUnits: member.churchunits || [],
+          auxanoGroup: undefined,
+          joinDate: member.created_at ? member.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
           isActive: member.isactive !== false,
         }));
 
