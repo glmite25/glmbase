@@ -250,6 +250,62 @@ const EventDetail = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Event Flyer Card */}
+              {event.image_url && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Event Flyer</h3>
+                    <div className="relative">
+                      <img
+                        src={event.image_url}
+                        alt={`${event.title} flyer`}
+                        className="w-full h-auto max-w-[288px] mx-auto rounded-lg shadow-lg border border-gray-200"
+                        style={{ aspectRatio: '1/1' }} // 4x4 inches square aspect ratio
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            if (event.image_url) {
+                              window.open(event.image_url, '_blank');
+                            }
+                          }}
+                        >
+                          View Full Size
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            if (event.image_url) {
+                              const link = document.createElement('a');
+                              link.href = event.image_url;
+                              link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flyer.jpg`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              toast({
+                                title: "Download Started",
+                                description: "Event flyer is being downloaded",
+                              });
+                            }
+                          }}
+                        >
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Registration Card */}
               <Card>
                 <CardContent className="p-6">

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, Save, Calendar, Clock, MapPin, Image, Users, Type } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Save, Calendar, Clock, MapPin, Image, Users, Type, Upload, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,9 @@ const EventForm = ({ event, onClose }: EventFormProps) => {
   });
   
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,6 +75,7 @@ const EventForm = ({ event, onClose }: EventFormProps) => {
         registration_required: event.registration_required || false,
         is_published: event.is_published ?? true,
       });
+      setImagePreview(event.image_url || '');
     }
   }, [event]);
 
@@ -139,6 +143,90 @@ const EventForm = ({ event, onClose }: EventFormProps) => {
       ...prev,
       [field]: value
     }));
+    
+    // Update image preview when URL changes
+    if (field === 'image_url') {
+      setImagePreview(value);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `event-${Date.now()}.${fileExt}`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('event-images')
+        .upload(fileName, file);
+
+      if (error) {
+        // If bucket doesn't exist, create it first
+        if (error.message.includes('Bucket not found')) {
+          toast({
+            title: "Storage Setup Required",
+            description: "Please contact admin to set up image storage",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('event-images')
+        .getPublicUrl(fileName);
+
+      handleInputChange('image_url', publicUrl);
+      setImagePreview(publicUrl);
+      
+      toast({
+        title: "Image uploaded successfully",
+        description: "Your event image has been uploaded",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again or use URL instead.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
   };
 
   return (
@@ -317,18 +405,128 @@ const EventForm = ({ event, onClose }: EventFormProps) => {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="image_url">Image URL</Label>
-                <div className="relative">
-                  <Image className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="image_url"
-                    value={formData.image_url}
-                    onChange={(e) => handleInputChange('image_url', e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="pl-10"
-                  />
+              {/* Event Image Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Image className="h-4 w-4" />
+                  <h3 className="font-medium">Event Flyer/Image</h3>
                 </div>
+
+                {/* Upload Method Toggle */}
+                <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMethod('url')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      uploadMethod === 'url'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Link className="h-4 w-4" />
+                    Image URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMethod('upload')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      uploadMethod === 'upload'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload File
+                  </button>
+                </div>
+
+                {/* URL Input */}
+                {uploadMethod === 'url' && (
+                  <div>
+                    <Label htmlFor="image_url">Image URL</Label>
+                    <div className="relative">
+                      <Link className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="image_url"
+                        value={formData.image_url}
+                        onChange={(e) => handleInputChange('image_url', e.target.value)}
+                        placeholder="https://example.com/event-flyer.jpg"
+                        className="pl-10"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Recommended: 4x4 inches (square) format for best display
+                    </p>
+                  </div>
+                )}
+
+                {/* File Upload */}
+                {uploadMethod === 'upload' && (
+                  <div>
+                    <Label>Upload Image</Label>
+                    <div
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 5MB. Recommended: 4x4 inches (square)
+                      </p>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div>
+                    <Label>Preview</Label>
+                    <div className="mt-2 p-4 border rounded-lg bg-gray-50">
+                      <div className="flex items-start gap-4">
+                        <img
+                          src={imagePreview}
+                          alt="Event preview"
+                          className="w-24 h-24 object-cover rounded-lg border"
+                          onError={() => {
+                            setImagePreview('');
+                            toast({
+                              title: "Invalid image",
+                              description: "The image URL is not valid or accessible",
+                              variant: "destructive",
+                            });
+                          }}
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Event Flyer</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            This image will be displayed on the event detail page
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => {
+                              handleInputChange('image_url', '');
+                              setImagePreview('');
+                            }}
+                          >
+                            Remove Image
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
