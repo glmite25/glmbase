@@ -90,7 +90,11 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
 
     if (profilesError) throw profilesError;
     
-    const superUserEmails = ['ojidelawrence@gmail.com'];
+    const superUserEmails = [
+      'ojidelawrence@gmail.com',
+      'popsabey1@gmail.com',
+      'dev.samadeyemi@gmail.com'
+    ];
     metrics.superAdmins = profiles?.filter(p => 
       p.email && superUserEmails.includes(p.email.toLowerCase())
     ).length || 0;

@@ -54,7 +54,11 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
       }
 
       // Check if this user is a super user based on email (hardcoded logic)
-      const superUserEmails = ['ojidelawrence@gmail.com'];
+      const superUserEmails = [
+        'ojidelawrence@gmail.com',
+        'popsabey1@gmail.com',
+        'dev.samadeyemi@gmail.com'
+      ];
       const isSuperUser = profile.email && superUserEmails.includes(profile.email.toLowerCase());
 
       return {
