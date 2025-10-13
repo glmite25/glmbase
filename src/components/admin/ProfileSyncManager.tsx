@@ -76,15 +76,16 @@ const ProfileSyncManager = () => {
     const syncAllProfiles = async () => {
         setSyncing(true);
         try {
-            const { data, error } = await supabase.rpc('sync_all_profiles' as any);
+            // Use the comprehensive sync function that handles auth users
+            const { data, error } = await supabase.rpc('sync_all_auth_users' as any);
 
             if (error) throw error;
 
             if (data && typeof data === 'object') {
-                const result = data as SyncResult;
+                const result = data as any;
                 toast({
-                    title: "Profile sync completed",
-                    description: `Synced ${result.synced_count} profiles. ${result.error_count} errors.`,
+                    title: "Complete sync finished",
+                    description: `Created ${result.profiles_created} profiles, ${result.members_created} members. Updated ${result.profiles_updated} profiles, ${result.members_updated} members.`,
                 });
             } else {
                 toast({
@@ -185,7 +186,7 @@ const ProfileSyncManager = () => {
                             disabled={syncing || loading}
                         >
                             <RotateCcw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                            {syncing ? 'Syncing...' : 'Sync All Profiles'}
+                            {syncing ? 'Syncing...' : 'Sync All Auth Users'}
                         </Button>
                     </div>
 
@@ -342,7 +343,7 @@ const ProfileSyncManager = () => {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>• <strong>Check Status:</strong> Reviews sync between profiles and members tables</p>
-                    <p>• <strong>Sync All:</strong> Automatically fixes all sync issues across all users</p>
+                    <p>• <strong>Sync All:</strong> Syncs all authenticated users from Supabase auth to profiles and members tables</p>
                     <p>• <strong>Sync User:</strong> Fixes sync issues for a specific user by email</p>
                     <p>• <strong>Auto-creates:</strong> Missing records in either table are created automatically</p>
                     <p>• <strong>Links accounts:</strong> Ensures proper userid connections between tables</p>
