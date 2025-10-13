@@ -23,7 +23,9 @@ export const OFFICIAL_CHURCH_UNITS: ChurchUnit[] = [
   { id: "3hsecurity", name: "3HSecurity", description: "Security and safety ministry" },
   { id: "discipleship", name: "Discipleship", description: "Discipleship and spiritual growth ministry" },
   { id: "praisefeet", name: "Praise Feet", description: "Dance and movement ministry" },
-  { id: "cloventongues", name: "Cloven Tongues", description: "Prayer and intercession ministry" },
+  { id: "ushering", name: "Ushering", description: "Welcoming and Directing Worshippers" },
+  { id: "sanitation", name: "Sanitation", description: "Church Sanitation and Hygiene" },
+
 ];
 
 /**
@@ -62,16 +64,10 @@ export const LEGACY_CHURCH_UNITS = [
   "3H Movies",
   "3H Security",
   "Auxano Group",
-  "TOF",
-  "tof",
   "Administration",
   "Youth Ministry",
   "Children Ministry",
-  "Music Ministry",
   "Ushering Ministry",
-  "Technical Ministry",
-  "Evangelism Ministry",
-  "Prayer Ministry",
   "Welfare Ministry",
   "Security Ministry",
 ];

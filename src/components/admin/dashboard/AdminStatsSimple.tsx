@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, UserCheck, TrendingUp, Activity, Shield, UserPlus } from "lucide-react";
+import { Users, Calendar, UserCheck, TrendingUp, Activity, Shield, UserPlus, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserAvatar } from "@/components/UserAvatar";
+import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 
 interface StatsData {
   totalMembers: number;

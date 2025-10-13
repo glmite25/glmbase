@@ -21,9 +21,10 @@ import { AddMemberToUnitDialog } from "./AddMemberToUnitDialog";
 interface UnitMembersTableProps {
   unitId: string;
   unitName: string;
+  onStatsUpdate?: () => void;
 }
 
-export function UnitMembersTable({ unitId, unitName }: UnitMembersTableProps) {
+export function UnitMembersTable({ unitId, unitName, onStatsUpdate }: UnitMembersTableProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [pastors, setPastors] = useState<{ id: string; fullName: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,10 @@ export function UnitMembersTable({ unitId, unitName }: UnitMembersTableProps) {
         <AddMemberToUnitDialog
           unitId={unitId}
           unitName={unitName}
-          onMemberAdded={fetchMembers}
+          onMemberAdded={() => {
+            fetchMembers();
+            onStatsUpdate?.();
+          }}
         />
       </div>
 

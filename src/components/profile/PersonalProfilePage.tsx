@@ -467,14 +467,26 @@ export const PersonalProfilePage = () => {
                 </div>
 
                 <div>
-                  <Label>Church Unit</Label>
-                  <Input
-                    value={profile.churchunit || "Not assigned"}
-                    disabled
-                    className="bg-muted mt-1"
-                  />
+                  <Label>Church Units</Label>
+                  <div className="mt-1">
+                    {profile.churchunits && profile.churchunits.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {profile.churchunits.map((unit, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {unit}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : profile.churchunit ? (
+                      <Badge variant="outline" className="text-xs">
+                        {profile.churchunit}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Not assigned to any unit</span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Church unit assignment is managed by administrators
+                    Church unit assignments are managed by administrators
                   </p>
                 </div>
               </div>
