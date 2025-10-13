@@ -17,8 +17,12 @@ const UserTableRow = ({ user, onEdit, onDelete }: UserTableRowProps) => {
       <TableCell>{user.full_name || 'N/A'}</TableCell>
       <TableCell>{user.email}</TableCell>
       <TableCell>
-        <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-          {user.role}
+        <Badge variant={
+          user.isSuperUser ? "destructive" : 
+          user.role === "admin" ? "default" : 
+          "secondary"
+        }>
+          {user.isSuperUser ? "Super Admin" : user.role}
         </Badge>
       </TableCell>
       <TableCell className="text-right space-x-2">

@@ -82,8 +82,18 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
     if (adminError) throw adminError;
     metrics.adminUsers = adminUsers?.length || 0;
 
-    // Get super admin count (this is just for display, actual super admin is determined by email)
-    metrics.superAdmins = 1; // Hardcoded as there's typically just one super admin
+    // Get super admin count (hardcoded for now since it's based on email)
+    // In the future, this could be from a superuser role in the database
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('email');
+
+    if (profilesError) throw profilesError;
+    
+    const superUserEmails = ['ojidelawrence@gmail.com'];
+    metrics.superAdmins = profiles?.filter(p => 
+      p.email && superUserEmails.includes(p.email.toLowerCase())
+    ).length || 0;
 
     // Get pastors count
     const { data: pastors, error: pastorsError } = await supabase

@@ -53,9 +53,15 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
         highestRole = "admin";
       }
 
+      // Check if this user is a super user based on email (hardcoded logic)
+      const superUserEmails = ['ojidelawrence@gmail.com'];
+      const isSuperUser = profile.email && superUserEmails.includes(profile.email.toLowerCase());
+
       return {
         ...profile,
-        role: highestRole,
+        name: profile.full_name, // For compatibility
+        role: highestRole as "admin" | "user",
+        isSuperUser,
       };
     });
 

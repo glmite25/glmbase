@@ -83,7 +83,7 @@ export default function UserManagement() {
   // Calculate stats
   const totalUsers = users.length;
   const adminCount = users.filter(u => u.role === 'admin').length;
-  const superAdminCount = users.filter(u => u.role === 'superuser').length;
+  const superAdminCount = users.filter(u => u.isSuperUser === true).length;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
