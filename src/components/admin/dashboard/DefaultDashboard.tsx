@@ -22,6 +22,7 @@ import { AdminUser } from "../users/types";
 import { useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 const AdminStats = lazy(() => import("@/components/admin/dashboard/AdminStatsSimple"));
+const UnitsOverview = lazy(() => import("@/components/admin/units/UnitsOverview"));
 
 const DefaultDashboard = () => {
   const { user, isSuperUser, profile } = useAuth();
@@ -84,7 +85,7 @@ const DefaultDashboard = () => {
 
   // Filter users based on search
   const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.role?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -245,24 +246,30 @@ const DefaultDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-sans">Recent Users</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full overflow-x-auto md:p-6">
-            <div className="w-[300px] sm:min-w-[600px]">
+      {/* Units Overview and Recent Users */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Units Overview */}
+        <Suspense fallback={<div className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>}>
+          <UnitsOverview />
+        </Suspense>
+
+        {/* Recent Users Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-sans">Recent Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full overflow-x-auto">
               <UserTable
-                users={filteredUsers}
+                users={filteredUsers.slice(0, 5)}
                 loading={loading}
                 onEdit={handleEditUser}
                 onDelete={handleDeleteUser}
               />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
       {/* Recent Activity */}
       {/* <Card>
         <CardHeader>

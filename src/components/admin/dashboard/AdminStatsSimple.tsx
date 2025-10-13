@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, UserCheck, TrendingUp, Activity, Shield, UserPlus, Building2 } from "lucide-react";
+import { Users, Calendar, Shield, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -13,6 +13,7 @@ interface StatsData {
   upcomingEvents: number;
   pastors: number;
   recentRegistrations: number;
+  totalUnits: number;
 }
 
 const AdminStatsSimple = () => {
@@ -24,6 +25,7 @@ const AdminStatsSimple = () => {
     upcomingEvents: 0,
     pastors: 0,
     recentRegistrations: 0,
+    totalUnits: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -59,6 +61,7 @@ const AdminStatsSimple = () => {
         upcomingEvents: upcomingEventsCount,
         pastors: pastorsResult.count || 0,
         recentRegistrations: recentMembersResult.count || 0,
+        totalUnits: OFFICIAL_CHURCH_UNITS.length,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -70,6 +73,7 @@ const AdminStatsSimple = () => {
         upcomingEvents: 0,
         pastors: 0,
         recentRegistrations: 0,
+        totalUnits: OFFICIAL_CHURCH_UNITS.length,
       });
     } finally {
       setLoading(false);
@@ -102,12 +106,12 @@ const AdminStatsSimple = () => {
       bgColor: "bg-green-50",
     },
     {
-      title: "New Members",
-      value: stats.recentRegistrations,
-      subtitle: "last 30 days",
-      icon: UserPlus,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      title: "Church Units",
+      value: stats.totalUnits,
+      subtitle: "active units",
+      icon: Building2,
+      color: "text-teal-600",
+      bgColor: "bg-teal-50",
     },
     // {
     //   title: "Active Rate",
@@ -161,7 +165,7 @@ const AdminStatsSimple = () => {
         </div>
 
         <div className="hidden md:flex items-center space-x-3 mb-2">
-          <UserAvatar user={user} className="h-10 w-10" />
+          <UserAvatar />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
               {profile?.full_name || user?.email?.split('@')[0]}
