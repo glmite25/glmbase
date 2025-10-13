@@ -96,6 +96,8 @@ const AppContent = () => {
             <Route path="/admin/units/3hsecurity" element={<AdminDashboard />} />
             <Route path="/admin/units/discipleship" element={<AdminDashboard />} />
             <Route path="/admin/units/praisefeet" element={<AdminDashboard />} />
+            <Route path="/admin/units/ushering" element={<AdminDashboard />} />
+            <Route path="/admin/units/sanitation" element={<AdminDashboard />} />
             <Route path="/admin/units/tof" element={<AdminDashboard />} />
             <Route path="/admin/units/cloventongues" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />

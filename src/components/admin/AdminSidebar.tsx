@@ -18,7 +18,9 @@ import {
   User,
   Database,
   LogOut,
-  Calendar
+  Calendar,
+  Trash2,
+  Zap
 } from "lucide-react";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 import { useAuth } from "@/contexts/AuthContext";
@@ -104,7 +106,9 @@ const AdminSidebar = () => {
       case "3hmovies": return <Film size={20} />;
       case "3hsecurity": return <ShieldCheck size={20} />;
       case "discipleship": return <Users size={20} />;
-      case "praisefeet": return <Speaker size={20} />;
+      case "praisefeet": return <Zap size={20} />;
+      case "ushering": return <UserCheck size={20} />;
+      case "sanitation": return <Trash2 size={20} />;
       case "cloventongues": return <Church size={20} />;
       default: return <Users size={20} />;
     }

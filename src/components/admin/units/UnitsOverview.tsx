@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Users, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
+import { getUnitIcon, getUnitIconColors } from "@/constants/unitIcons";
 
 interface UnitStats {
   unitId: string;
@@ -106,9 +107,15 @@ const UnitsOverview = () => {
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
+                {(() => {
+                  const IconComponent = getUnitIcon(unit.unitId);
+                  const colors = getUnitIconColors(unit.unitId);
+                  return (
+                    <div className={`w-12 h-12 ${colors.bg} rounded-lg flex items-center justify-center`}>
+                      <IconComponent className={`h-6 w-6 ${colors.text}`} />
+                    </div>
+                  );
+                })()}
                 <div>
                   <h3 className="font-semibold text-gray-900">{unit.unitName}</h3>
                   <div className="flex items-center gap-2 mt-1">
