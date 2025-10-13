@@ -10,6 +10,7 @@ const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
 // MembersView removed - using MembersManager instead
 const MembersManager = lazy(() => import("@/components/admin/members/MembersManager"));
 // Sermons functionality removed per user request
+const EventsManagement = lazy(() => import("@/components/admin/events/EventsManagement"));
 const PastorsPage = lazy(() => import("@/components/admin/pastors/PastorsPage"));
 const PastorDetail = lazy(() => import("@/components/admin/pastors/PastorDetail"));
 const UnitMembersView = lazy(() => import("@/components/admin/units/UnitMembersView"));
@@ -55,6 +56,8 @@ const DashboardContent = () => {
   const renderContent = () => {
     if (path === "/admin/users") {
       return <UserManagement />;
+    } else if (path === "/admin/events") {
+      return <EventsManagement />;
     } else if (path === "/admin/members") {
       return <MembersManager />;
     } else if (path === "/admin/pastors") {

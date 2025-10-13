@@ -16,6 +16,7 @@ import { createQueryClient } from "@/lib/react-query-config";
 const Index = lazy(() => import("./pages/Index"));
 const About = lazy(() => import("./pages/About"));
 const Events = lazy(() => import("./pages/Events"));
+const EventDetail = lazy(() => import("./pages/EventDetail"));
 const Sermons = lazy(() => import("./pages/Sermons"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Partnership = lazy(() => import("./pages/Partnership"));
@@ -68,6 +69,7 @@ const AppContent = () => {
             <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/events/:id" element={<EventDetail />} />
             <Route path="/sermons" element={<Sermons />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/partnership" element={<Partnership />} />

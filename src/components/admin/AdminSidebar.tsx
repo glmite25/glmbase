@@ -17,7 +17,8 @@ import {
   UserCog,
   User,
   Database,
-  LogOut
+  LogOut,
+  Calendar
 } from "lucide-react";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,11 @@ const AdminSidebar = () => {
   // Regular admin menu items
   const regularAdminMenuItems = [
     {
+      name: "Events",
+      path: "/admin/events",
+      icon: <Calendar size={20} />
+    },
+    {
       name: "Members",
       path: "/admin/members",
       icon: <Users size={20} />
@@ -67,6 +73,11 @@ const AdminSidebar = () => {
       name: "User Management",
       path: "/admin/users",
       icon: <Shield size={20} />
+    },
+    {
+      name: "Events",
+      path: "/admin/events",
+      icon: <Calendar size={20} />
     },
     {
       name: "Members",
@@ -198,7 +209,9 @@ const AdminSidebar = () => {
       {/* User profile and logout section */}
       <div className="mt-auto p-4 border-t">
         <div className="flex items-center space-x-3 mb-2">
-          <UserAvatar user={user} className="h-10 w-10" />
+          <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
               {profile?.full_name || user?.email?.split('@')[0]}
