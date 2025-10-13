@@ -697,7 +697,7 @@ const MembersManager = () => {
         </div>
 
         {/* Filters Section */}
-        <div className="md:bg-white rounded-3xl shadow-sm border border-gray-100 p-4">
+        <div className="">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />

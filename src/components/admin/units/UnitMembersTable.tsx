@@ -167,8 +167,8 @@ export function UnitMembersTable({ unitId, unitName, onStatsUpdate }: UnitMember
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <div className="relative w-64">
+      <div className=" flex flex-col md:flex-row justify-between md:items-center space-y-2 mb-4">
+        <div className="relative md:w-[400px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
           <Input
             placeholder="Search members..."
@@ -195,7 +195,7 @@ export function UnitMembersTable({ unitId, unitName, onStatsUpdate }: UnitMember
           onRetry={fetchMembers}
         />
       ) : (
-        <Table>
+        <Table className="rounded-2xl">
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>

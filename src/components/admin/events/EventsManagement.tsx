@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Calendar, MapPin, Clock, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, MapPin, Clock, Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import EventForm from "@/components/admin/events/EventForm";
 import DeleteEventDialog from "@/components/admin/events/DeleteEventDialog";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
   id: string;
@@ -33,6 +35,7 @@ const EventsManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<Event | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("all");
   const { toast } = useToast();
 
   const fetchEvents = async () => {
@@ -126,6 +129,25 @@ const EventsManagement = () => {
       hour12: true
     });
   };
+  
+  const filteredEvents = () => {
+    if (activeTab === "all") return events;
+    if (activeTab === "published") return events.filter(event => event.is_published);
+    if (activeTab === "drafts") return events.filter(event => !event.is_published);
+    if (activeTab === "special") return events.filter(event => event.event_type === "special");
+    if (activeTab === "regular") return events.filter(event => event.event_type === "regular");
+    if (activeTab === "recurring") return events.filter(event => event.is_recurring);
+    return events;
+  };
+
+  const getEventTypeColor = (type: string) => {
+    switch(type) {
+      case 'special': return "bg-primary text-primary-foreground";
+      case 'regular': return "bg-secondary text-secondary-foreground";
+      case 'recurring': return "bg-accent text-accent-foreground";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
 
   if (loading) {
     return (
@@ -136,16 +158,27 @@ const EventsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Event Management</h1>
-          <p className="text-gray-600">Manage church events and activities</p>
+    <div className="space-y-8 font-sans">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-1 mt-4">
+          <h1 className="text-3xl font-sans font-bold tracking-tight">Event Management</h1>
+          <p className="text-muted-foreground">Create and manage church events and activities</p>
         </div>
-        <Button onClick={handleCreateEvent} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Event
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchEvents}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+          <Button onClick={handleCreateEvent} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span>Add Event</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -170,7 +203,7 @@ const EventsManagement = () => {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <CardTitle className="text-lg">{event.title}</CardTitle>
+                      <CardTitle className="text-lg font-sans">{event.title}</CardTitle>
                       <Badge variant={event.event_type === 'special' ? 'default' : 'secondary'}>
                         {event.event_type}
                       </Badge>

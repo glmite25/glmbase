@@ -69,7 +69,7 @@ const UnitsOverview = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Church Units Overview</CardTitle>
+          <CardTitle className="font-sans font-bold">Church Units Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -94,8 +94,8 @@ const UnitsOverview = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
+        <CardTitle className="flex font-sans font-semibold items-center gap-2">
+          {/* <Users className="h-5 w-5" /> */}
           Church Units Overview
         </CardTitle>
       </CardHeader>
@@ -117,7 +117,7 @@ const UnitsOverview = () => {
                   );
                 })()}
                 <div>
-                  <h3 className="font-semibold text-gray-900">{unit.unitName}</h3>
+                  <h3 className="font-semibold font-sans text-gray-900">{unit.unitName}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary" className="text-xs">
                       {unit.totalMembers} total
