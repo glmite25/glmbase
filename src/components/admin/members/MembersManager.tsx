@@ -134,11 +134,33 @@ const MembersManager = () => {
     e.preventDefault();
 
     try {
+      // Prepare data with proper null handling for UUID fields
+      const preparedData = {
+        ...formData,
+        // Convert empty strings to null for UUID fields
+        assignedto: formData.assignedto?.trim() === "" ? null : formData.assignedto,
+        // Convert empty strings to null for other optional fields
+        phone: formData.phone?.trim() === "" ? null : formData.phone,
+        address: formData.address?.trim() === "" ? null : formData.address,
+        genotype: formData.genotype?.trim() === "" ? null : formData.genotype,
+        churchunit: formData.churchunit?.trim() === "" ? null : formData.churchunit,
+        title: formData.title?.trim() === "" ? null : formData.title,
+        auxanogroup: formData.auxanogroup?.trim() === "" ? null : formData.auxanogroup,
+        notes: formData.notes?.trim() === "" ? null : formData.notes,
+      };
+
+      // Remove any undefined values to prevent issues
+      Object.keys(preparedData).forEach(key => {
+        if (preparedData[key] === undefined) {
+          delete preparedData[key];
+        }
+      });
+
       if (editingMember) {
         const { error } = await supabase
           .from('members')
           .update({
-            ...formData,
+            ...preparedData,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingMember.id);
@@ -153,7 +175,7 @@ const MembersManager = () => {
         const { error } = await supabase
           .from('members')
           .insert([{
-            ...formData,
+            ...preparedData,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }]);
@@ -506,12 +528,22 @@ const MembersManager = () => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="assignedto" className="text-sm font-semibold text-gray-900">Assigned Pastor</Label>
-                        <Input
-                          id="assignedto"
-                          value={formData.assignedto}
-                          onChange={(e) => setFormData({ ...formData, assignedto: e.target.value })}
-                          className="h-12 rounded-xl border-gray-200 focus:ring-2 focus:ring-[#ff0000]/20 focus:border-[#ff0000]"
-                        />
+                        <Select
+                          value={formData.assignedto || "none"}
+                          onValueChange={(value) => setFormData({ ...formData, assignedto: value === "none" ? "" : value })}
+                        >
+                          <SelectTrigger className="h-12 rounded-xl">
+                            <SelectValue placeholder="Select assigned pastor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {members.filter(m => m.category === 'Pastors').map((pastor) => (
+                              <SelectItem key={pastor.id} value={pastor.id}>
+                                {pastor.fullname} {pastor.title ? `(${pastor.title})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
