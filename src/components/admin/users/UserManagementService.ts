@@ -47,24 +47,27 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
       // Find all roles for this user
       const userRoles = rolesData.filter((role) => role.user_id === profile.id);
 
-      // Determine the highest role (admin > user)
+      // Determine the highest role (superuser > admin > user)
       let highestRole = "user";
-      if (userRoles.some(r => r.role === "admin")) {
+      if (userRoles.some(r => r.role === "superuser")) {
+        highestRole = "superuser";
+      } else if (userRoles.some(r => r.role === "admin")) {
         highestRole = "admin";
       }
 
-      // Check if this user is a super user based on email (hardcoded logic)
+      // Check if this user is a super user (either by database role or email fallback)
       const superUserEmails = [
         'ojidelawrence@gmail.com',
         'popsabey1@gmail.com',
         'dev.samadeyemi@gmail.com'
       ];
-      const isSuperUser = profile.email && superUserEmails.includes(profile.email.toLowerCase());
+      const isSuperUser = highestRole === "superuser" || 
+        (profile.email && superUserEmails.includes(profile.email.toLowerCase()));
 
       return {
         ...profile,
         name: profile.full_name, // For compatibility
-        role: highestRole as "admin" | "user",
+        role: highestRole as "admin" | "user" | "superuser",
         isSuperUser,
       };
     });
@@ -81,7 +84,7 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
 /**
  * Add a user role
  */
-export const addUserRole = async (userId: string, role: "admin" | "user"): Promise<{ success: boolean; error: Error | null }> => {
+export const addUserRole = async (userId: string, role: "admin" | "user" | "superuser"): Promise<{ success: boolean; error: Error | null }> => {
   try {
     // Check if the user already has this role
     const { data: existingRoles, error: checkError } = await supabase
@@ -114,7 +117,7 @@ export const addUserRole = async (userId: string, role: "admin" | "user"): Promi
 /**
  * Remove a user role
  */
-export const removeUserRole = async (userId: string, role: "admin" | "user"): Promise<{ success: boolean; error: Error | null }> => {
+export const removeUserRole = async (userId: string, role: "admin" | "user" | "superuser"): Promise<{ success: boolean; error: Error | null }> => {
   try {
     const { error } = await supabase
       .from("user_roles")

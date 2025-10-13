@@ -73,31 +73,43 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
     if (usersError) throw usersError;
     metrics.registeredUsers = registeredUsers?.length || 0;
 
-    // Get admin users count
+    // Get admin users count (both admin and superuser roles)
     const { data: adminUsers, error: adminError } = await supabase
       .from('user_roles')
       .select('id')
-      .eq('role', 'admin');
+      .in('role', ['admin', 'superuser']);
 
     if (adminError) throw adminError;
     metrics.adminUsers = adminUsers?.length || 0;
 
-    // Get super admin count (hardcoded for now since it's based on email)
-    // In the future, this could be from a superuser role in the database
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('email');
+    // Get super admin count from database
+    const { data: superAdmins, error: superAdminError } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('role', 'superuser');
 
-    if (profilesError) throw profilesError;
-    
-    const superUserEmails = [
-      'ojidelawrence@gmail.com',
-      'popsabey1@gmail.com',
-      'dev.samadeyemi@gmail.com'
-    ];
-    metrics.superAdmins = profiles?.filter(p => 
-      p.email && superUserEmails.includes(p.email.toLowerCase())
-    ).length || 0;
+    if (superAdminError) {
+      console.warn('Error fetching superuser roles:', superAdminError);
+      // Fallback to email-based counting
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('email');
+
+      if (!profilesError) {
+        const superUserEmails = [
+          'ojidelawrence@gmail.com',
+          'popsabey1@gmail.com',
+          'dev.samadeyemi@gmail.com'
+        ];
+        metrics.superAdmins = profiles?.filter(p => 
+          p.email && superUserEmails.includes(p.email.toLowerCase())
+        ).length || 0;
+      } else {
+        metrics.superAdmins = 0;
+      }
+    } else {
+      metrics.superAdmins = superAdmins?.length || 0;
+    }
 
     // Get pastors count
     const { data: pastors, error: pastorsError } = await supabase
@@ -116,7 +128,7 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
     if (unitsError) throw unitsError;
 
     // Count members by church unit
-    const churchUnits: {[key: string]: number} = {};
+    const churchUnits: { [key: string]: number } = {};
     unitsData.forEach(member => {
       if (member.churchunit) {
         churchUnits[member.churchunit] = (churchUnits[member.churchunit] || 0) + 1;
