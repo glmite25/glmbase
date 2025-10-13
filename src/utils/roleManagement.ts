@@ -1,19 +1,24 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 /**
- * Add a user role using the admin_add_user_role function
- * This bypasses RLS policies by using a SECURITY DEFINER function
+ * Add a user role by directly inserting into the user_roles table
+ * This requires appropriate permissions
  */
 export const addUserRoleSafe = async (
   userId: string,
-  role: string
+  role: AppRole
 ): Promise<{ success: boolean; error: Error | null }> => {
   try {
-    // Call the admin_add_user_role function
-    const { error } = await supabase.rpc("admin_add_user_role", {
-      user_id_param: userId,
-      role_param: role,
-    });
+    // Insert the role directly into the user_roles table
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({
+        user_id: userId,
+        role: role,
+      });
 
     if (error) throw error;
 
@@ -29,14 +34,23 @@ export const addUserRoleSafe = async (
  */
 export const checkIsSuperUser = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc("is_superuser");
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (error) {
+    if (!user) return false;
+
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin") // Since superuser isn't in the enum, check for admin
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
       console.error("Error checking superuser status:", error);
       return false;
     }
 
-    return data || false;
+    return !!data;
   } catch (error) {
     console.error("Error checking superuser status:", error);
     return false;
@@ -48,14 +62,23 @@ export const checkIsSuperUser = async (): Promise<boolean> => {
  */
 export const checkIsAdmin = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc("is_admin");
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (error) {
+    if (!user) return false;
+
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
       console.error("Error checking admin status:", error);
       return false;
     }
 
-    return data || false;
+    return !!data;
   } catch (error) {
     console.error("Error checking admin status:", error);
     return false;
@@ -63,19 +86,20 @@ export const checkIsAdmin = async (): Promise<boolean> => {
 };
 
 /**
- * Remove a user role using the admin_remove_user_role function
- * This bypasses RLS policies by using a SECURITY DEFINER function
+ * Remove a user role by deleting from the user_roles table
+ * This requires appropriate permissions
  */
 export const removeUserRoleSafe = async (
   userId: string,
-  role: string
+  role: AppRole
 ): Promise<{ success: boolean; error: Error | null }> => {
   try {
-    // Call the admin_remove_user_role function
-    const { error } = await supabase.rpc("admin_remove_user_role", {
-      user_id_param: userId,
-      role_param: role,
-    });
+    // Delete the role from the user_roles table
+    const { error } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role", role);
 
     if (error) throw error;
 
@@ -87,15 +111,41 @@ export const removeUserRoleSafe = async (
 };
 
 /**
+ * Check if a user has a specific role
+ */
+export const userHasRole = async (userId: string, role: AppRole): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", role)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error("Error checking user role:", error);
+      return false;
+    }
+
+    return !!data;
+  } catch (error) {
+    console.error("Error checking user role:", error);
+    return false;
+  }
+};
+
+/**
  * Get all user roles for a specific user
  */
-export const getUserRoles = async (userId: string): Promise<string[]> => {
+export const getUserRoles = async (userId: string): Promise<AppRole[]> => {
   try {
-    // For superusers and admins, we can directly query the user_roles table
-    const { data: isSuperuser } = await supabase.rpc("is_superuser");
-    const { data: isAdmin } = await supabase.rpc("is_admin");
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (isSuperuser || isAdmin || userId === (await supabase.auth.getUser()).data.user?.id) {
+    // Check if current user is admin or if they're querying their own roles
+    const isCurrentUser = user?.id === userId;
+    const isAdmin = user ? await checkIsAdmin() : false;
+
+    if (isAdmin || isCurrentUser) {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")

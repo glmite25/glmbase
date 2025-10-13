@@ -19,47 +19,47 @@ export const standardizeChurchUnitFields = <T extends Record<string, any>>(recor
   const result = { ...record };
 
   // Extract all possible church unit fields
-  const churchUnit = record.churchUnit;
-  const churchunit = record.churchunit;
-  const churchUnits = record.churchUnits;
-  const churchunits = record.churchunits;
+  const churchUnit = (record as any).churchUnit;
+  const churchunit = (record as any).churchunit;
+  const churchUnits = (record as any).churchUnits;
+  const churchunits = (record as any).churchunits;
 
   // Standardize the plural fields (arrays)
   if (Array.isArray(churchUnits) && churchUnits.length > 0) {
-    result.churchUnits = churchUnits;
-    result.churchunits = churchUnits;
+    (result as any).churchUnits = churchUnits;
+    (result as any).churchunits = churchUnits;
   } else if (Array.isArray(churchunits) && churchunits.length > 0) {
-    result.churchUnits = churchunits;
-    result.churchunits = churchunits;
+    (result as any).churchUnits = churchunits;
+    (result as any).churchunits = churchunits;
   } else if (churchUnit) {
     // If no arrays but we have a singular value, create arrays
-    result.churchUnits = [churchUnit];
-    result.churchunits = [churchUnit];
+    (result as any).churchUnits = [churchUnit];
+    (result as any).churchunits = [churchUnit];
   } else if (churchunit) {
     // If no arrays but we have a singular value, create arrays
-    result.churchUnits = [churchunit];
-    result.churchunits = [churchunit];
+    (result as any).churchUnits = [churchunit];
+    (result as any).churchunits = [churchunit];
   } else {
     // Ensure we have empty arrays rather than null/undefined
-    result.churchUnits = [];
-    result.churchunits = [];
+    (result as any).churchUnits = [];
+    (result as any).churchunits = [];
   }
 
   // Standardize the singular fields
   if (churchUnit) {
-    result.churchUnit = churchUnit;
-    result.churchunit = churchUnit;
+    (result as any).churchUnit = churchUnit;
+    (result as any).churchunit = churchUnit;
   } else if (churchunit) {
-    result.churchUnit = churchunit;
-    result.churchunit = churchunit;
-  } else if (Array.isArray(result.churchUnits) && result.churchUnits.length > 0) {
+    (result as any).churchUnit = churchunit;
+    (result as any).churchunit = churchunit;
+  } else if (Array.isArray((result as any).churchUnits) && (result as any).churchUnits.length > 0) {
     // If we have arrays but no singular value, use the first array element
-    result.churchUnit = result.churchUnits[0];
-    result.churchunit = result.churchUnits[0];
+    (result as any).churchUnit = (result as any).churchUnits[0];
+    (result as any).churchunit = (result as any).churchUnits[0];
   } else {
     // Ensure we have empty strings rather than null/undefined
-    result.churchUnit = '';
-    result.churchunit = '';
+    (result as any).churchUnit = '';
+    (result as any).churchunit = '';
   }
 
   return result;
@@ -75,8 +75,8 @@ export const standardizeAuxanoGroupField = <T extends Record<string, any>>(recor
   const result = { ...record };
 
   // Ensure auxanoGroup is always defined
-  if (record.auxanoGroup === null || record.auxanoGroup === undefined) {
-    result.auxanoGroup = '';
+  if ((record as any).auxanoGroup === null || (record as any).auxanoGroup === undefined) {
+    (result as any).auxanoGroup = '';
   }
 
   return result;
@@ -93,16 +93,16 @@ export const standardizeNameFields = <T extends Record<string, any>>(record: T):
   const result = { ...record };
 
   // Extract possible name fields
-  const fullName = record.fullName;
-  const fullname = record.fullname;
+  const fullName = (record as any).fullName;
+  const fullname = (record as any).fullname;
 
   // Standardize the name fields
   if (fullName) {
-    result.fullName = fullName;
-    result.fullname = fullName;
+    (result as any).fullName = fullName;
+    (result as any).fullname = fullName;
   } else if (fullname) {
-    result.fullName = fullname;
-    result.fullname = fullname;
+    (result as any).fullName = fullname;
+    (result as any).fullname = fullname;
   }
 
   return result;
@@ -119,16 +119,16 @@ export const standardizeAssignedToField = <T extends Record<string, any>>(record
   const result = { ...record };
 
   // Extract possible fields
-  const assignedTo = record.assignedTo;
-  const assignedto = record.assignedto;
+  const assignedTo = (record as any).assignedTo;
+  const assignedto = (record as any).assignedto;
 
   // Standardize the fields
   if (assignedTo) {
-    result.assignedTo = assignedTo;
-    result.assignedto = assignedTo;
+    (result as any).assignedTo = assignedTo;
+    (result as any).assignedto = assignedTo;
   } else if (assignedto) {
-    result.assignedTo = assignedto;
-    result.assignedto = assignedto;
+    (result as any).assignedTo = assignedto;
+    (result as any).assignedto = assignedto;
   }
 
   return result;
@@ -145,20 +145,20 @@ export const standardizeIsActiveField = <T extends Record<string, any>>(record: 
   const result = { ...record };
 
   // Extract possible fields
-  const isActive = record.isActive;
-  const isactive = record.isactive;
+  const isActive = (record as any).isActive;
+  const isactive = (record as any).isactive;
 
   // Standardize the fields
   if (isActive !== undefined) {
-    result.isActive = isActive;
-    result.isactive = isActive;
+    (result as any).isActive = isActive;
+    (result as any).isactive = isActive;
   } else if (isactive !== undefined) {
-    result.isActive = isactive;
-    result.isactive = isactive;
+    (result as any).isActive = isactive;
+    (result as any).isactive = isactive;
   } else {
     // Default to true if not specified
-    result.isActive = true;
-    result.isactive = true;
+    (result as any).isActive = true;
+    (result as any).isactive = true;
   }
 
   return result;

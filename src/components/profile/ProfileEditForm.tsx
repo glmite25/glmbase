@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
+import { isValidPhoneNumber, formatPhoneNumber, getPhoneValidationMessage } from "@/utils/phoneValidation";
 
 import {
   Form,
@@ -29,7 +30,9 @@ import { Loader2, CalendarIcon } from "lucide-react";
 // Define the form schema with validation
 const profileFormSchema = z.object({
   full_name: z.string().min(2, { message: "Full name must be at least 2 characters" }),
-  phone: z.string().optional(),
+  phone: z.string().optional().refine(isValidPhoneNumber, { 
+    message: getPhoneValidationMessage() 
+  }),
   genotype: z.string().optional(),
   address: z.string().optional(),
   church_unit: z.string().optional(),
@@ -126,7 +129,7 @@ export function ProfileEditForm() {
       // Process form values
       const processedValues = {
         full_name: values.full_name,
-        phone: values.phone || null,
+        phone: formatPhoneNumber(values.phone), // Clean up phone number
         genotype: values.genotype === "none" ? null : values.genotype || null,
         address: values.address || null,
         church_unit: values.church_unit === "none" ? null : values.church_unit || null,

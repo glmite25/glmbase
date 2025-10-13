@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Phone, MapPin, Mail, User, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isValidPhoneNumber, getPhoneValidationMessage } from "@/utils/phoneValidation";
 
 
 export const AuthForm = () => {
@@ -104,8 +105,8 @@ export const AuthForm = () => {
 
   const validateAdditionalInfo = (): string | null => {
     // Phone validation is optional but if provided should be valid
-    if (phone && phone.length > 0 && phone.length < 10) {
-      return "Please enter a valid phone number";
+    if (!isValidPhoneNumber(phone)) {
+      return getPhoneValidationMessage();
     }
 
     return null;

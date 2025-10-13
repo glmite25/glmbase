@@ -1,99 +1,43 @@
-import { supabase } from '@/integrations/supabase/client';
-import fs from 'fs';
-import path from 'path';
+/**
+ * Database migration utilities
+ * 
+ * Note: This file contains migration utilities that require database functions
+ * not currently available in the Supabase schema. These functions would need
+ * to be implemented in the database before this utility can be used.
+ * 
+ * For now, migrations should be run manually through the Supabase SQL editor.
+ */
 
 /**
- * Runs database migrations in order
+ * Placeholder for running database migrations
+ * Currently not functional due to missing database functions
  */
 export async function runMigrations() {
-  console.log('Running database migrations...');
-
-  try {
-    // First, ensure the migrations table exists
-    const migrationTrackerSql = fs.readFileSync(
-      path.join(process.cwd(), 'migrations', 'migration_tracker.sql'),
-      'utf8'
-    );
-    
-    const { error: trackerError } = await supabase.rpc('exec_sql', {
-      sql_string: migrationTrackerSql
-    });
-    
-    if (trackerError) {
-      console.error('Error setting up migration tracker:', trackerError);
-      return;
-    }
-
-    // Get list of migrations that have been applied
-    const { data: appliedMigrations, error: fetchError } = await supabase
-      .from('migrations')
-      .select('name');
-      
-    if (fetchError) {
-      console.error('Error fetching applied migrations:', fetchError);
-      return;
-    }
-
-    const appliedMigrationNames = appliedMigrations?.map(m => m.name) || [];
-    
-    // Define migrations in order
-    const migrations = [
-      { name: 'add_indexes', file: 'add_indexes.sql' },
-      { name: 'standardize_roles', file: 'standardize_roles.sql' },
-      { name: 'add_constraints', file: 'add_constraints.sql' }
-    ];
-
-    // Run each migration if not already applied
-    for (const migration of migrations) {
-      if (!appliedMigrationNames.includes(`${migration.name}_001`)) {
-        console.log(`Applying migration: ${migration.name}`);
-        
-        const migrationSql = fs.readFileSync(
-          path.join(process.cwd(), 'migrations', migration.file),
-          'utf8'
-        );
-        
-        const { error } = await supabase.rpc('exec_sql', {
-          sql_string: migrationSql
-        });
-        
-        if (error) {
-          console.error(`Error applying migration ${migration.name}:`, error);
-        } else {
-          console.log(`Successfully applied migration: ${migration.name}`);
-        }
-      } else {
-        console.log(`Migration already applied: ${migration.name}`);
-      }
-    }
-
-    console.log('Database migrations completed');
-  } catch (error) {
-    console.error('Error running migrations:', error);
-  }
+  console.log('Migration utilities are not currently functional.');
+  console.log('Please run migrations manually through the Supabase SQL editor.');
+  console.log('Migration files can be found in the src/integrations/supabase/ directory.');
+  
+  // List available migration files
+  const migrationFiles = [
+    'add_indexes.sql',
+    'standardize_role_management.sql',
+    'add_superadmin_function.sql',
+    'fix_superadmin_function_complete.sql'
+  ];
+  
+  console.log('Available migration files:');
+  migrationFiles.forEach(file => {
+    console.log(`- ${file}`);
+  });
 }
 
 /**
- * Checks if a specific migration has been applied
+ * Placeholder for checking if a migration has been applied
+ * Currently not functional due to missing migrations table in schema
  * @param migrationName The name of the migration to check
- * @returns True if the migration has been applied, false otherwise
+ * @returns Always returns false as migrations table doesn't exist
  */
 export async function isMigrationApplied(migrationName: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('migrations')
-      .select('id')
-      .eq('name', migrationName)
-      .limit(1);
-      
-    if (error) {
-      console.error('Error checking migration status:', error);
-      return false;
-    }
-    
-    return data && data.length > 0;
-  } catch (error) {
-    console.error('Error checking migration status:', error);
-    return false;
-  }
+  console.log(`Cannot check migration status for ${migrationName} - migrations table not available`);
+  return false;
 }
