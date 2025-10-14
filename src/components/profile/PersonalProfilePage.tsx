@@ -262,7 +262,7 @@ export const PersonalProfilePage = () => {
   return (
     <div className="container mx-auto p-6 mt-28 max-w-4xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="space-y-2 md:space-y-0 md:flex md:items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-sans font-bold">My Profile</h1>
           <p className="text-muted-foreground">
