@@ -125,7 +125,7 @@ const PastorsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-4">
         <div>
           <h2 className="text-2xl font-sans font-bold">Pastors</h2>
           <p className="text-muted-foreground">Manage pastors and view their assigned members</p>

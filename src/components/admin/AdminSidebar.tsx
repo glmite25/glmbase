@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -30,7 +29,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
 
-const AdminSidebar = () => {
+interface AdminSidebarProps {
+  onClose?: () => void;
+}
+
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, isSuperUser, isAdmin } = useAuth();
@@ -150,8 +153,8 @@ const AdminSidebar = () => {
         </Link>
 
         {isMobile && (
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => navigate("/admin")}>
-            <X size={20} />
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={onClose}>
+            {/* <X size={20} /> */}
           </Button>
         )}
       </div>

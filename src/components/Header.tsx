@@ -64,14 +64,18 @@ const Header = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  // Determine if we should show black background immediately
+  const isNotIndex = location.pathname !== "/";
+  const shouldShowBlackBg = isScrolled || isNotIndex;
+
   return (
-    <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black shadow-md py-2' : 'bg-transparent py-4'}`}>
+    <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${shouldShowBlackBg ? 'bg-black shadow-md py-2' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
           <ImageWithFallback 
             src="/images/logo 2.png" 
             alt="Gospel Labour Ministry" 
-            className={`transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20'}`}
+            className={`transition-all duration-300 ${shouldShowBlackBg ? 'h-16' : 'h-20'}`}
             fallbackSrc="/images/logo.png"
           />
         </Link>

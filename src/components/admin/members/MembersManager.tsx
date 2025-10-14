@@ -736,7 +736,7 @@ const MembersManager = () => {
       </div>
 
       {/* Members Table */}
-      <div className="w-[360px] sm:w-full">
+      <div className="w-full">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-sans font-bold">Members ({filteredMembers.length})</CardTitle>

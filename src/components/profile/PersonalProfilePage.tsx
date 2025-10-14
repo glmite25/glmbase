@@ -260,11 +260,11 @@ export const PersonalProfilePage = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 mt-28 max-w-4xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">My Profile</h1>
+          <h1 className="text-3xl font-sans font-bold">My Profile</h1>
           <p className="text-muted-foreground">
             Manage your personal information and church details
           </p>
@@ -305,7 +305,7 @@ export const PersonalProfilePage = () => {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex font-sans items-center gap-2">
                 <User className="w-5 h-5" />
                 Basic Information
               </CardTitle>
@@ -441,7 +441,7 @@ export const PersonalProfilePage = () => {
           {/* Church Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex font-sans items-center gap-2">
                 <Church className="w-5 h-5" />
                 Church Information
               </CardTitle>
@@ -516,7 +516,7 @@ export const PersonalProfilePage = () => {
           {/* Professional & Personal */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex font-sans items-center gap-2">
                 <Briefcase className="w-5 h-5" />
                 Professional & Personal
               </CardTitle>
@@ -604,7 +604,7 @@ export const PersonalProfilePage = () => {
           {/* Emergency Contact */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex font-sans items-center gap-2">
                 <Heart className="w-5 h-5" />
                 Emergency Contact
               </CardTitle>
@@ -659,7 +659,7 @@ export const PersonalProfilePage = () => {
           {/* Location */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex font-sans items-center gap-2">
                 <MapPin className="w-5 h-5" />
                 Location Details
               </CardTitle>
@@ -728,7 +728,7 @@ export const PersonalProfilePage = () => {
           {/* Spiritual Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex font-sans items-center gap-2">
                 <Users className="w-5 h-5" />
                 Spiritual Information
               </CardTitle>
@@ -793,7 +793,7 @@ export const PersonalProfilePage = () => {
           {/* System Information (Read-only) */}
           <Card>
             <CardHeader>
-              <CardTitle>System Information</CardTitle>
+              <CardTitle className="font-sans">System Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

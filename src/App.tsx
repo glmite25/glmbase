@@ -60,7 +60,7 @@ const AppContent = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Only render the Header when not on admin routes */}
-      {!isAdminRoute && <Header />}
+      {!isAdminRoute && <Header className="mt-28" />}
       {/* Floating Admin Button - shows on all non-admin pages */}
       {!isAdminRoute && <FloatingAdminButton />}
       <main className={`flex-grow ${isAdminRoute ? 'pt-0' : ''}`}>

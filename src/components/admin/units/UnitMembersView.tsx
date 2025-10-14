@@ -64,7 +64,7 @@ export default function UnitMembersView({ unitId, unitName }: UnitMembersViewPro
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between mt-6">
         <div>
           <CardTitle className="flex font-sans items-center gap-2">
             {unitName} Unit
@@ -136,7 +136,7 @@ export default function UnitMembersView({ unitId, unitName }: UnitMembersViewPro
             </div>
           </div> */}
         </CardHeader>
-        <CardContent className="w-[360px] sm:w-full">
+        <CardContent className="w-full">
           <UnitMembersTable
             unitId={unitId}
             unitName={unitName}

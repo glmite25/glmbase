@@ -139,7 +139,7 @@ export default function UserManagement() {
 
       {/* Main Content Card */}
 
-      <div className="w-[360px] sm:w-full bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="w-full bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
 
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
