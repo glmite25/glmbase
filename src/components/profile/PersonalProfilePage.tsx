@@ -127,106 +127,85 @@ export const PersonalProfilePage = () => {
   });
 
   // Load member profile
-  const loadProfile = async () => {
-    if (!user) return;
+  // Load member profile
+const loadProfile = async () => {
+  if (!user) return;
 
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.rpc('get_member_profile');
-      
-      if (error) throw error;
-      
-      // Type assertion for the RPC response
-      const response = data as unknown as { success: boolean; data: MemberProfile | null; message: string | null };
-      
-      if (response?.success && response?.data) {
-        const profileData = response.data;
-        setProfile(profileData);
-        
-        // Set form values
-        form.reset({
-          fullname: profileData.fullname || "",
-          phone: profileData.phone || "",
-          address: profileData.address || "",
-          date_of_birth: profileData.date_of_birth || "",
-          gender: (profileData.gender as "male" | "female" | "other") || undefined,
-          marital_status: (profileData.marital_status as "single" | "married" | "divorced" | "widowed") || undefined,
-          occupation: profileData.occupation || "",
-          bio: profileData.bio || "",
-          emergency_contact_name: profileData.emergency_contact_name || "",
-          emergency_contact_phone: profileData.emergency_contact_phone || "",
-          emergency_contact_relationship: profileData.emergency_contact_relationship || "",
-          city: profileData.city || "",
-          state: profileData.state || "",
-          postal_code: profileData.postal_code || "",
-          country: profileData.country || "Nigeria",
-          baptism_date: profileData.baptism_date || "",
-          baptism_location: profileData.baptism_location || "",
-          is_baptized: profileData.is_baptized || false,
-          preferred_contact_method: (profileData.preferred_contact_method as "email" | "phone" | "sms" | "whatsapp") || "email",
-          skills_talents: profileData.skills_talents || [],
-          interests: profileData.interests || [],
-          genotype: profileData.genotype || "",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response?.message || "Failed to load profile",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error loading profile:", error);
+  try {
+    setLoading(true);
+    const { data, error } = await supabase.rpc('get_member_profile', {
+      member_id: user.id, // 👈 pass user.id as parameter
+    });
+
+    if (error) throw error;
+
+    if (data) {
+      const profileData = data as unknown as MemberProfile;
+      setProfile(profileData);
+      console.log("Profile:", profileData);
+
+      form.reset({
+        fullname: profileData.fullname || "",
+        phone: profileData.phone || "",
+        address: profileData.address || "",
+        date_of_birth: profileData.date_of_birth || "",
+        gender: (profileData.gender as "male" | "female" | "other") || undefined,
+        occupation: profileData.occupation || "",
+        bio: profileData.bio || "",
+        genotype: profileData.genotype || "",
+      });
+    } else {
       toast({
-        title: "Error",
-        description: "Failed to load profile data",
+        title: "No profile found",
+        description: "Your member profile could not be found.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error("Error loading profile:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load member profile.",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Save profile changes
-  const onSubmit = async (values: ProfileFormValues) => {
-    if (!user) return;
+// Save profile changes
+const onSubmit = async (values: ProfileFormValues) => {
+  if (!user) return;
 
-    try {
-      setSaving(true);
-      const { data, error } = await supabase.rpc('update_member_profile', {
-        profile_data: values
-      });
-      
-      if (error) throw error;
-      
-      // Type assertion for the RPC response
-      const response = data as unknown as { success: boolean; data: any; message: string | null };
-      
-      if (response?.success) {
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
-        setEditing(false);
-        await loadProfile(); // Reload to get updated data
-      } else {
-        toast({
-          title: "Error",
-          description: response?.message || "Failed to update profile",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+  try {
+    setSaving(true);
+    const { data, error } = await supabase.rpc('update_member_profile', {
+      member_id: user.id, // 👈 pass user.id
+      profile_data: values,
+    });
+
+    if (error) throw error;
+
+    toast({
+      title: "Success",
+      description: "Profile updated successfully",
+    });
+    setEditing(false);
+    await loadProfile(); // reload
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    toast({
+      title: "Error",
+      description: "Failed to update profile",
+      variant: "destructive",
+    });
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   useEffect(() => {
     loadProfile();
