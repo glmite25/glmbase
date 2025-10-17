@@ -22,6 +22,8 @@ const Contact = lazy(() => import("./pages/Contact"));
 const Partnership = lazy(() => import("./pages/Partnership"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Auth = lazy(() => import("./pages/Auth"));
+const AuthLogin = lazy(() => import("./pages/AuthLogin"));
+const AuthSignup = lazy(() => import("./pages/AuthSignup"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -75,6 +77,8 @@ const AppContent = () => {
             <Route path="/partnership" element={<Partnership />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/login" element={<AuthLogin />} />
+            <Route path="/auth/signup" element={<AuthSignup />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />

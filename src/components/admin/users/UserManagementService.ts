@@ -1,6 +1,6 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { AdminUser } from "./types";
+import { getAccessToken } from "@/utils/authApi";
 
 /**
  * Fetch all users with their roles
@@ -8,73 +8,26 @@ import { AdminUser } from "./types";
  */
 export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error | null }> => {
   try {
-    console.log("Fetching users from profiles table...");
-
-    // First, fetch all profiles
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*");
-
-    if (profilesError) {
-      console.error("Error fetching profiles:", profilesError);
-      throw profilesError;
+    console.log("Fetching users from backend /api/users...");
+    const token = getAccessToken();
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch('https://church-management-api-p709.onrender.com/api/users', { headers });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to fetch users');
     }
-
-    console.log(`Found ${profilesData?.length || 0} profiles`);
-
-    // Then, fetch all user roles
-    console.log("Fetching user roles...");
-    const { data: rolesData, error: rolesError } = await supabase
-      .from("user_roles")
-      .select("*");
-
-    if (rolesError) {
-      console.error("Error fetching user roles:", rolesError);
-      throw rolesError;
-    }
-
-    console.log(`Found ${rolesData?.length || 0} user roles`);
-
-    // Log the roles for debugging
-    if (rolesData && rolesData.length > 0) {
-      console.log("Sample role data:", rolesData[0]);
-    } else {
-      console.warn("No user roles found in the database");
-    }
-
-    // Map profiles with their roles
-    const usersWithRoles = profilesData.map((profile) => {
-      // Find all roles for this user
-      const userRoles = rolesData.filter((role) => role.user_id === profile.id);
-
-      // Determine the highest role (superuser > admin > user)
-      let highestRole = "user";
-      if (userRoles.some(r => r.role === "superuser")) {
-        highestRole = "superuser";
-      } else if (userRoles.some(r => r.role === "admin")) {
-        highestRole = "admin";
-      }
-
-      // Check if this user is a super user (either by database role or email fallback)
-      const superUserEmails = [
-        'ojidelawrence@gmail.com',
-        'popsabey1@gmail.com',
-        'dev.samadeyemi@gmail.com'
-      ];
-      const isSuperUser = highestRole === "superuser" || 
-        (profile.email && superUserEmails.includes(profile.email.toLowerCase()));
-
-      return {
-        ...profile,
-        name: profile.full_name, // For compatibility
-        role: highestRole as "admin" | "user" | "superuser",
-        isSuperUser,
-      };
-    });
-
-    console.log(`Processed ${usersWithRoles.length} users with roles`);
-
-    return { users: usersWithRoles, error: null };
+    const json = await res.json();
+    const rawUsers: any[] = json?.data ?? [];
+    const users: AdminUser[] = rawUsers.map((u) => ({
+      id: u._id,
+      email: u.email,
+      fullName: u.fullName ?? null,
+      role: (u.role as AdminUser['role']) ?? 'user',
+      isActive: u.isActive,
+      isSuperUser: u.role === 'superadmin',
+    }));
+    console.log(`Loaded ${users.length} users`);
+    return { users, error: null };
   } catch (error: any) {
     console.error("Error in fetchUsers:", error);
     return { users: [], error };
@@ -86,28 +39,8 @@ export const fetchUsers = async (): Promise<{ users: AdminUser[]; error: Error |
  */
 export const addUserRole = async (userId: string, role: "admin" | "user" | "superuser"): Promise<{ success: boolean; error: Error | null }> => {
   try {
-    // Check if the user already has this role
-    const { data: existingRoles, error: checkError } = await supabase
-      .from("user_roles")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("role", role);
-
-    if (checkError) throw checkError;
-
-    // If the user already has this role, return success
-    if (existingRoles && existingRoles.length > 0) {
-      return { success: true, error: null };
-    }
-
-    // Add the role
-    const { error: insertError } = await supabase
-      .from("user_roles")
-      .insert({ user_id: userId, role });
-
-    if (insertError) throw insertError;
-
-    return { success: true, error: null };
+    console.warn('addUserRole not implemented for backend API');
+    return { success: false, error: new Error('Not implemented') };
   } catch (error: any) {
     console.error("Error adding user role:", error);
     return { success: false, error };
@@ -119,15 +52,8 @@ export const addUserRole = async (userId: string, role: "admin" | "user" | "supe
  */
 export const removeUserRole = async (userId: string, role: "admin" | "user" | "superuser"): Promise<{ success: boolean; error: Error | null }> => {
   try {
-    const { error } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId)
-      .eq("role", role);
-
-    if (error) throw error;
-
-    return { success: true, error: null };
+    console.warn('removeUserRole not implemented for backend API');
+    return { success: false, error: new Error('Not implemented') };
   } catch (error: any) {
     console.error("Error removing user role:", error);
     return { success: false, error };

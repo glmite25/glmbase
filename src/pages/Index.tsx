@@ -40,7 +40,7 @@ const Index = () => {
   }));
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen overflow-hidden flex flex-col">
       <main className="flex-grow">
         <Hero
           title="Welcome to Gospel Labour Ministry"

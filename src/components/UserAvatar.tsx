@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { User, LogOut, Settings, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { clearAccessToken } from "@/utils/authApi";
 import { useToast } from "@/hooks/use-toast";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -46,43 +46,26 @@ export const UserAvatar = () => {
         title: "Logging out...",
       });
 
-      // Clear all auth-related storage
-      localStorage.removeItem('glm-auth-token');
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('supabase.auth.refreshToken');
-      localStorage.removeItem('supabase.auth.accessToken');
+      // Clear backend token
+      clearAccessToken();
 
       // Clear session storage as well
       sessionStorage.removeItem('glm-auth-token');
-      sessionStorage.removeItem('supabase.auth.token');
 
       // Clear any session cookies
       document.cookie.split(";").forEach(function(c) {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       });
 
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut({
-        scope: 'global' // This ensures a complete sign-out across all tabs/windows
-      });
-
-      if (error) {
-        console.error("Logout error:", error);
-        throw error;
-      }
+      // No remote sign-out required for backend token-only auth
 
       console.log("Logout successful");
 
-      // Small delay to ensure the auth state has time to update
+      // Navigate and reload to ensure clean state
+      navigate("/");
       setTimeout(() => {
-        // Navigate to home page instead of using window.location for a smoother experience
-        navigate("/");
-
-        // Force a full page reload after a small delay to ensure clean state
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      }, 300);
+        window.location.reload();
+      }, 100);
 
     } catch (error: any) {
       console.error("Logout error:", error);

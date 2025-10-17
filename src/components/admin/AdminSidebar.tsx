@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { UserAvatar } from "@/components/UserAvatar";
-import { supabase } from "@/integrations/supabase/client";
+import { clearAccessToken } from "@/utils/authApi";
 
 interface AdminSidebarProps {
   onClose?: () => void;
@@ -36,13 +36,13 @@ interface AdminSidebarProps {
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isSuperUser, isAdmin } = useAuth();
+  const { user, isSuperUser, isAdmin } = useAuth();
   const isMobile = useIsMobile();
 
   console.log('AdminSidebar rendering with:', { isSuperUser, isAdmin });
   
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    clearAccessToken();
     navigate('/');
   };
 
@@ -217,11 +217,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onClose }) => {
       <div className="mt-auto p-4 border-t">
         <div className="flex items-center space-x-3 mb-2">
           <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
+            {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {profile?.full_name || user?.email?.split('@')[0]}
+              {user?.fullName || user?.email?.split('@')[0]}
             </p>
             <p className="text-xs text-gray-500 truncate">
               {user?.email}

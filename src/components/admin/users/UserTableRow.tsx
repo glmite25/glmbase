@@ -14,15 +14,15 @@ type UserTableRowProps = {
 const UserTableRow = ({ user, onEdit, onDelete }: UserTableRowProps) => {
   return (
     <TableRow key={user.id}>
-      <TableCell>{user.full_name || 'N/A'}</TableCell>
+      <TableCell>{user.fullName || 'N/A'}</TableCell>
       <TableCell>{user.email}</TableCell>
       <TableCell>
         <Badge variant={
-          user.role === "superuser" || user.isSuperUser ? "destructive" : 
+          user.role === "superadmin" || user.isSuperUser ? "destructive" : 
           user.role === "admin" ? "default" : 
           "secondary"
         }>
-          {user.role === "superuser" || user.isSuperUser ? "Super Admin" : user.role}
+          {user.role === "superadmin" || user.isSuperUser ? "Super Admin" : user.role}
         </Badge>
       </TableCell>
       <TableCell className="text-right space-x-2">

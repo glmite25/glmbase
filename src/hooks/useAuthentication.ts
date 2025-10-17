@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { createUserProfile } from "@/utils/createUserProfile";
+import { login as backendLogin, setAccessToken, clearAccessToken } from "@/utils/authApi";
+import { useAuth } from "@/contexts/AuthContext";
 import { validatePassword, PasswordValidationResult } from "@/utils/passwordValidation";
 
 export const useAuthentication = () => {
@@ -33,17 +33,8 @@ export const useAuthentication = () => {
 
   // Helper function to clear all auth storage
   const clearAuthStorage = () => {
-    // Clear Supabase auth tokens
-    localStorage.removeItem('glm-auth-token');
-    localStorage.removeItem('supabase.auth.token');
-    localStorage.removeItem('supabase.auth.refreshToken');
-    localStorage.removeItem('supabase.auth.accessToken');
-
-    // Clear session storage items too
+    clearAccessToken();
     sessionStorage.removeItem('glm-auth-token');
-    sessionStorage.removeItem('supabase.auth.token');
-
-    // Clear any session cookies
     document.cookie.split(";").forEach(function(c) {
       document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
@@ -76,16 +67,10 @@ export const useAuthentication = () => {
 
       // Normalize email to lowercase
       const normalizedEmail = email.toLowerCase();
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
-
-      console.log("[signIn] Supabase response:", { data, error });
-
-      // Handle errors
-      if (error) {
+      try {
+        const result = await backendLogin(normalizedEmail, password);
+        setAccessToken(result.accessToken);
+      } catch (err: any) {
         // Increment login attempts on failure
         const newAttempts = loginAttempts + 1;
         setLoginAttempts(newAttempts);
@@ -108,35 +93,9 @@ export const useAuthentication = () => {
           return;
         }
 
-        // Handle the email_not_confirmed error specifically
-        if (error.message === "Email not confirmed") {
-          toast({
-            variant: "destructive",
-            title: "Email not confirmed",
-            description: "Your email has not been confirmed yet. You can still use the app in development mode.",
-          });
-
-          // Try to sign in again without options for development purposes
-          if (import.meta.env.DEV) {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-              email: normalizedEmail,
-              password,
-            });
-
-            if (!signInError) {
-              console.log("[signIn] Second attempt success, navigating to home");
-              // Reset login attempts on success
-              setLoginAttempts(0);
-              navigate("/");
-              return;
-            }
-          }
-        }
-
-        // Display specific error message
-        setErrorMessage(error.message);
-        console.error("[signIn] Error:", error.message);
-        throw error;
+        setErrorMessage(err?.message || 'Login failed');
+        console.error("[signIn] Error:", err?.message || err);
+        throw err;
       }
 
       // Success - reset login attempts and navigate
@@ -189,132 +148,13 @@ const signUp = async (
         address: address ? "Provided" : "None"
       });
 
-      // Normalize email to lowercase to prevent case-sensitivity issues
-      const normalizedEmail = email.toLowerCase();
-
-      // Step 1: Create the user account
-      const { data, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            church_unit: churchUnit || null,
-            assigned_pastor: assignedPastor || null,
-            phone: phone || null,
-            address: address || null,
-          },
-          // Don't use emailRedirectTo in development to avoid confirmation issues
-          ...(import.meta.env.PROD ? { emailRedirectTo: `${window.location.origin}/auth/callback` } : {})
-        },
-      });
-
-      if (error) {
-        console.error("Signup error:", error);
-        setErrorMessage(error.message);
-        throw error;
-      }
-
-      console.log("Signup successful, response:", data);
-
-      // Step 2: Handle profile creation (works for both dev and prod)
-      console.log("Creating user profile after successful signup");
-
-      // Wait a moment to ensure the user is created in Supabase
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Create profile record using the user data from signup
-      if (data.user && data.user.id) {
-        try {
-          console.log("Attempting profile creation with data:", {
-            userId: data.user.id,
-            email: normalizedEmail,
-            fullName,
-            churchUnit,
-            phone
-          });
-
-          // Use our utility function to create the profile
-          const profileResult = await createUserProfile(
-            data.user.id,
-            normalizedEmail,
-            fullName,
-            churchUnit,
-            assignedPastor,
-            phone,
-            address
-          );
-
-          if (!profileResult.success) {
-            console.error("Error creating profile:", profileResult.message);
-            // Show success message since the trigger should handle profile creation
-            toast({
-              variant: "default",
-              title: "Account Created Successfully",
-              description: "Your account has been created. Profile setup will complete automatically.",
-            });
-          } else {
-            console.log("Profile created successfully:", profileResult.message);
-            toast({
-              variant: "default",
-              title: "Account Created Successfully",
-              description: "Your account and profile have been set up successfully.",
-            });
-          }
-        } catch (profileError: any) {
-          console.error("Profile creation error:", profileError);
-          // Show success message since the trigger should handle profile creation
-          toast({
-            variant: "default",
-            title: "Account Created Successfully",
-            description: "Your account has been created. Profile setup will complete automatically.",
-          });
-        }
-      }
-
-      // Step 3: For development, automatically sign in
-      if (import.meta.env.DEV) {
-        console.log("Development mode: attempting automatic sign in");
-
-        try {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: normalizedEmail,
-            password,
-          });
-
-          if (signInError) {
-            console.error("Auto sign-in error:", signInError);
-            throw signInError;
-          }
-
-          console.log("Auto sign-in successful:", signInData);
-
-          toast({
-            title: "Account created!",
-            description: "You've been automatically signed in (development mode).",
-          });
-
-          // Use window.location to force a full page reload
-          window.location.href = "/";
-          return;
-        } catch (signInError: any) {
-          console.error("Auto sign-in failed:", signInError);
-          // Continue with normal flow if auto sign-in fails
-        }
-      }
-
-      // Step 3: Show success message for production or if dev auto-login failed
+      // No signup via frontend for now — instruct user to contact admin
+      setErrorMessage("Signup is disabled. Please contact an administrator.");
       toast({
-        title: "Account created!",
-        description: import.meta.env.PROD
-          ? "Please check your email to confirm your account."
-          : "Please sign in with your new credentials.",
+        variant: "destructive",
+        title: "Signup disabled",
+        description: "Please contact an administrator to create an account.",
       });
-
-      // In development, redirect to login page if auto-login failed
-      if (import.meta.env.DEV) {
-        navigate("/auth");
-      }
     } catch (error: any) {
       console.error("Authentication error:", error);
 
@@ -344,32 +184,7 @@ const signUp = async (
         }
       }
 
-      // Handle specific Supabase error codes
-      if (error.code) {
-        console.error("Error code:", error.code);
-
-        switch (error.code) {
-          case "23505": // Unique violation
-            errorMsg = "An account with this email already exists. Please sign in instead.";
-            break;
-          case "23502": // Not null violation
-            errorMsg = "Missing required information. Please fill in all required fields.";
-            break;
-          case "23503": // Foreign key violation
-            errorMsg = "Database configuration error. Please contact support.";
-            break;
-          case "42P01": // Undefined table
-            errorMsg = "Database configuration error. Please contact support.";
-            break;
-          case "auth_signup_duplicate_email":
-            errorMsg = "This email is already registered. Please sign in instead.";
-            break;
-          case "PGRST116": // Connection error
-            errorMsg = "Database connection error. Please try again.";
-            shouldRetry = true;
-            break;
-        }
-      }
+      // No special error code mapping now
 
       // Log additional error information for debugging
       if (error.details) {
@@ -401,33 +216,13 @@ const signUp = async (
     }
   };
 
-  const resetPassword = async (email: string) => {
-    if (!email) {
-      setErrorMessage("Please enter your email address first");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password',
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        throw error;
-      }
-
+  const resetPassword = async (_email: string) => {
+    setErrorMessage("Password reset is not available. Contact support.");
       toast({
-        title: "Password reset email sent",
-        description: "Check your inbox for instructions to reset your password.",
-      });
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error("Password reset error:", errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+      variant: "destructive",
+      title: "Not available",
+      description: "Password reset flow is not configured.",
+    });
   };
 
   return {

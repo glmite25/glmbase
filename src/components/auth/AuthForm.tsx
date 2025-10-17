@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Phone, MapPin, Mail, User, Shield } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { setAccessToken } from "@/utils/authApi";
 import { isValidPhoneNumber, getPhoneValidationMessage } from "@/utils/phoneValidation";
+import axios from 'axios'
 
 
 export const AuthForm = () => {
@@ -127,7 +128,7 @@ export const AuthForm = () => {
     setFormStep(0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isSignUp && formStep === 0) {
@@ -162,9 +163,38 @@ export const AuthForm = () => {
         address,
 
       });
-      signUp(email, password, fullName, "", "", phone, address);
+      try {
+        const resp = await axios.post('https://church-management-api-p709.onrender.com/api/auth/register', {
+          fullName: fullName,
+          email: email,
+          password: password,
+        })
+   
+        if(resp.data?.data?.accessToken) {
+          navigate('/admin-access');
+        }
+      } catch (error) {
+        clearErrors();
+        setErrorMessage('Error signing up. Please try again.');
+      }
     } else {
-      signIn(email, password, returnTo || undefined);
+      try {
+        const resp = await axios.post('https://church-management-api-p709.onrender.com/api/auth/login', { email, password });
+        const token = resp.data?.data?.accessToken;
+        const role = resp.data?.data?.user?.role;
+        if (!token) throw new Error('No token returned');
+        setAccessToken(token);
+        const adminRole = ['admin', 'superadmin'];
+        console.log('User', resp)
+        if (adminRole.includes(role)) {
+          navigate('/admin-access');
+        } else {
+          navigate(returnTo || '/');
+        }
+      } catch (error) {
+        clearErrors();
+        setErrorMessage('Invalid email or password');
+      }
     }
   };
 

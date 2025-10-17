@@ -25,7 +25,7 @@ const AdminStats = lazy(() => import("@/components/admin/dashboard/AdminStatsSim
 const UnitsOverview = lazy(() => import("@/components/admin/units/UnitsOverview"));
 
 const DefaultDashboard = () => {
-  const { user, isSuperUser, profile } = useAuth();
+  const { user, isSuperUser } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, Shield, Building2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserAvatar } from "@/components/UserAvatar";
 import { OFFICIAL_CHURCH_UNITS } from "@/constants/churchUnits";
+import { getAccessToken } from "@/utils/authApi";
 
 interface StatsData {
   totalMembers: number;
@@ -17,7 +17,7 @@ interface StatsData {
 }
 
 const AdminStatsSimple = () => {
-  const { user, isSuperUser, profile } = useAuth();
+  const { user, isSuperUser } = useAuth();
   const [stats, setStats] = useState<StatsData>({
     totalMembers: 0,
     activeMembers: 0,
@@ -36,32 +36,51 @@ const AdminStatsSimple = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      const token = getAccessToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Fetch basic stats that we know exist
-      const [
-        membersResult,
-        activeMembersResult,
-        pastorsResult,
-        recentMembersResult,
-      ] = await Promise.all([
-        supabase.from('members').select('id', { count: 'exact', head: true }),
-        supabase.from('members').select('id', { count: 'exact', head: true }).eq('isactive', true),
-        supabase.from('members').select('id', { count: 'exact', head: true }).eq('category', 'Pastors'),
-        supabase.from('members').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+      const [membersRes, pastorsRes, eventsRes, unitsRes] = await Promise.all([
+        fetch('https://church-management-api-p709.onrender.com/api/members', { headers }),
+        fetch('https://church-management-api-p709.onrender.com/api/pastors', { headers }),
+        fetch('https://church-management-api-p709.onrender.com/api/events', { headers }),
+        fetch('https://church-management-api-p709.onrender.com/api/church-units', { headers }),
       ]);
 
-      // Events table not implemented yet
-      const eventsCount = 0;
-      const upcomingEventsCount = 0;
+      const [membersJson, pastorsJson, eventsJson, unitsJson] = await Promise.all([
+        membersRes.json().catch(() => ({ data: [] })),
+        pastorsRes.json().catch(() => ({ data: [] })),
+        eventsRes.json().catch(() => ({ data: [] })),
+        unitsRes.json().catch(() => ({ data: [] })),
+      ]);
+
+      const members: any[] = membersJson?.data?.data ?? membersJson?.data ?? [];
+      const pastors: any[] = pastorsJson?.data?.data ?? pastorsJson?.data ?? [];
+      const events: any[] = eventsJson?.data?.data ?? eventsJson?.data ?? [];
+      const units: any[] = unitsJson?.data?.data ?? unitsJson?.data ?? [];
+
+      const totalMembers = members.length;
+      const activeMembers = members.filter((m: any) => m?.isActive === true || m?.isactive === true).length;
+      const pastorsCount = pastors.length || members.filter((m: any) => (m?.role || m?.category) === 'Pastors' || (m?.role || m?.category) === 'pastor').length;
+      const recentRegistrations = members.filter((m: any) => {
+        const created = m?.created_at || m?.createdAt;
+        if (!created) return false;
+        const createdTime = new Date(created).getTime();
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        return createdTime >= cutoff;
+      }).length;
+
+      const totalEvents = events.length;
+      const upcomingEvents = 0; // Adjust if backend provides dates to filter
+      const totalUnits = units.length || OFFICIAL_CHURCH_UNITS.length;
 
       setStats({
-        totalMembers: membersResult.count || 0,
-        activeMembers: activeMembersResult.count || 0,
-        totalEvents: eventsCount,
-        upcomingEvents: upcomingEventsCount,
-        pastors: pastorsResult.count || 0,
-        recentRegistrations: recentMembersResult.count || 0,
-        totalUnits: OFFICIAL_CHURCH_UNITS.length,
+        totalMembers,
+        activeMembers,
+        totalEvents,
+        upcomingEvents,
+        pastors: pastorsCount,
+        recentRegistrations,
+        totalUnits,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -155,7 +174,7 @@ const AdminStatsSimple = () => {
 
         <div>
           <h1 className="text-2xl font-bold font-sans mb-2">
-            Welcome back, {profile?.full_name || 'Admin'}!
+            Welcome back, {user?.fullName || 'Admin'}!
           </h1>
           <p className="text-gray-500">
             {isSuperUser
@@ -168,7 +187,7 @@ const AdminStatsSimple = () => {
           <UserAvatar />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {profile?.full_name || user?.email?.split('@')[0]}
+              {user?.fullName || user?.email?.split('@')[0]}
             </p>
             <p className="text-xs text-gray-500 truncate">
               {user?.email}

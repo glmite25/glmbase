@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -8,6 +8,7 @@ import ImageWithFallback from "@/components/ui/image-with-fallback";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,7 +34,10 @@ const Header = () => {
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isMenuOpen && !(event.target as Element).closest('header')) {
+      if (!isMenuOpen) return;
+      const target = event.target as Node | null;
+      const headerEl = headerRef.current;
+      if (headerEl && target && !headerEl.contains(target)) {
         setIsMenuOpen(false);
       }
     };
@@ -69,7 +73,7 @@ const Header = () => {
   const shouldShowBlackBg = isScrolled || isNotIndex;
 
   return (
-    <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${shouldShowBlackBg ? 'bg-black shadow-md py-2' : 'bg-transparent py-4'}`}>
+    <header ref={headerRef} className={`fixed w-full top-0 z-50 transition-all duration-300 ${shouldShowBlackBg ? 'bg-black shadow-md py-2' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
           <ImageWithFallback 
@@ -115,7 +119,7 @@ const Header = () => {
           ) : (
             <Button
               className="bg-church-red px-10 py-6 hover:bg-church-red/90 text-white"
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/auth/login")}
             >
               Login
             </Button>
@@ -177,7 +181,7 @@ const Header = () => {
                 <Button
                   className="bg-church-red hover:bg-church-red/90 text-white w-full"
                   onClick={() => {
-                    navigate("/auth");
+                    navigate("/auth/login");
                     setIsMenuOpen(false);
                   }}
                 >

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/utils/authApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +39,7 @@ import {
   Briefcase,
   Users
 } from "lucide-react";
+import axios from "axios";
 
 // Profile form schema
 const profileSchema = z.object({
@@ -117,6 +118,10 @@ export const PersonalProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [needsCreation, setNeedsCreation] = useState(false);
+  const [createTitle, setCreateTitle] = useState<string>("Brother");
+  const [createCategory, setCreateCategory] = useState<string>("adult");
+  const [createJoinDate, setCreateJoinDate] = useState<string>("2023-09-15");
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -126,41 +131,75 @@ export const PersonalProfilePage = () => {
     },
   });
 
-  // Load member profile
-  // Load member profile
+// Load member profile using backend API
 const loadProfile = async () => {
-  if (!user) return;
+  if (!user?.email) return;
 
   try {
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_member_profile', {
-      member_id: user.id, // 👈 pass user.id as parameter
+    const token = getAccessToken();
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+    // Try to get member by email
+    const res = await axios.get(
+      `https://church-management-api-p709.onrender.com/api/members/user/${user._id}`,
+      { headers: { 'Content-Type': 'application/json', ...headers } }
+    );
+    
+    console.log("isMember", res.data?.data);
+    // if (!res.data) {
+    //   throw new Error('Failed to fetch member profile');
+    // }
+    const member = res.data.data as any | undefined;
+    console.log("member", member);
+    if (!member) {
+      setNeedsCreation(true);
+      form.reset({
+        fullname: "",
+        phone: "",
+        address: "",
+        date_of_birth: "1990-07-12",
+        gender: "male",
+        occupation: "",
+        bio: "",
+        genotype: "AA",
+      });
+      return;
+    }
+
+    // If member exists, map and load
+    const profileData: MemberProfile = {
+      id: member._id,
+      user_id: member.user_id || user._id || '',
+      email: member.email,
+      fullname: member.fullname || member.fullName || '',
+      phone: member.phone || '',
+      address: member.address || '',
+      date_of_birth: member.date_of_birth || '',
+      gender: member.gender || '',
+      title: member.title,
+      category: member.category,
+      churchunit: member.church_unit,
+      churchunits: [],
+      assigned_pastor_name: undefined,
+      joindate: member.join_date,
+      created_at: member.created_at,
+      updated_at: member.updated_at,
+      bio: member.notes || '',
+    } as any;
+
+    setProfile(profileData);
+    form.reset({
+      fullname: profileData.fullname || "",
+      phone: profileData.phone || "",
+      address: profileData.address || "",
+      date_of_birth: profileData.date_of_birth || "",
+      gender: (profileData.gender as "male" | "female" | "other") || undefined,
+      occupation: profileData.occupation || "",
+      bio: profileData.bio || "",
+      genotype: profileData.genotype || "",
     });
 
-    if (error) throw error;
-
-    if (data) {
-      const profileData = data as unknown as MemberProfile;
-      setProfile(profileData);
-      console.log("Profile:", profileData);
-
-      form.reset({
-        fullname: profileData.fullname || "",
-        phone: profileData.phone || "",
-        address: profileData.address || "",
-        date_of_birth: profileData.date_of_birth || "",
-        gender: (profileData.gender as "male" | "female" | "other") || undefined,
-        occupation: profileData.occupation || "",
-        bio: profileData.bio || "",
-        genotype: profileData.genotype || "",
-      });
-    } else {
-      toast({
-        title: "No profile found",
-        description: "Your member profile could not be found.",
-        variant: "destructive",
-      });
-    }
   } catch (error) {
     console.error("Error loading profile:", error);
     toast({
@@ -174,26 +213,46 @@ const loadProfile = async () => {
 };
 
 
-  // Save profile changes
-// Save profile changes
+// Save profile changes via backend API
 const onSubmit = async (values: ProfileFormValues) => {
-  if (!user) return;
+  if (!user || !profile) return;
 
   try {
     setSaving(true);
-    const { data, error } = await supabase.rpc('update_member_profile', {
-      member_id: user.id, // 👈 pass user.id
-      profile_data: values,
+    const token = getAccessToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    const payload: any = {
+      fullname: values.fullname,
+      phone: values.phone,
+      address: values.address,
+      date_of_birth: values.date_of_birth,
+      gender: values.gender,
+      occupation: values.occupation,
+      notes: values.bio,
+      genotype: values.genotype,
+    };
+
+    const res = await fetch(`https://church-management-api-p709.onrender.com/api/members/${profile.id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(payload),
     });
 
-    if (error) throw error;
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to update profile');
+    }
 
     toast({
       title: "Success",
       description: "Profile updated successfully",
     });
     setEditing(false);
-    await loadProfile(); // reload
+    await loadProfile();
   } catch (error) {
     console.error("Error updating profile:", error);
     toast({
@@ -213,9 +272,13 @@ const onSubmit = async (values: ProfileFormValues) => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading profile...</div>
+      <div className="min-h-screen mt-20 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="p-8">
+              <div className="text-center text-gray-700">Loading profile...</div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -223,17 +286,199 @@ const onSubmit = async (values: ProfileFormValues) => {
 
   if (!profile) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
-              <p className="text-muted-foreground">
-                Your member profile could not be loaded. Please contact an administrator.
-              </p>
+      <div className="min-h-screen mt-20 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-white pt-6 text-gray-900">
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl font-bold font-sans">Create Your Member Profile</h1>
+                <p className="text-gray-600 text-sm">Enter your details to continue</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-8 space-y-6">
+            <p className="text-sm text-muted-foreground">
+              We couldn’t find a profile for your account. Please provide a few details to get started.
+            </p>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(async (values) => {
+                  try {
+                    setSaving(true);
+                    const token = getAccessToken();
+                    const headers: any = {
+                      'Content-Type': 'application/json',
+                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    };
+                    const payload: any = {
+                      fullname: values.fullname,
+                      email: user?.email,
+                      user_id: (user as any)?._id || '',
+                      phone: values.phone,
+                      address: values.address,
+                      date_of_birth: values.date_of_birth ? new Date(values.date_of_birth).toISOString() : "1990-07-12T00:00:00.000Z",
+                      gender: values.gender || "male",
+                      genotype: values.genotype || "AA",
+                      category: createCategory || "adult",
+                      title: createTitle || "Brother",
+                      join_date: createJoinDate ? new Date(createJoinDate).toISOString() : "2023-09-15T00:00:00.000Z",
+                    };
+                    const res = await fetch('https://church-management-api-p709.onrender.com/api/members', {
+                      method: 'POST',
+                      headers,
+                      body: JSON.stringify(payload),
+                    });
+                    if (!res.ok) {
+                      const text = await res.text();
+                      throw new Error(text || 'Failed to create member');
+                    }
+                    const created = await res.json();
+                    const m = created?.data;
+                    const profileData: MemberProfile = {
+                      id: m._id,
+                      user_id: m.user_id || '',
+                      email: m.email,
+                      fullname: m.fullname || m.fullName || '',
+                      phone: m.phone || '',
+                      address: m.address || '',
+                      date_of_birth: m.date_of_birth || '',
+                      gender: m.gender || '',
+                      title: m.title,
+                      category: m.category || 'adult',
+                      churchunit: m.church_unit,
+                      churchunits: [],
+                      assigned_pastor_name: undefined,
+                      joindate: m.join_date,
+                      created_at: m.created_at || new Date().toISOString(),
+                      updated_at: m.updated_at || new Date().toISOString(),
+                    } as any;
+                    setProfile(profileData);
+                    setNeedsCreation(false);
+                    toast({ title: 'Profile created', description: 'Your member profile has been created.' });
+                  } catch (err) {
+                    toast({ variant: 'destructive', title: 'Error', description: 'Failed to create profile' });
+                  } finally {
+                    setSaving(false);
+                  }
+                })}
+                className="space-y-5"
+              >
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="fullname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="John Doe" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div>
+                    <Label>Email</Label>
+                    <Input value={user?.email || ''} disabled className="bg-muted" />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="+2348000000000" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="date_of_birth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date of Birth</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="gender"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="genotype"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Genotype</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="AA" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder="Your address" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div>
+                    <Label>Title</Label>
+                    <Input value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="Brother" />
+                  </div>
+                  <div>
+                    <Label>Category</Label>
+                    <Input value={createCategory} onChange={(e) => setCreateCategory(e.target.value)} placeholder="adult" />
+                  </div>
+                  <div>
+                    <Label>Join Date</Label>
+                    <Input type="date" value={createJoinDate} onChange={(e) => setCreateJoinDate(e.target.value)} />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full bg-gradient-to-r from-[#ff0000] to-red-600 text-white py-3.5 rounded-xl font-semibold shadow-lg shadow-red-500/25 hover:shadow-xl hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {saving ? 'Creating...' : 'Create Profile'}
+                </button>
+              </form>
+            </Form>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -635,7 +880,6 @@ const onSubmit = async (values: ProfileFormValues) => {
             </CardContent>
           </Card>
 
-          {/* Location */}
           <Card>
             <CardHeader>
               <CardTitle className="flex font-sans items-center gap-2">
@@ -704,7 +948,6 @@ const onSubmit = async (values: ProfileFormValues) => {
             </CardContent>
           </Card>
 
-          {/* Spiritual Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex font-sans items-center gap-2">
@@ -769,7 +1012,6 @@ const onSubmit = async (values: ProfileFormValues) => {
             </CardContent>
           </Card>
 
-          {/* System Information (Read-only) */}
           <Card>
             <CardHeader>
               <CardTitle className="font-sans">System Information</CardTitle>

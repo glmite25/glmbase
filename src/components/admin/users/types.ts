@@ -1,9 +1,8 @@
-
 export type AdminUser = {
-  id: string;
+  id: string; // maps from backend _id
   email: string;
-  full_name: string | null;
-  role: "admin" | "user" | "superuser";
-  name?: string; // For compatibility
-  isSuperUser?: boolean; // Computed field for super user status
+  fullName: string | null;
+  role: "admin" | "user" | "superadmin" | "pastor";
+  isActive?: boolean;
+  isSuperUser?: boolean; // Computed: role === 'superadmin'
 };
